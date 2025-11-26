@@ -128,7 +128,7 @@ private fun GameContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(horizontal = 8.dp, vertical = 32.dp), // Much less horizontal padding
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Game header with score, timer, and high score

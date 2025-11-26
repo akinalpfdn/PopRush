@@ -4,15 +4,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.akinalpfdn.poprush.core.domain.model.Bubble
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameState
 
 /**
- * Renders the exact 5-6-7-8-7-6-5 honeycomb grid layout with dynamic bubble sizing.
- * Calculates bubble size based on available screen width for perfect hexagonal hive shape.
+ * Renders the exact 5-6-7-8-7-6-5 honeycomb grid layout.
+ * Optimized to fill the screen width on phones by removing restrictive device checks.
  */
 @Composable
 fun BubbleGrid(
@@ -23,8 +22,8 @@ fun BubbleGrid(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    // 1. Full Grid Configuration (5-6-7-8-7-6-5)
-    val rowConfigs = remember { listOf(5, 6, 7, 8,7, 6, 5) }
+    // 1. Full Grid Configuration
+    val rowConfigs = remember { listOf(5, 6, 7, 8, 7, 6, 5) }
 
     // 2. Slice the bubble list into rows
     val bubbleRows = remember(gameState.bubbles) {
@@ -40,31 +39,31 @@ fun BubbleGrid(
         rows
     }
 
-    // 3. Calculate dynamic bubble size based on screen width
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-
-    // The widest row has 8 bubbles, each needs width + gap
-    // Total gap for 8 bubbles = 7 gaps * gapWidth
-    val gapWidth = 4.dp // Tight gap for hexagonal look
-    val maxRowBubbles = 8
-    val totalGapWidth = gapWidth * (maxRowBubbles - 1)
-    val availableWidthForBubbles = screenWidth * 1.9f // Use 90% of screen width
-    val calculatedBubbleSize = (availableWidthForBubbles - totalGapWidth) / maxRowBubbles
-
-    // Ensure minimum size for usability
-    val dynamicBubbleSize = calculatedBubbleSize.coerceIn(24.dp, 60.dp)
-
-    // 4. Layout: Fixed canvas with dynamic bubble sizing
-    Box(
-        modifier = modifier.fillMaxSize(),
+    // 3. Use BoxWithConstraints to calculate size based on the EXACT available width
+    BoxWithConstraints(
+        modifier = modifier.fillMaxSize(), // Ensures the grid container takes all space
         contentAlignment = Alignment.Center
     ) {
+        val gapWidth = 4.dp
+        val maxRowBubbles = 8
+
+        // Take the full available width from the parent (minus a small safety padding)
+        val availableWidth = maxWidth * 0.98f
+
+        // Calculate total gap space in the widest row (8 bubbles = 7 gaps)
+        val totalGapWidth = gapWidth * (maxRowBubbles - 1)
+
+        // Calculate the exact size needed per bubble to fill the width
+        // Removed coerceIn upper limit to allow full expansion
+        val baseBubbleSize = (availableWidth - totalGapWidth) / maxRowBubbles
+
+        // Apply zoom level (if any)
+        val finalBubbleSize = baseBubbleSize * zoomLevel
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            // To create the "Hexagonal" nesting effect, vertical spacing must be tighter than horizontal.
-            verticalArrangement = Arrangement.spacedBy(2.dp), // Very tight for hive look
-            modifier = Modifier.fillMaxWidth()
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            // We do not force a fixed width here; we rely on the bubble size to define the width
         ) {
             bubbleRows.forEach { rowBubbles ->
                 Row(
@@ -75,7 +74,7 @@ fun BubbleGrid(
                         Bubble(
                             bubble = bubble,
                             shape = selectedShape,
-                            bubbleSize = dynamicBubbleSize * zoomLevel,
+                            bubbleSize = finalBubbleSize,
                             onClick = onBubblePress,
                             enabled = enabled
                         )
