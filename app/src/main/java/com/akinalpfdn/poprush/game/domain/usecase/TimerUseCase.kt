@@ -55,6 +55,7 @@ class TimerUseCase @Inject constructor() {
     private var totalDuration: Duration = Duration.ZERO
     private var startTime: Long = 0L
     private var pausedTime: Long = 0L
+    private var pauseStartTime: Long = 0L
 
     /**
      * Starts the timer with the specified duration.
@@ -78,7 +79,7 @@ class TimerUseCase @Inject constructor() {
                     delay(TICK_INTERVAL_MS)
 
                     if (isRunning.get()) {
-                        val elapsed = System.currentTimeMillis() - startTime - pausedTime
+                        val elapsed = System.currentTimeMillis() - startTime
                         val remaining = (totalDuration.inWholeMilliseconds - elapsed).coerceAtLeast(0)
 
                         _timeRemaining.value = remaining.milliseconds
@@ -129,7 +130,8 @@ class TimerUseCase @Inject constructor() {
             if (isRunning.get() && _timerState.value == TimerState.RUNNING) {
                 isRunning.set(false)
                 _timerState.value = TimerState.PAUSED
-                pausedTime += System.currentTimeMillis() - startTime
+                // Store the pause time to adjust startTime when resuming
+                pauseStartTime = System.currentTimeMillis()
                 Timber.d("Timer paused at: ${_timeRemaining.value}")
             }
         } catch (e: Exception) {
@@ -145,8 +147,11 @@ class TimerUseCase @Inject constructor() {
             if (!isRunning.get() && _timerState.value == TimerState.PAUSED) {
                 isRunning.set(true)
                 _timerState.value = TimerState.RUNNING
-                startTime = System.currentTimeMillis()
-                Timber.d("Timer resumed from: ${_timeRemaining.value}")
+                // Adjust startTime to account for the pause duration
+                val pauseDuration = System.currentTimeMillis() - pauseStartTime
+                startTime += pauseDuration
+                pauseStartTime = 0L
+                Timber.d("Timer resumed from: ${_timeRemaining.value}, pauseDuration: ${pauseDuration}ms")
             }
         } catch (e: Exception) {
             Timber.e(e, "Error resuming timer")

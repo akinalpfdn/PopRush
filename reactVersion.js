@@ -360,7 +360,7 @@ export default function App() {
       </div>
 
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 text-stone-400 text-xs font-semibold tracking-wider opacity-50 whitespace-nowrap pointer-events-none">
-        TAP THE LIT BUBBLES
+        MADE BY MOVI
       </div>
     </div>
   );

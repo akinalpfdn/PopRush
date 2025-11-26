@@ -60,6 +60,7 @@ fun GameScreen(
             onBubblePress = { bubbleId -> viewModel.processIntent(GameIntent.PressBubble(bubbleId)) },
             onToggleSettings = { viewModel.processIntent(GameIntent.ToggleSettings) },
             onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
+            onTogglePause = { viewModel.processIntent(GameIntent.TogglePause) },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -84,7 +85,7 @@ fun GameScreen(
 
         // Bottom instruction text
         Text(
-            text = "TAP THE LIT BUBBLES",
+            text = "MADE BY MOVI",
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp),
@@ -146,6 +147,7 @@ private fun GameContent(
     onBubblePress: (Int) -> Unit,
     onToggleSettings: () -> Unit,
     onSelectShape: (BubbleShape) -> Unit,
+    onTogglePause: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -187,6 +189,21 @@ private fun GameContent(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+            }
+        }
+
+        // Pause button (only show when game is playing and not game over)
+        if (gameState.isPlaying && !gameState.isGameOver) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 60.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                PauseButton(
+                    isPaused = gameState.isPaused,
+                    onPauseToggle = onTogglePause
+                )
             }
         }
     }

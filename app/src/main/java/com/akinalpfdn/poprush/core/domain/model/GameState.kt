@@ -35,6 +35,7 @@ data class GameState(
     val selectedShape: BubbleShape = BubbleShape.CIRCLE,
     val zoomLevel: Float = 1.0f,
     val showSettings: Boolean = false,
+    val showBackConfirmation: Boolean = false,
     val soundEnabled: Boolean = true,
     val musicEnabled: Boolean = true,
     val soundVolume: Float = 1.0f,
@@ -77,12 +78,12 @@ data class GameState(
         /**
          * Total game duration in seconds.
          */
-        val GAME_DURATION: Duration = 60.seconds
+        val GAME_DURATION: Duration = 5.seconds
 
         /**
-         * Time threshold when timer becomes critical (10 seconds).
+         * Time threshold when timer becomes critical (2 seconds).
          */
-        val CRITICAL_TIME_THRESHOLD: Duration = 10.seconds
+        val CRITICAL_TIME_THRESHOLD: Duration = 2.seconds
 
         /**
          * Minimum zoom level allowed.

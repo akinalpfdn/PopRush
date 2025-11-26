@@ -228,17 +228,40 @@ class GameViewModel @Inject constructor(
     }
 
     /**
-     * Shows the back confirmation dialog.
+     * Shows the back confirmation dialog and pauses the game.
      */
     private fun handleShowBackConfirmation() {
-        _gameState.update { it.copy(showBackConfirmation = true) }
+        viewModelScope.launch {
+            // Pause the timer when showing confirmation
+            timerUseCase.pauseTimer()
+
+            _gameState.update { it.copy(
+                showBackConfirmation = true,
+                isPaused = true
+            ) }
+        }
     }
 
     /**
-     * Hides the back confirmation dialog.
+     * Hides the back confirmation dialog and resumes the game if it was playing.
      */
     private fun handleHideBackConfirmation() {
-        _gameState.update { it.copy(showBackConfirmation = false) }
+        viewModelScope.launch {
+            val currentState = _gameState.value
+
+            // Only resume if the game was playing (not game over)
+            if (currentState.isPlaying && !currentState.isGameOver) {
+                timerUseCase.resumeTimer()
+            }
+
+            _gameState.update {
+                it.copy(
+                    showBackConfirmation = false,
+                    // Only unpause if we're still playing and not going back to menu
+                    isPaused = if (it.isPlaying && !it.isGameOver) false else it.isPaused
+                )
+            }
+        }
     }
 
     private fun handleEndGame() {
