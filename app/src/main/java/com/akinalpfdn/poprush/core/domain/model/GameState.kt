@@ -78,12 +78,12 @@ data class GameState(
         /**
          * Total game duration in seconds.
          */
-        val GAME_DURATION: Duration = 5.seconds
+        val GAME_DURATION: Duration = 60.seconds
 
         /**
-         * Time threshold when timer becomes critical (2 seconds).
+         * Time threshold when timer becomes critical (10 seconds).
          */
-        val CRITICAL_TIME_THRESHOLD: Duration = 2.seconds
+        val CRITICAL_TIME_THRESHOLD: Duration = 10.seconds
 
         /**
          * Minimum zoom level allowed.
