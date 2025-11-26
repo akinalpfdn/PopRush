@@ -173,7 +173,7 @@ class GameViewModel @Inject constructor(
                 }
 
                 // Start the timer
-                timerUseCase.startTimer()
+                timerUseCase.startTimer(GameState.GAME_DURATION)
 
                 // Start background music if enabled
                 if (audioRepository.isAudioSupported() && _gameState.value.musicEnabled) {

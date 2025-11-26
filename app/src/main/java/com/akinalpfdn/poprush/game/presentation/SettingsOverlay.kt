@@ -58,7 +58,6 @@ fun SettingsOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f))
                 .clickable(onClick = onClose)
         )
 

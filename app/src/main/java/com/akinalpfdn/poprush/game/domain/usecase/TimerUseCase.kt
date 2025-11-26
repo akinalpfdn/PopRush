@@ -61,7 +61,7 @@ class TimerUseCase @Inject constructor() {
      *
      * @param duration The total duration for the timer
      */
-    suspend fun startTimer(duration: Duration = 60.seconds) {
+    suspend fun startTimer(duration: Duration = 5.seconds) {
         try {
             // Stop any existing timer
             stopTimer()

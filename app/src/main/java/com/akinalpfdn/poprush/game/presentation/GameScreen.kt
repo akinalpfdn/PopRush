@@ -143,20 +143,13 @@ private fun GameContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center
+                .weight(1f)
         ) {
+            // Always show the appropriate main content
             when {
                 !gameState.isPlaying && !gameState.isGameOver -> {
                     StartScreen(
                         onStartGame = onStartGame,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-                gameState.isGameOver -> {
-                    GameOverScreen(
-                        gameState = gameState,
-                        onPlayAgain = onStartGame,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -170,6 +163,15 @@ private fun GameContent(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+            }
+
+            // Show game over overlay on top when game is over
+            if (gameState.isGameOver) {
+                GameOverScreen(
+                    gameState = gameState,
+                    onPlayAgain = onStartGame,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }
@@ -384,16 +386,35 @@ private fun GameOverScreen(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFF1C1917).copy(alpha = 0.1f)), // stone-900/90
-        contentAlignment = Alignment.Center
+        modifier = modifier.fillMaxSize()
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        // Background overlay to darken the game
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.2f))
+        )
+
+        // Game over content centered on screen
+        Card(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(8.dp)
+                .width(300.dp)
+                .wrapContentHeight(),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFCECBCB) // stone-900
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
-            // Trophy icon with glow effect
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Trophy icon with glow effect
             Box(
                 modifier = Modifier.size(80.dp),
                 contentAlignment = Alignment.Center
@@ -418,57 +439,68 @@ private fun GameOverScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Game over title
-            Text(
-                text = "Time's Up!",
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
+                // Game over title
+                Text(
+                    text = "Time's Up!",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Final score with gradient effect (simulated)
-            Text(
-                text = gameState.score.toString(),
-                color = Color(0xFFFCA5A5), // rose-300 (lighter)
-                fontSize = 64.sp,
-                fontWeight = FontWeight.Black
-            )
+                // Final score
+                Text(
+                    text = gameState.score.toString(),
+                    color = Color(0xFFFCA5A5), // rose-300 (lighter)
+                    fontSize = 64.sp,
+                    fontWeight = FontWeight.Black
+                )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Try again button
-            Box(
-                modifier = Modifier
-                    .defaultMinSize(minWidth = 140.dp)
-                    .height(48.dp)
-                    .background(
-                        color = Color.White,
-                        shape = CircleShape
-                    )
-                    .clickable { onPlayAgain() },
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                // Score label
+                Text(
+                    text = "Final Score",
+                    color = Color(0xFFFFFFFF), // stone-400
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Try again button
+                Box(
+                    modifier = Modifier
+                        .defaultMinSize(minWidth = 160.dp)
+                        .height(52.dp)
+                        .background(
+                            color = Color.White,
+                            shape = CircleShape
+                        )
+                        .clickable { onPlayAgain() },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Restart",
-                        tint = Color(0xFF1C1917), // stone-800
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Restart",
+                            tint = Color(0xFF1C1917), // stone-800
+                            modifier = Modifier.size(20.dp)
+                        )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                    Text(
-                        text = "TRY AGAIN",
-                        color = Color(0xFF1C1917), // stone-800
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
+                        Text(
+                            text = "TRY AGAIN",
+                            color = Color(0xFF1C1917), // stone-800
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
         }
