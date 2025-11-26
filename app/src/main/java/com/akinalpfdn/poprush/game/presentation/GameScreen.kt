@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -110,6 +111,15 @@ fun GameScreen(
                 modifier = Modifier.fillMaxSize()
             )
         }
+
+        // Game over overlay on top of everything
+        if (gameState.isGameOver) {
+            GameOverScreen(
+                gameState = gameState,
+                onPlayAgain = { viewModel.processIntent(GameIntent.StartGame) },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 
@@ -153,6 +163,7 @@ private fun GameContent(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+
                 else -> {
                     BubbleGrid(
                         gameState = gameState,
@@ -163,15 +174,6 @@ private fun GameContent(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-            }
-
-            // Show game over overlay on top when game is over
-            if (gameState.isGameOver) {
-                GameOverScreen(
-                    gameState = gameState,
-                    onPlayAgain = onStartGame,
-                    modifier = Modifier.fillMaxSize()
-                )
             }
         }
     }
@@ -388,22 +390,24 @@ private fun GameOverScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        // Background overlay to darken the game
+        // Background overlay to darken the game and catch clicks
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.2f))
+                .background(Color.Black.copy(alpha = 0.8f))
+                .clickable(onClick = { /* Consume clicks, prevent interaction with game */ })
         )
 
         // Game over content centered on screen
         Card(
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(8.dp)
-                .width(300.dp)
+                .padding(24.dp)
+                .fillMaxWidth()
                 .wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFCECBCB) // stone-900
+                containerColor = Color(0xFFFFFFFF) // stone-900
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
@@ -442,7 +446,7 @@ private fun GameOverScreen(
                 // Game over title
                 Text(
                     text = "Time's Up!",
-                    color = Color.White,
+                    color = Color.Black,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -462,7 +466,7 @@ private fun GameOverScreen(
                 // Score label
                 Text(
                     text = "Final Score",
-                    color = Color(0xFFFFFFFF), // stone-400
+                    color = Color(0xFF000000), // stone-400
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -475,7 +479,7 @@ private fun GameOverScreen(
                         .defaultMinSize(minWidth = 160.dp)
                         .height(52.dp)
                         .background(
-                            color = Color.White,
+                            color = Color.Black,
                             shape = CircleShape
                         )
                         .clickable { onPlayAgain() },
@@ -488,7 +492,7 @@ private fun GameOverScreen(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Restart",
-                            tint = Color(0xFF1C1917), // stone-800
+                            tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
 
@@ -496,7 +500,7 @@ private fun GameOverScreen(
 
                         Text(
                             text = "TRY AGAIN",
-                            color = Color(0xFF1C1917), // stone-800
+                            color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
                         )
