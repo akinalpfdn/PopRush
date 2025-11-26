@@ -12,6 +12,11 @@ sealed interface GameIntent {
     data object StartGame : GameIntent
 
     /**
+     * Returns to the main menu.
+     */
+    data object BackToMenu : GameIntent
+
+    /**
      * Ends the current game session.
      */
     data object EndGame : GameIntent
@@ -58,6 +63,16 @@ sealed interface GameIntent {
      * Toggles the visibility of the settings menu.
      */
     data object ToggleSettings : GameIntent
+
+    /**
+     * Shows the back confirmation dialog.
+     */
+    data object ShowBackConfirmation : GameIntent
+
+    /**
+     * Hides the back confirmation dialog.
+     */
+    data object HideBackConfirmation : GameIntent
 
     /**
      * Updates the high score (typically called when a new high score is achieved).

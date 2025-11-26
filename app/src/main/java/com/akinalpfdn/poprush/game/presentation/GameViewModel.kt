@@ -122,6 +122,7 @@ class GameViewModel @Inject constructor(
 
         when (intent) {
             is GameIntent.StartGame -> handleStartGame()
+            is GameIntent.BackToMenu -> handleBackToMenu()
             is GameIntent.EndGame -> handleEndGame()
             is GameIntent.TogglePause -> handleTogglePause()
             is GameIntent.RestartGame -> handleRestartGame()
@@ -131,6 +132,8 @@ class GameViewModel @Inject constructor(
             is GameIntent.ZoomIn -> handleZoomIn()
             is GameIntent.ZoomOut -> handleZoomOut()
             is GameIntent.ToggleSettings -> handleToggleSettings()
+            is GameIntent.ShowBackConfirmation -> handleShowBackConfirmation()
+            is GameIntent.HideBackConfirmation -> handleHideBackConfirmation()
             is GameIntent.UpdateHighScore -> handleUpdateHighScore(intent.newHighScore)
             is GameIntent.ToggleSound -> handleToggleSound()
             is GameIntent.ToggleMusic -> handleToggleMusic()
@@ -188,6 +191,54 @@ class GameViewModel @Inject constructor(
                 Timber.e(e, "Error starting game")
             }
         }
+    }
+
+    /**
+     * Handles back to menu navigation.
+     * Resets game state to return to the start screen.
+     */
+    private fun handleBackToMenu() {
+        viewModelScope.launch {
+            try {
+                // Stop any running timer
+                timerUseCase.stopTimer()
+
+                // Stop background music
+                audioRepository.stopMusic()
+
+                // Reset game state to initial state (similar to ResetGame)
+                _gameState.update { currentState ->
+                    currentState.copy(
+                        isPlaying = false,
+                        isGameOver = false,
+                        isPaused = false,
+                        score = 0,
+                        currentLevel = 1,
+                        timeRemaining = GameState.GAME_DURATION,
+                        showSettings = false,
+                        showBackConfirmation = false
+                    )
+                }
+
+                Timber.d("Returned to main menu")
+            } catch (e: Exception) {
+                Timber.e(e, "Error returning to menu")
+            }
+        }
+    }
+
+    /**
+     * Shows the back confirmation dialog.
+     */
+    private fun handleShowBackConfirmation() {
+        _gameState.update { it.copy(showBackConfirmation = true) }
+    }
+
+    /**
+     * Hides the back confirmation dialog.
+     */
+    private fun handleHideBackConfirmation() {
+        _gameState.update { it.copy(showBackConfirmation = false) }
     }
 
     private fun handleEndGame() {
