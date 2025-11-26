@@ -22,6 +22,7 @@ import com.akinalpfdn.poprush.game.domain.GridCalculator
 import timber.log.Timber
 import kotlin.math.abs
 import kotlin.math.pow
+import kotlin.math.sqrt
 
 /**
  * Composable that renders the hexagonal bubble grid layout.
@@ -339,10 +340,9 @@ private fun findTouchedBubbleId(
         val centerY = position.y + scaledSize / 2
         val radius = scaledSize / 2
 
-        val distance = kotlin.math.sqrt(
-            kotlin.math.pow((touchX - centerX).toDouble(), 2.0) +
-            kotlin.math.pow((touchY - centerY).toDouble(), 2.0)
-        )
+        val dx = touchX - centerX
+        val dy = touchY - centerY
+        val distance = kotlin.math.sqrt(dx.pow(2) + dy.pow(2))
 
         distance <= radius
     }.takeIf { it != -1 }

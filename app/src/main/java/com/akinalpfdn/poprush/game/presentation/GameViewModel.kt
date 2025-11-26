@@ -49,25 +49,27 @@ class GameViewModel @Inject constructor(
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
 
     // Combined settings flow for reactive updates
-    private val settingsFlow = combine(
-        settingsRepository.getBubbleShapeFlow(),
-        settingsRepository.getSoundEnabledFlow(),
-        settingsRepository.getMusicEnabledFlow(),
-        settingsRepository.getSoundVolumeFlow(),
-        settingsRepository.getMusicVolumeFlow(),
-        settingsRepository.getZoomLevelFlow(),
-        settingsRepository.getHapticFeedbackFlow(),
-        settingsRepository.getGameDifficultyFlow()
-    ) { shape, soundEnabled, musicEnabled, soundVolume, musicVolume, zoomLevel, hapticFeedback, difficulty ->
+    private val settingsFlow: Flow<SettingsBundle> = combine(
+        listOf(
+            settingsRepository.getBubbleShapeFlow(),
+            settingsRepository.getSoundEnabledFlow(),
+            settingsRepository.getMusicEnabledFlow(),
+            settingsRepository.getSoundVolumeFlow(),
+            settingsRepository.getMusicVolumeFlow(),
+            settingsRepository.getZoomLevelFlow(),
+            settingsRepository.getHapticFeedbackFlow(),
+            settingsRepository.getGameDifficultyFlow()
+        )
+    ) { values ->
         SettingsBundle(
-            bubbleShape = shape,
-            soundEnabled = soundEnabled,
-            musicEnabled = musicEnabled,
-            soundVolume = soundVolume,
-            musicVolume = musicVolume,
-            zoomLevel = zoomLevel,
-            hapticFeedback = hapticFeedback,
-            difficulty = difficulty
+            bubbleShape = values[0] as BubbleShape,
+            soundEnabled = values[1] as Boolean,
+            musicEnabled = values[2] as Boolean,
+            soundVolume = values[3] as Float,
+            musicVolume = values[4] as Float,
+            zoomLevel = values[5] as Float,
+            hapticFeedback = values[6] as Boolean,
+            difficulty = values[7] as GameDifficulty
         )
     }
 
@@ -103,7 +105,7 @@ class GameViewModel @Inject constructor(
                     currentState.copy(timeRemaining = timeRemaining)
                 }
                 // Check for game over
-                if (timeRemaining.inWholeSeconds <= 0 && currentState.isPlaying) {
+                if (timeRemaining.inWholeSeconds <= 0 && _gameState.value.isPlaying) {
                     processIntent(GameIntent.EndGame)
                 }
             }
@@ -166,7 +168,7 @@ class GameViewModel @Inject constructor(
 
                 // Start background music if enabled
                 if (audioRepository.isAudioSupported() && _gameState.value.musicEnabled) {
-                    audioRepository.playMusic(com.akinalpfdn.poprush.core.domain.model.MusicTrack.GAMEPLAY)
+                    audioRepository.playMusic(com.akinalpfdn.poprush.core.domain.model.MusicTrack(id = "gameplay", title = "Gameplay Music"))
                 }
 
                 // Play start sound
@@ -220,12 +222,14 @@ class GameViewModel @Inject constructor(
     private fun handleTogglePause() {
         _gameState.update { currentState ->
             val newPausedState = !currentState.isPaused
-            if (newPausedState) {
-                timerUseCase.pauseTimer()
-                audioRepository.pauseAudio()
-            } else {
-                timerUseCase.resumeTimer()
-                audioRepository.resumeAudio()
+            viewModelScope.launch {
+                if (newPausedState) {
+                    timerUseCase.pauseTimer()
+                    audioRepository.pauseMusic()
+                } else {
+                    timerUseCase.resumeTimer()
+                    audioRepository.resumeMusic()
+                }
             }
             currentState.copy(isPaused = newPausedState)
         }
@@ -356,7 +360,9 @@ class GameViewModel @Inject constructor(
 
     private fun handleToggleSettings() {
         _gameState.update { it.copy(showSettings = !it.showSettings) }
-        audioRepository.playSound(SoundType.BUTTON_PRESS)
+        viewModelScope.launch {
+            audioRepository.playSound(SoundType.BUTTON_PRESS)
+        }
     }
 
     private fun handleToggleSound() {
@@ -433,10 +439,10 @@ class GameViewModel @Inject constructor(
                     audioRepository.stopMusic()
                 }
                 is GameIntent.AudioIntent.PauseAudio -> {
-                    audioRepository.pauseAudio()
+                    audioRepository.pauseMusic()
                 }
                 is GameIntent.AudioIntent.ResumeAudio -> {
-                    audioRepository.resumeAudio()
+                    audioRepository.resumeMusic()
                 }
             }
         }

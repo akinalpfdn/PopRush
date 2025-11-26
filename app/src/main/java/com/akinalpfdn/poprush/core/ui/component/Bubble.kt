@@ -182,7 +182,11 @@ private fun CircleBubble(
     Box(
         modifier = modifier
             .size(bubbleSize)
-            .scale(scaleAnimation * pressAnimation, pivotX = 0.5f, pivotY = 0.5f)
+            .graphicsLayer {
+                scaleX = scaleAnimation * pressAnimation
+                scaleY = scaleAnimation * pressAnimation
+                transformOrigin = TransformOrigin.Center
+            }
             .shadow(
                 elevation = if (bubble.isActive) 8.dp else 4.dp,
                 shape = CircleShape,
@@ -242,7 +246,11 @@ private fun SquareBubble(
     Box(
         modifier = modifier
             .size(bubbleSize)
-            .scale(scaleAnimation * pressAnimation, pivotX = 0.5f, pivotY = 0.5f)
+            .graphicsLayer {
+                scaleX = scaleAnimation * pressAnimation
+                scaleY = scaleAnimation * pressAnimation
+                transformOrigin = TransformOrigin.Center
+            }
             .shadow(
                 elevation = if (bubble.isActive) 8.dp else 4.dp,
                 shape = RoundedCornerShape(12.dp),
@@ -303,7 +311,11 @@ private fun CustomShapeBubble(
     Box(
         modifier = modifier
             .size(bubbleSize)
-            .scale(scaleAnimation * pressAnimation, pivotX = 0.5f, pivotY = 0.5f)
+            .graphicsLayer {
+                scaleX = scaleAnimation * pressAnimation
+                scaleY = scaleAnimation * pressAnimation
+                transformOrigin = TransformOrigin.Center
+            }
             .clickable(
                 enabled = enabled && bubble.canBePressed,
                 onClick = { onClick(bubble.id) },

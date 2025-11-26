@@ -14,6 +14,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -536,7 +537,7 @@ private fun GameControls(
                 .size(48.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.Remove,
+                imageVector = Icons.Default.Clear,
                 contentDescription = "Zoom Out",
                 tint = MaterialTheme.colorScheme.onSurface
             )

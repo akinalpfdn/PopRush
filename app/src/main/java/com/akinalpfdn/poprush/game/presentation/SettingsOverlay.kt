@@ -9,12 +9,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Square
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -232,8 +242,8 @@ private fun getShapeIcon(shape: BubbleShape): ImageVector {
     return when (shape) {
         BubbleShape.CIRCLE -> Icons.Default.Circle
         BubbleShape.SQUARE -> Icons.Default.Square
-        BubbleShape.HEXAGON -> Icons.Default.ChangeHistory
-        BubbleShape.TRIANGLE -> Icons.Default.ArrowDropDown
+        BubbleShape.TRIANGLE -> Icons.Default.ArrowDropDown // Placeholder, might need a better icon
+        BubbleShape.STAR -> Icons.Default.Star
         BubbleShape.HEART -> Icons.Default.Favorite
     }
 }
@@ -245,8 +255,8 @@ private fun getShapeDisplayName(shape: BubbleShape): String {
     return when (shape) {
         BubbleShape.CIRCLE -> "Circle"
         BubbleShape.SQUARE -> "Square"
-        BubbleShape.HEXAGON -> "Hexagon"
         BubbleShape.TRIANGLE -> "Triangle"
+        BubbleShape.STAR -> "Star"
         BubbleShape.HEART -> "Heart"
     }
 }

@@ -7,6 +7,7 @@ import javax.inject.Singleton
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.pow
+import kotlin.math.sqrt
 
 /**
  * Geometry and positioning calculations for the hexagonal bubble grid.
@@ -263,10 +264,9 @@ class GridCalculator @Inject constructor() {
         val centerX = bubblePosition.x + scaledRadius
         val centerY = bubblePosition.y + scaledRadius
 
-        val distance = kotlin.math.sqrt(
-            kotlin.math.pow((touchX - centerX).toDouble(), 2.0) +
-            kotlin.math.pow((touchY - centerY).toDouble(), 2.0)
-        )
+        val dx = touchX - centerX
+        val dy = touchY - centerY
+        val distance = kotlin.math.sqrt(dx.pow(2) + dy.pow(2))
 
         return distance <= scaledRadius
     }
