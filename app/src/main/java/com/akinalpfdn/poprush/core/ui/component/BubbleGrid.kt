@@ -1,32 +1,30 @@
 package com.akinalpfdn.poprush.core.ui.component
 
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.akinalpfdn.poprush.core.domain.model.Bubble
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameState
 
 /**
- * Renders the exact 5-6-7-8-7-6-5 honeycomb grid layout.
- * Uses standard Rows/Columns for pixel-perfect flexbox-like alignment.
+ * Renders the exact 5-6-7-8-7-6-5 honeycomb grid layout with dynamic bubble sizing.
+ * Calculates bubble size based on available screen width for perfect hexagonal hive shape.
  */
 @Composable
 fun BubbleGrid(
     gameState: GameState,
     selectedShape: BubbleShape = BubbleShape.CIRCLE,
+    zoomLevel: Float = 1f,
     onBubblePress: (Int) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    // 1. UPDATED: Full Grid Configuration (5-6-7-8-7-6-5)
-    val rowConfigs = remember { listOf(5, 6, 7, 8, 7, 6, 5) }
+    // 1. Full Grid Configuration (5-6-7-8-7-6-5)
+    val rowConfigs = remember { listOf(5, 6, 7, 8,7, 6, 5) }
 
     // 2. Slice the bubble list into rows
     val bubbleRows = remember(gameState.bubbles) {
@@ -42,50 +40,42 @@ fun BubbleGrid(
         rows
     }
 
-    // Zoom and Pan state
-    var scale by remember { mutableFloatStateOf(0.85f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    // 3. Calculate dynamic bubble size based on screen width
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
 
-    // 3. Layout: Standard Column centering Rows of different widths
+    // The widest row has 8 bubbles, each needs width + gap
+    // Total gap for 8 bubbles = 7 gaps * gapWidth
+    val gapWidth = 4.dp // Tight gap for hexagonal look
+    val maxRowBubbles = 8
+    val totalGapWidth = gapWidth * (maxRowBubbles - 1)
+    val availableWidthForBubbles = screenWidth * 1.9f // Use 90% of screen width
+    val calculatedBubbleSize = (availableWidthForBubbles - totalGapWidth) / maxRowBubbles
+
+    // Ensure minimum size for usability
+    val dynamicBubbleSize = calculatedBubbleSize.coerceIn(24.dp, 60.dp)
+
+    // 4. Layout: Fixed canvas with dynamic bubble sizing
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            // Detect gestures on the full screen area
-            .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    scale = (scale * zoom).coerceIn(0.5f, 3f)
-                    // Scale translation by zoom level to keep panning natural
-                    offset += pan
-                }
-            },
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             // To create the "Hexagonal" nesting effect, vertical spacing must be tighter than horizontal.
-            // Math: (Size 48 + Gap 12) * sin(60) ≈ 52. Bubble height is 48, so gap should be ~4dp.
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier
-                // IMPORTANT: Unbounded allows the grid to measure larger than the screen width
-                // This creates the "Large Canvas" effect you requested.
-                .wrapContentSize(unbounded = true)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
-                }
+            verticalArrangement = Arrangement.spacedBy(2.dp), // Very tight for hive look
+            modifier = Modifier.fillMaxWidth()
         ) {
             bubbleRows.forEach { rowBubbles ->
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp), // Matches React gap-3
+                    horizontalArrangement = Arrangement.spacedBy(gapWidth),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     rowBubbles.forEach { bubble ->
                         Bubble(
                             bubble = bubble,
                             shape = selectedShape,
-                            bubbleSize = 48.dp, // Fixed size
+                            bubbleSize = dynamicBubbleSize * zoomLevel,
                             onClick = onBubblePress,
                             enabled = enabled
                         )

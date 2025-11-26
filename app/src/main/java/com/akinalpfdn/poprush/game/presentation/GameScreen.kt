@@ -161,10 +161,10 @@ private fun GameContent(
                     )
                 }
                 else -> {
-                    // UPDATED: Removed removed parameters (bubbleSize, bubbleSpacing, zoomLevel)
                     BubbleGrid(
                         gameState = gameState,
                         selectedShape = gameState.selectedShape,
+                        zoomLevel = gameState.zoomLevel,
                         onBubblePress = onBubblePress,
                         enabled = gameState.isPlaying && !gameState.isPaused,
                         modifier = Modifier.fillMaxSize()
@@ -386,7 +386,7 @@ private fun GameOverScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF1C1917).copy(alpha = 0.9f)), // stone-900/90
+            .background(Color(0xFF1C1917).copy(alpha = 0.1f)), // stone-900/90
         contentAlignment = Alignment.Center
     ) {
         Column(
