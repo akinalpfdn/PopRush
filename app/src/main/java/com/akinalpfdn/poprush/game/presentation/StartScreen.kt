@@ -14,17 +14,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.akinalpfdn.poprush.core.domain.model.GameState
 
 /**
  * Start screen shown when the game hasn't started yet.
- * Displays the game title and play button.
+ * Displays the game title, duration picker, and play button.
  *
+ * @param gameState Current game state containing selected duration
  * @param onStartGame Callback when the play button is pressed
+ * @param onDurationChange Callback when duration selection changes
  * @param modifier Additional modifier for the screen
  */
 @Composable
 fun StartScreen(
+    gameState: GameState,
     onStartGame: () -> Unit,
+    onDurationChange: (kotlin.time.Duration) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -48,12 +53,13 @@ fun StartScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "Speed Challenge",
-                color = Color(0xFFA8A29E), // stone-400
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
+
+
+            // Duration picker
+            DurationPicker(
+                selectedDuration = gameState.selectedDuration,
+                onDurationChange = onDurationChange,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))

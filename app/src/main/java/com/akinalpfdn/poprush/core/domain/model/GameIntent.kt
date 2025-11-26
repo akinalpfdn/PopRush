@@ -109,6 +109,12 @@ sealed interface GameIntent {
     data class ChangeDifficulty(val difficulty: GameDifficulty) : GameIntent
 
     /**
+     * Updates the selected game duration.
+     * @param duration The new game duration (10-60 seconds)
+     */
+    data class UpdateSelectedDuration(val duration: kotlin.time.Duration) : GameIntent
+
+    /**
      * Updates the timer (typically called by the timer system).
      * @param timeRemaining The new remaining time
      */

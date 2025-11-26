@@ -61,6 +61,8 @@ dependencies {
     implementation(libs.dagger.hilt)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.compose.ui.geometry)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.ui.text)
     kapt(libs.dagger.hilt.compiler)
 
     // ViewModel and Lifecycle

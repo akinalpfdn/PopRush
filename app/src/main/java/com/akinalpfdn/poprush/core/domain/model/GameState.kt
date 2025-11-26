@@ -36,6 +36,7 @@ data class GameState(
     val zoomLevel: Float = 1.0f,
     val showSettings: Boolean = false,
     val showBackConfirmation: Boolean = false,
+    val selectedDuration: Duration = 30.seconds, // Default 30 seconds
     val soundEnabled: Boolean = true,
     val musicEnabled: Boolean = true,
     val soundVolume: Float = 1.0f,

@@ -61,6 +61,7 @@ fun GameScreen(
             onToggleSettings = { viewModel.processIntent(GameIntent.ToggleSettings) },
             onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
             onTogglePause = { viewModel.processIntent(GameIntent.TogglePause) },
+            onDurationChange = { duration -> viewModel.processIntent(GameIntent.UpdateSelectedDuration(duration)) },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -148,6 +149,7 @@ private fun GameContent(
     onToggleSettings: () -> Unit,
     onSelectShape: (BubbleShape) -> Unit,
     onTogglePause: () -> Unit,
+    onDurationChange: (kotlin.time.Duration) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -174,7 +176,9 @@ private fun GameContent(
             when {
                 !gameState.isPlaying && !gameState.isGameOver -> {
                     StartScreen(
+                        gameState = gameState,
                         onStartGame = onStartGame,
+                        onDurationChange = onDurationChange,
                         modifier = Modifier.fillMaxSize()
                     )
                 }

@@ -140,6 +140,7 @@ class GameViewModel @Inject constructor(
             is GameIntent.UpdateSoundVolume -> handleUpdateSoundVolume(intent.volume)
             is GameIntent.UpdateMusicVolume -> handleUpdateMusicVolume(intent.volume)
             is GameIntent.ChangeDifficulty -> handleChangeDifficulty(intent.difficulty)
+            is GameIntent.UpdateSelectedDuration -> handleUpdateSelectedDuration(intent.duration)
             is GameIntent.UpdateTimer -> handleUpdateTimer(intent.timeRemaining)
             is GameIntent.GenerateNewLevel -> handleGenerateNewLevel()
             is GameIntent.ResetGame -> handleResetGame()
@@ -163,20 +164,22 @@ class GameViewModel @Inject constructor(
                     currentLevel = 1
                 )
 
+                val selectedDuration = _gameState.value.selectedDuration
+
                 _gameState.update { currentState ->
                     currentState.copy(
                         isPlaying = true,
                         isGameOver = false,
                         isPaused = false,
                         score = 0,
-                        timeRemaining = GameState.GAME_DURATION,
+                        timeRemaining = selectedDuration,
                         currentLevel = 1,
                         bubbles = activeBubbles
                     )
                 }
 
-                // Start the timer
-                timerUseCase.startTimer(GameState.GAME_DURATION)
+                // Start the timer with selected duration
+                timerUseCase.startTimer(selectedDuration)
 
                 // Start background music if enabled
                 if (audioRepository.isAudioSupported() && _gameState.value.musicEnabled) {
@@ -481,6 +484,13 @@ class GameViewModel @Inject constructor(
 
     private fun handleUpdateTimer(timeRemaining: kotlin.time.Duration) {
         _gameState.update { it.copy(timeRemaining = timeRemaining) }
+    }
+
+    /**
+     * Updates the selected game duration.
+     */
+    private fun handleUpdateSelectedDuration(duration: kotlin.time.Duration) {
+        _gameState.update { it.copy(selectedDuration = duration) }
     }
 
     private fun handleUpdateHighScore(newHighScore: Int) {
