@@ -13,7 +13,7 @@ enum class GameDifficulty(
     EASY("Easy", 3, 5, 1.2f),
 
     /** Normal difficulty with balanced gameplay */
-    NORMAL("Normal", 4, 7, 1.0f),
+    NORMAL("Normal", 4, 8, 1.0f),
 
     /** Hard difficulty with faster pace and stricter mechanics */
     HARD("Hard", 6, 9, 0.8f),

@@ -17,5 +17,6 @@ enum class BubbleShape {
     STAR,
 
     /** Perfect heart shape */
-    HEART
+    HEART,
+    HEXAGON
 }

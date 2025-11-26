@@ -60,6 +60,7 @@ dependencies {
     // Hilt Dependency Injection
     implementation(libs.dagger.hilt)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.compose.ui.geometry)
     kapt(libs.dagger.hilt.compiler)
 
     // ViewModel and Lifecycle

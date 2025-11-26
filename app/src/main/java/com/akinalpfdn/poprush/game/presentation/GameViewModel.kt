@@ -151,6 +151,15 @@ class GameViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val newBubbles = initializeGameUseCase.execute()
+
+                // Generate the first level immediately (like React version)
+                val difficulty = getCurrentSettings().difficulty
+                val activeBubbles = generateLevelUseCase.execute(
+                    currentBubbles = newBubbles,
+                    difficulty = difficulty,
+                    currentLevel = 1
+                )
+
                 _gameState.update { currentState ->
                     currentState.copy(
                         isPlaying = true,
@@ -159,7 +168,7 @@ class GameViewModel @Inject constructor(
                         score = 0,
                         timeRemaining = GameState.GAME_DURATION,
                         currentLevel = 1,
-                        bubbles = newBubbles
+                        bubbles = activeBubbles
                     )
                 }
 
@@ -174,7 +183,7 @@ class GameViewModel @Inject constructor(
                 // Play start sound
                 audioRepository.playSound(SoundType.BUTTON_PRESS)
 
-                Timber.d("Game started")
+                Timber.d("Game started with ${activeBubbles.count { it.isActive }} active bubbles")
             } catch (e: Exception) {
                 Timber.e(e, "Error starting game")
             }
@@ -472,7 +481,7 @@ class GameViewModel @Inject constructor(
             musicVolume = _gameState.value.musicVolume,
             zoomLevel = _gameState.value.zoomLevel,
             hapticFeedback = true, // Would get from settings
-            difficulty = GameDifficulty.NORMAL // Would get from settings
+            difficulty = GameDifficulty.NORMAL // Start with normal difficulty like React version
         )
     }
 

@@ -35,9 +35,9 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun PopRushTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false, // Force light theme
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Disable dynamic color to have consistent light theme
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

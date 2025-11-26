@@ -1,26 +1,21 @@
 package com.akinalpfdn.poprush.game.presentation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -29,8 +24,6 @@ import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameIntent
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.ui.component.BubbleGrid
-import com.akinalpfdn.poprush.core.ui.theme.PastelColors
-import timber.log.Timber
 
 /**
  * Main game screen that orchestrates the entire PopRush game experience.
@@ -39,7 +32,6 @@ import timber.log.Timber
  * @param viewModel The game ViewModel for state management
  * @param modifier Additional modifier for the screen
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
     viewModel: GameViewModel = hiltViewModel(),
@@ -53,20 +45,47 @@ fun GameScreen(
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+        modifier = modifier.fillMaxSize()
     ) {
         // Main game content
         GameContent(
             gameState = gameState,
             onStartGame = { viewModel.processIntent(GameIntent.StartGame) },
             onBubblePress = { bubbleId -> viewModel.processIntent(GameIntent.PressBubble(bubbleId)) },
-            onZoomIn = { viewModel.processIntent(GameIntent.ZoomIn) },
-            onZoomOut = { viewModel.processIntent(GameIntent.ZoomOut) },
             onToggleSettings = { viewModel.processIntent(GameIntent.ToggleSettings) },
             onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
             modifier = Modifier.fillMaxSize()
+        )
+
+        // Settings button only
+        IconButton(
+            onClick = { viewModel.processIntent(GameIntent.ToggleSettings) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .background(
+                    color = Color.White.copy(alpha = 0.8f),
+                    shape = CircleShape
+                )
+                .size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Settings",
+                tint = Color(0xFF57534E) // stone-600
+            )
+        }
+
+        // Bottom instruction text
+        Text(
+            text = "TAP THE LIT BUBBLES",
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp),
+            color = Color(0xFFA8A29E), // stone-400
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.sp
         )
 
         // Settings overlay
@@ -102,8 +121,6 @@ private fun GameContent(
     gameState: GameState,
     onStartGame: () -> Unit,
     onBubblePress: (Int) -> Unit,
-    onZoomIn: () -> Unit,
-    onZoomOut: () -> Unit,
     onToggleSettings: () -> Unit,
     onSelectShape: (BubbleShape) -> Unit,
     modifier: Modifier = Modifier
@@ -111,15 +128,16 @@ private fun GameContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+            .padding(horizontal = 24.dp, vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Game header with score, timer, and high score
         GameHeader(
             gameState = gameState,
             modifier = Modifier.fillMaxWidth()
         )
+
+        Spacer(modifier = Modifier.height(32.dp))
 
         // Bubble grid or start/game over screens
         Box(
@@ -143,12 +161,10 @@ private fun GameContent(
                     )
                 }
                 else -> {
+                    // UPDATED: Removed removed parameters (bubbleSize, bubbleSpacing, zoomLevel)
                     BubbleGrid(
                         gameState = gameState,
                         selectedShape = gameState.selectedShape,
-                        bubbleSize = 48f,
-                        bubbleSpacing = 12f,
-                        zoomLevel = gameState.zoomLevel,
                         onBubblePress = onBubblePress,
                         enabled = gameState.isPlaying && !gameState.isPaused,
                         modifier = Modifier.fillMaxSize()
@@ -156,15 +172,6 @@ private fun GameContent(
                 }
             }
         }
-
-        // Bottom controls
-        GameControls(
-            gameState = gameState,
-            onZoomIn = onZoomIn,
-            onZoomOut = onZoomOut,
-            onToggleSettings = onToggleSettings,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 
@@ -182,12 +189,24 @@ private fun GameHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Score section
-        HeaderItem(
-            title = "Score",
-            value = gameState.score.toString(),
-            color = MaterialTheme.colorScheme.onSurface,
+        Column(
+            horizontalAlignment = Alignment.Start,
             modifier = Modifier.weight(1f)
-        )
+        ) {
+            Text(
+                text = "SCORE",
+                color = Color(0xFF78716C), // stone-400
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.1.sp
+            )
+            Text(
+                text = gameState.score.toString(),
+                color = Color(0xFF44403C), // stone-700
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Black
+            )
+        }
 
         // Timer section
         TimerDisplay(
@@ -197,44 +216,24 @@ private fun GameHeader(
         )
 
         // High score section
-        HeaderItem(
-            title = "Best",
-            value = gameState.highScore.toString(),
-            color = PastelColors.getPressedColor(com.akinalpfdn.poprush.core.domain.model.BubbleColor.AMBER),
+        Column(
+            horizontalAlignment = Alignment.End,
             modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-/**
- * Individual header item showing title and value.
- */
-@Composable
-private fun HeaderItem(
-    title: String,
-    value: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = if (title == "Score") Alignment.Start else if (title == "Best") Alignment.End else Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold,
-            fontSize = 10.sp
-        )
-
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineMedium,
-            color = color,
-            fontWeight = FontWeight.Black,
-            fontSize = 28.sp
-        )
+        ) {
+            Text(
+                text = "BEST",
+                color = Color(0xFF78716C), // stone-400
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.1.sp
+            )
+            Text(
+                text = gameState.highScore.toString(),
+                color = Color(0xFFFCD34D), // amber-300
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Black
+            )
+        }
     }
 }
 
@@ -260,36 +259,26 @@ private fun TimerDisplay(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        Card(
+        Box(
             modifier = Modifier
                 .size(64.dp)
-                .scale(pulseAnimation),
-            shape = CircleShape,
-            colors = CardDefaults.cardColors(
-                containerColor = if (isCritical) {
-                    MaterialTheme.colorScheme.errorContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                }
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                .scale(pulseAnimation)
+                .background(
+                    color = Color(0xFFF5F5F4), // stone-100
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = timeRemaining,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = if (isCritical) {
-                        MaterialTheme.colorScheme.onErrorContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
-            }
+            Text(
+                text = timeRemaining.split(":")[1], // Only show seconds
+                color = if (isCritical) {
+                    Color(0xFFF87171) // rose-400
+                } else {
+                    Color(0xFF57534E) // stone-600
+                },
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -302,42 +291,45 @@ private fun StartScreen(
     onStartGame: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.White.copy(alpha = 0.6f)), // Semi-transparent white overlay
+        contentAlignment = Alignment.Center
     ) {
-        // Game title
-        Text(
-            text = "POP RUSH",
-            style = MaterialTheme.typography.displayLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Black,
-            fontSize = 48.sp,
-            letterSpacing = (-1).sp
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Game title
+            Text(
+                text = "POP RUSH",
+                color = Color(0xFF44403C), // stone-700
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = (-1).sp
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = "Speed Challenge",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
-            letterSpacing = 2.sp
-        )
+            Text(
+                text = "Speed Challenge",
+                color = Color(0xFFA8A29E), // stone-400
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        // Play button
-        PlayButton(
-            onClick = onStartGame,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .height(56.dp)
-        )
+            // Play button
+            PlayButton(
+                onClick = onStartGame,
+                modifier = Modifier
+                    .defaultMinSize(minWidth = 160.dp)
+                    .height(56.dp)
+            )
+        }
     }
 }
 
@@ -349,33 +341,32 @@ private fun PlayButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    Box(
+        modifier = modifier
+            .background(
+                color = Color(0xFF1C1917), // stone-800
+                shape = CircleShape
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 40.dp, vertical = 16.dp),
+        contentAlignment = Alignment.Center
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = "Play",
-                tint = MaterialTheme.colorScheme.onPrimary,
+                tint = Color.White,
                 modifier = Modifier.size(24.dp)
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Text(
                 text = "PLAY",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = Color.White,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -392,173 +383,94 @@ private fun GameOverScreen(
     onPlayAgain: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(Color(0xFF1C1917).copy(alpha = 0.9f)), // stone-900/90
+        contentAlignment = Alignment.Center
     ) {
-        // Trophy icon
-        Card(
-            modifier = Modifier.size(80.dp),
-            shape = CircleShape,
-            colors = CardDefaults.cardColors(
-                containerColor = PastelColors.getPressedColor(com.akinalpfdn.poprush.core.domain.model.BubbleColor.AMBER)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
+            // Trophy icon with glow effect
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.size(80.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Trophy",
-                    tint = Color.White,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Game over title
-        Text(
-            text = "Time's Up!",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold,
-            fontSize = 32.sp
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Final score
-        Text(
-            text = gameState.score.toString(),
-            style = MaterialTheme.typography.displayLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Black,
-            fontSize = 64.sp
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Play again button
-        Card(
-            onClick = onPlayAgain,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .height(48.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Restart",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Text(
-                    text = "TRY AGAIN",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-            }
-        }
-    }
-}
-
-/**
- * Game controls including zoom and settings buttons.
- */
-@Composable
-private fun GameControls(
-    gameState: GameState,
-    onZoomIn: () -> Unit,
-    onZoomOut: () -> Unit,
-    onToggleSettings: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Settings button
-        IconButton(
-            onClick = onToggleSettings,
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(
-                    if (gameState.showSettings) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                    }
-                )
-                .size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
-                tint = if (gameState.showSettings) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurface
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(
+                            color = Color(0xFFFBBF24), // amber-400
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents, // Trophy icon
+                        contentDescription = "Trophy",
+                        tint = Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Game over title
+            Text(
+                text = "Time's Up!",
+                color = Color.White,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
             )
-        }
 
-        Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Zoom out button
-        IconButton(
-            onClick = onZoomOut,
-            enabled = gameState.zoomLevel > 0.5f,
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-                .size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Clear,
-                contentDescription = "Zoom Out",
-                tint = MaterialTheme.colorScheme.onSurface
+            // Final score with gradient effect (simulated)
+            Text(
+                text = gameState.score.toString(),
+                color = Color(0xFFFCA5A5), // rose-300 (lighter)
+                fontSize = 64.sp,
+                fontWeight = FontWeight.Black
             )
-        }
 
-        Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        // Zoom in button
-        IconButton(
-            onClick = onZoomIn,
-            enabled = gameState.zoomLevel < 1.5f,
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-                .size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Zoom In",
-                tint = MaterialTheme.colorScheme.onSurface
-            )
+            // Try again button
+            Box(
+                modifier = Modifier
+                    .defaultMinSize(minWidth = 140.dp)
+                    .height(48.dp)
+                    .background(
+                        color = Color.White,
+                        shape = CircleShape
+                    )
+                    .clickable { onPlayAgain() },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Restart",
+                        tint = Color(0xFF1C1917), // stone-800
+                        modifier = Modifier.size(20.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = "TRY AGAIN",
+                        color = Color(0xFF1C1917), // stone-800
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Hexagon
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Square
@@ -245,6 +246,7 @@ private fun getShapeIcon(shape: BubbleShape): ImageVector {
         BubbleShape.TRIANGLE -> Icons.Default.ArrowDropDown // Placeholder, might need a better icon
         BubbleShape.STAR -> Icons.Default.Star
         BubbleShape.HEART -> Icons.Default.Favorite
+        BubbleShape.HEXAGON -> Icons.Default.Hexagon
     }
 }
 
@@ -258,6 +260,7 @@ private fun getShapeDisplayName(shape: BubbleShape): String {
         BubbleShape.TRIANGLE -> "Triangle"
         BubbleShape.STAR -> "Star"
         BubbleShape.HEART -> "Heart"
+        BubbleShape.HEXAGON -> "Hexagon"
     }
 }
 
