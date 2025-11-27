@@ -229,8 +229,7 @@ class GameViewModel @Inject constructor(
                         // Start speed mode timer
                         processIntent(GameIntent.StartSpeedModeTimer)
 
-                        Timber.d("Speed mode game started - timer counts up, score = time survived")
-                    }
+                                            }
                 }
 
                 // Start background music if enabled
@@ -681,8 +680,7 @@ class GameViewModel @Inject constructor(
                     handleSpeedModeGameOver()
                 }
 
-                Timber.d("Activated bubble $bubbleId in speed mode. Active: $activeCount, Transparent: $transparentCount")
-            } catch (e: Exception) {
+                            } catch (e: Exception) {
                 Timber.e(e, "Error activating bubble in speed mode")
             }
         }
@@ -694,8 +692,7 @@ class GameViewModel @Inject constructor(
                 // This would typically be called by a timer tick
                 // For now, just log the current interval
                 val currentInterval = speedModeUseCase.speedModeState.value.currentInterval
-                Timber.d("Current speed mode interval: ${currentInterval}s")
-            } catch (e: Exception) {
+                            } catch (e: Exception) {
                 Timber.e(e, "Error updating speed mode interval")
             }
         }
@@ -704,8 +701,7 @@ class GameViewModel @Inject constructor(
     private fun handleStartSpeedModeTimer() {
         // FIX: Check if job is active to prevent multiple listeners (The Freeze Fix)
         if (speedModeCollectorJob?.isActive == true) {
-            Timber.d("Speed mode timer already being collected, ignoring duplicate start request.")
-            return
+                        return
         }
 
         viewModelScope.launch {
@@ -803,8 +799,7 @@ class GameViewModel @Inject constructor(
                     )
                 }
 
-                Timber.d("Speed mode state reset")
-            } catch (e: Exception) {
+                            } catch (e: Exception) {
                 Timber.e(e, "Error resetting speed mode state")
             }
         }
@@ -827,8 +822,7 @@ class GameViewModel @Inject constructor(
                 }
 
                 val finalScore = (_gameState.value.timeRemaining.inWholeSeconds).toInt()
-                Timber.d("Speed mode game over - Final score: $finalScore seconds")
-            } catch (e: Exception) {
+                            } catch (e: Exception) {
                 Timber.e(e, "Error handling speed mode game over")
             }
         }

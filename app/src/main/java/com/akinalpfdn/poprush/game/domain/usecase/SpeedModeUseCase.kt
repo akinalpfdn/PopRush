@@ -30,7 +30,6 @@ class SpeedModeUseCase @Inject constructor() {
     fun initializeSpeedMode(): SpeedModeState {
         val newState = SpeedModeState()
         _speedModeState.value = newState
-        Timber.d("Speed mode initialized with interval: ${newState.currentInterval}s")
         return newState
     }
 
@@ -45,7 +44,6 @@ class SpeedModeUseCase @Inject constructor() {
         return if (currentState.shouldAdvanceToNextPhase()) {
             val advancedState = currentState.advanceToNextPhase()
             _speedModeState.value = advancedState
-            Timber.d("Speed mode advanced to phase ${advancedState.phaseCount}, new interval: ${advancedState.currentInterval}s")
             advancedState
         } else {
             val updatedState = currentState.copy(elapsedTimeInPhase = newElapsedTime)
@@ -60,16 +58,11 @@ class SpeedModeUseCase @Inject constructor() {
      */
     fun selectRandomBubble(bubbles: List<Bubble>): Pair<Int?, SpeedModeState> {
         val inactiveBubbles = bubbles.filter { !it.isSpeedModeActive }
-        val totalBubbles = bubbles.size
-        val activeBubbles = bubbles.count { it.isSpeedModeActive }
-
-        Timber.d("selectRandomBubble: total=$totalBubbles, active=$activeBubbles, inactive=${inactiveBubbles.size}")
 
         if (inactiveBubbles.isEmpty()) {
             // All bubbles are active, game over
             val gameOverState = _speedModeState.value.copy(isGameOver = true)
             _speedModeState.value = gameOverState
-            Timber.d("selectRandomBubble: Game over - all bubbles are active")
             return null to gameOverState
         }
 
@@ -80,7 +73,6 @@ class SpeedModeUseCase @Inject constructor() {
         )
         _speedModeState.value = updatedState
 
-        Timber.d("selectRandomBubble: SUCCESS - Selected bubble ${selectedBubble.id} for activation (was inactive)")
         return selectedBubble.id to updatedState
     }
 
@@ -143,7 +135,6 @@ class SpeedModeUseCase @Inject constructor() {
     fun resetSpeedMode(): SpeedModeState {
         val resetState = SpeedModeState()
         _speedModeState.value = resetState
-        Timber.d("Speed mode reset to initial state")
         return resetState
     }
 
@@ -154,7 +145,6 @@ class SpeedModeUseCase @Inject constructor() {
         val validInterval = newInterval.coerceIn(0.1f, 5.0f) // Clamp between 0.1s and 5s
         val updatedState = _speedModeState.value.copy(currentInterval = validInterval)
         _speedModeState.value = updatedState
-        Timber.d("Speed mode interval updated to: ${validInterval}s")
     }
 
     /**

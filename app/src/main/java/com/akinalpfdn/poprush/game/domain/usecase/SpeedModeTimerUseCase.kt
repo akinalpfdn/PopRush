@@ -77,10 +77,7 @@ class SpeedModeTimerUseCase @Inject constructor(
      * Starts the speed mode timer.
      */
     fun startTimer() {
-        Timber.d("startTimer() called: isTimerRunning=${isTimerRunning.get()}")
         if (isTimerRunning.compareAndSet(false, true)) {
-            Timber.d("startTimer: Starting new timer (was not running)")
-
             // Cancel any existing timer job first
             timerJob?.cancel()
             timerJob = null
@@ -91,8 +88,6 @@ class SpeedModeTimerUseCase @Inject constructor(
             lastActivationTime = System.currentTimeMillis() + INITIAL_DELAY_MS
 
             timerJob = timerScope.launch {
-                Timber.d("Speed mode timer started")
-
                 // Initial delay before first activation
                 delay(INITIAL_DELAY_MS)
                 if (isActive) {
@@ -100,8 +95,6 @@ class SpeedModeTimerUseCase @Inject constructor(
                 }
 
                 // Main timer loop
-                Timber.d("Speed mode timer loop starting")
-
                 while (isActive && isTimerRunning.get()) {
                     val currentTime = System.currentTimeMillis()
                     val deltaTime = currentTime - lastUpdateTime
@@ -109,7 +102,7 @@ class SpeedModeTimerUseCase @Inject constructor(
 
                     elapsedTime += deltaTime.milliseconds
 
-                    // Logic Update: Update speed mode state here (logic side)
+                    // Update speed mode state
                     speedModeUseCase.updateSpeedMode(deltaTime.milliseconds)
 
                     // Check if it's time to activate a new bubble
@@ -118,19 +111,15 @@ class SpeedModeTimerUseCase @Inject constructor(
 
                     if (timeSinceLastActivation >= currentInterval) {
                         if (isActive && isTimerRunning.get()) {
-                            Timber.d("Timer: Activating bubble (timeSince: ${timeSinceLastActivation}ms, interval: ${currentInterval}ms)")
                             triggerBubbleActivation()
                         }
                     }
 
                     // Emit tick event for score/time updates
-                    // Use tryEmit for non-blocking emit in tight loop
                     _timerEvents.tryEmit(SpeedModeTimerEvent.Tick)
 
                     delay(TICK_INTERVAL_MS)
                 }
-
-                Timber.d("Speed mode timer loop ended")
             }
         }
     }
@@ -144,9 +133,6 @@ class SpeedModeTimerUseCase @Inject constructor(
             timerJob?.cancel()
             timerJob = null
             _timerState.value = SpeedModeTimerState.STOPPED
-            Timber.w("Speed mode timer STOPPED by stopTimer() call")
-        } else {
-            Timber.w("stopTimer() called but timer was not running")
         }
     }
 
@@ -158,7 +144,6 @@ class SpeedModeTimerUseCase @Inject constructor(
             timerJob?.cancel()
             timerJob = null
             _timerState.value = SpeedModeTimerState.PAUSED
-            Timber.d("Speed mode timer paused")
         }
     }
 
@@ -168,7 +153,6 @@ class SpeedModeTimerUseCase @Inject constructor(
     fun resumeTimer() {
         if (_timerState.value == SpeedModeTimerState.PAUSED) {
             startTimer()
-            Timber.d("Speed mode timer resumed")
         }
     }
 
@@ -179,21 +163,15 @@ class SpeedModeTimerUseCase @Inject constructor(
     suspend fun triggerBubbleActivation(bubbles: List<Bubble>) {
         val speedModeState = speedModeUseCase.speedModeState.value
 
-        Timber.d("triggerBubbleActivation(bubbles): total=${bubbles.size}, isGameOver=${speedModeState.isGameOver}")
-
         // Check if game is already over
         if (speedModeState.isGameOver || speedModeUseCase.isGameOver(bubbles)) {
-            Timber.d("triggerBubbleActivation: Game over condition met")
             _timerState.value = SpeedModeTimerState.GAME_OVER
             _timerEvents.emit(SpeedModeTimerEvent.GameOver)
             stopTimer()
             return
         }
 
-        // Select a random bubble logic is now handled in ViewModel via -1 event,
-        // but if this method is called manually, we can trigger the generic event
-        // or attempt to use the logic here if needed.
-        // To remain consistent with the fix, we emit the request for activation.
+        // Emit request for random bubble activation
         _timerEvents.emit(SpeedModeTimerEvent.ActivateBubble(-1))
         lastActivationTime = System.currentTimeMillis()
     }
@@ -205,20 +183,15 @@ class SpeedModeTimerUseCase @Inject constructor(
         val speedModeState = speedModeUseCase.speedModeState.value
 
         if (speedModeState.isGameOver) {
-            Timber.d("triggerBubbleActivation: Game over detected, stopping timer")
             _timerState.value = SpeedModeTimerState.GAME_OVER
             _timerEvents.emit(SpeedModeTimerEvent.GameOver)
             stopTimer()
             return
         }
 
-        // Trigger a random activation request
-        // ViewModel will handle the actual bubble selection
+        // Trigger random activation request
         _timerEvents.emit(SpeedModeTimerEvent.ActivateBubble(-1))
-
-        // Update the last activation time AFTER triggering the event
         lastActivationTime = System.currentTimeMillis()
-        Timber.d("triggerBubbleActivation: Sent random activation request")
     }
 
     /**
@@ -226,10 +199,8 @@ class SpeedModeTimerUseCase @Inject constructor(
      */
     fun triggerManualActivation(bubbleId: Int) {
         if (isTimerRunning.get()) {
-            // Safe emit for external calls
             _timerEvents.tryEmit(SpeedModeTimerEvent.ActivateBubble(bubbleId))
             lastActivationTime = System.currentTimeMillis()
-            Timber.d("Manual activation triggered for bubble $bubbleId")
         }
     }
 
@@ -242,8 +213,6 @@ class SpeedModeTimerUseCase @Inject constructor(
         elapsedTime = Duration.ZERO
         lastActivationTime = 0L
         lastUpdateTime = 0L
-        // SharedFlow does not need explicit nulling like StateFlow
-        Timber.d("Speed mode timer reset")
     }
 
     /**

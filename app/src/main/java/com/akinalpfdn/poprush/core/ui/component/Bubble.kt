@@ -49,7 +49,7 @@ fun Bubble(
         label = "pressY"
     )
 
-    // 2. Glow Animation (Pulse)
+    // 2. Glow Animation (Pulse) - Only for classic mode
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val glowAlpha by infiniteTransition.animateFloat(
         initialValue = 0.6f,
@@ -126,39 +126,6 @@ fun Bubble(
                             size = coreSize
                         )
                     }
-                }
-            }
-        }
-
-        // Speed Mode: Show active bubbles with subtle glow, no dark overlay
-        if (bubble.isSpeedModeActive && !bubble.isPressed && transparencyAnimation > 0.1f) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val fullSize = size.width
-
-                // In speed mode, active bubbles just show their color with a subtle glow
-                val glowScale = 0.9f
-                val glowSize = fullSize * glowScale
-                val glowCenterOffset = (fullSize - glowSize) / 2
-
-                translate(left = glowCenterOffset, top = glowCenterOffset) {
-                    drawCustomShape(
-                        shape = shape,
-                        color = Color.White.copy(alpha = glowAlpha * 0.2f * transparencyAnimation),
-                        size = glowSize
-                    )
-                }
-
-                // Small bright center for better visibility
-                val coreScale = 0.6f
-                val coreSize = fullSize * coreScale
-                val centerOffset = (fullSize - coreSize) / 2
-
-                translate(left = centerOffset, top = centerOffset) {
-                    drawCustomShape(
-                        shape = shape,
-                        color = Color(0xFF292524).copy(alpha = glowAlpha * transparencyAnimation), // Stone-800
-                        size = coreSize
-                    )
                 }
             }
         }
