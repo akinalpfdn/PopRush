@@ -8,8 +8,10 @@ package com.akinalpfdn.poprush.core.domain.model
  * @param row Row in the hexagonal grid (0-6)
  * @param col Column within the row (varies by row)
  * @param color The pastel color of the bubble
- * @param isActive Whether the bubble is currently lit/active for tapping
+ * @param isActive Whether the bubble is currently lit/active for tapping (classic mode)
  * @param isPressed Whether the bubble has been pressed in the current level
+ * @param transparency Transparency level for speed mode (0.0f = fully transparent, 1.0f = fully opaque)
+ * @param isSpeedModeActive Whether the bubble is active in speed mode
  */
 data class Bubble(
     val id: Int,
@@ -18,19 +20,34 @@ data class Bubble(
     val col: Int,
     val color: BubbleColor,
     val isActive: Boolean = false,
-    val isPressed: Boolean = false
+    val isPressed: Boolean = false,
+    val transparency: Float = 1.0f,
+    val isSpeedModeActive: Boolean = false
 ) {
     /**
      * Checks if this bubble should be visible and interactive.
      */
     val isVisible: Boolean
-        get() = true // All bubbles are visible in the grid
+        get() = transparency > 0.0f // Only visible if not fully transparent
 
     /**
      * Checks if this bubble can be pressed (active and not already pressed).
+     * Works for both classic mode and speed mode.
      */
     val canBePressed: Boolean
-        get() = isActive && !isPressed
+        get() = (isActive || isSpeedModeActive) && !isPressed
+
+    /**
+     * Checks if this bubble should be shown as active (for visual rendering).
+     */
+    val isVisuallyActive: Boolean
+        get() = isActive || isSpeedModeActive
+
+    /**
+     * Gets the effective transparency for rendering.
+     */
+    val effectiveTransparency: Float
+        get() = if (isSpeedModeActive) transparency else 1.0f
 }
 
 /**

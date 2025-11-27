@@ -17,6 +17,9 @@ import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
 import com.akinalpfdn.poprush.game.domain.usecase.GenerateLevelUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.HandleBubblePressUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.InitializeGameUseCase
+import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeUseCase
+import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerEvent
+import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.TimerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
+import kotlin.time.Duration
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -44,7 +48,9 @@ class GameViewModel @Inject constructor(
     private val initializeGameUseCase: InitializeGameUseCase,
     private val generateLevelUseCase: GenerateLevelUseCase,
     private val handleBubblePressUseCase: HandleBubblePressUseCase,
-    private val timerUseCase: TimerUseCase
+    private val timerUseCase: TimerUseCase,
+    private val speedModeUseCase: SpeedModeUseCase,
+    private val speedModeTimerUseCase: SpeedModeTimerUseCase
 ) : ViewModel() {
 
     // Private mutable state flow
@@ -158,11 +164,11 @@ class GameViewModel @Inject constructor(
             is GameIntent.NavigateToGameSetup -> handleNavigateToGameSetup()
             is GameIntent.ShowCoopComingSoon -> handleShowCoopComingSoon()
             is GameIntent.HideComingSoonMessage -> handleHideComingSoonMessage()
-            // Speed Mode Intents (TODO: Implement in Phase 4)
-            is GameIntent.ActivateRandomBubble -> { /* TODO: Implement in Phase 4 */ }
-            is GameIntent.UpdateSpeedModeInterval -> { /* TODO: Implement in Phase 4 */ }
-            is GameIntent.StartSpeedModeTimer -> { /* TODO: Implement in Phase 4 */ }
-            is GameIntent.ResetSpeedModeState -> { /* TODO: Implement in Phase 4 */ }
+            // Speed Mode Intents
+            is GameIntent.ActivateRandomBubble -> handleActivateRandomBubble(intent.bubbleId)
+            is GameIntent.UpdateSpeedModeInterval -> handleUpdateSpeedModeInterval()
+            is GameIntent.StartSpeedModeTimer -> handleStartSpeedModeTimer()
+            is GameIntent.ResetSpeedModeState -> handleResetSpeedModeState()
         }
     }
 
@@ -170,32 +176,60 @@ class GameViewModel @Inject constructor(
     private fun handleStartGame() {
         viewModelScope.launch {
             try {
-                val newBubbles = initializeGameUseCase.execute()
+                val currentState = _gameState.value
 
-                // Generate the first level immediately (like React version)
-                val difficulty = getCurrentSettings().difficulty
-                val activeBubbles = generateLevelUseCase.execute(
-                    currentBubbles = newBubbles,
-                    difficulty = difficulty,
-                    currentLevel = 1
-                )
+                when (currentState.selectedMod) {
+                    GameMod.CLASSIC -> {
+                        // Classic mode: existing logic
+                        val newBubbles = initializeGameUseCase.execute()
 
-                val selectedDuration = _gameState.value.selectedDuration
+                        // Generate the first level immediately
+                        val difficulty = getCurrentSettings().difficulty
+                        val activeBubbles = generateLevelUseCase.execute(
+                            currentBubbles = newBubbles,
+                            difficulty = difficulty,
+                            currentLevel = 1
+                        )
 
-                _gameState.update { currentState ->
-                    currentState.copy(
-                        isPlaying = true,
-                        isGameOver = false,
-                        isPaused = false,
-                        score = 0,
-                        timeRemaining = selectedDuration,
-                        currentLevel = 1,
-                        bubbles = activeBubbles
-                    )
+                        val selectedDuration = currentState.selectedDuration
+
+                        _gameState.update {
+                            it.copy(
+                                isPlaying = true,
+                                isGameOver = false,
+                                isPaused = false,
+                                score = 0,
+                                timeRemaining = selectedDuration,
+                                currentLevel = 1,
+                                bubbles = activeBubbles
+                            )
+                        }
+
+                        // Start the timer with selected duration
+                        timerUseCase.startTimer(selectedDuration)
+
+                        Timber.d("Classic mode game started with ${activeBubbles.count { it.isActive }} active bubbles")
+                    }
+
+                    GameMod.SPEED -> {
+                        // Speed mode: new logic
+                        _gameState.update {
+                            it.copy(
+                                isPlaying = true,
+                                isGameOver = false,
+                                isPaused = false,
+                                score = 0,
+                                timeRemaining = Duration.ZERO, // No time limit in speed mode
+                                currentLevel = 1
+                            )
+                        }
+
+                        // Start speed mode timer
+                        processIntent(GameIntent.StartSpeedModeTimer)
+
+                        Timber.d("Speed mode game started")
+                    }
                 }
-
-                // Start the timer with selected duration
-                timerUseCase.startTimer(selectedDuration)
 
                 // Start background music if enabled
                 if (audioRepository.isAudioSupported() && _gameState.value.musicEnabled) {
@@ -204,8 +238,6 @@ class GameViewModel @Inject constructor(
 
                 // Play start sound
                 audioRepository.playSound(SoundType.BUTTON_PRESS)
-
-                Timber.d("Game started with ${activeBubbles.count { it.isActive }} active bubbles")
             } catch (e: Exception) {
                 Timber.e(e, "Error starting game")
             }
@@ -288,8 +320,9 @@ class GameViewModel @Inject constructor(
             try {
                 val currentState = _gameState.value
 
-                // Stop the timer
+                // Stop the timers
                 timerUseCase.stopTimer()
+                speedModeTimerUseCase.stopTimer()
 
                 // Stop music
                 audioRepository.stopMusic()
@@ -560,6 +593,144 @@ class GameViewModel @Inject constructor(
 
     private fun handleHideComingSoonMessage() {
         _gameState.update { it.copy(showComingSoonToast = false) }
+    }
+
+    // Speed Mode Handlers
+    private fun handleActivateRandomBubble(bubbleId: Int) {
+        viewModelScope.launch {
+            try {
+                val currentState = _gameState.value
+                val updatedBubbles = speedModeUseCase.activateBubble(bubbleId, currentState.bubbles)
+
+                _gameState.update { it.copy(bubbles = updatedBubbles) }
+
+                // Check if speed mode is game over
+                if (speedModeUseCase.isGameOver(updatedBubbles)) {
+                    handleSpeedModeGameOver()
+                }
+
+                Timber.d("Activated bubble $bubbleId in speed mode")
+            } catch (e: Exception) {
+                Timber.e(e, "Error activating bubble in speed mode")
+            }
+        }
+    }
+
+    private fun handleUpdateSpeedModeInterval() {
+        viewModelScope.launch {
+            try {
+                // This would typically be called by a timer tick
+                // For now, just log the current interval
+                val currentInterval = speedModeUseCase.speedModeState.value.currentInterval
+                Timber.d("Current speed mode interval: ${currentInterval}s")
+            } catch (e: Exception) {
+                Timber.e(e, "Error updating speed mode interval")
+            }
+        }
+    }
+
+    private fun handleStartSpeedModeTimer() {
+        viewModelScope.launch {
+            try {
+                // Initialize speed mode
+                speedModeUseCase.initializeSpeedMode()
+
+                // Create initial bubbles for speed mode (all transparent)
+                val initialBubbles = initializeGameUseCase.execute().map { bubble ->
+                    bubble.copy(
+                        transparency = 0.0f, // All transparent initially
+                        isSpeedModeActive = false,
+                        isActive = false,
+                        isPressed = false
+                    )
+                }
+
+                _gameState.update { it.copy(bubbles = initialBubbles) }
+
+                // Start the speed mode timer
+                speedModeTimerUseCase.startTimer()
+
+                // Listen for speed mode timer events
+                speedModeTimerUseCase.timerEvents.collect { event ->
+                    when (event) {
+                        is SpeedModeTimerEvent.ActivateBubble -> {
+                            processIntent(GameIntent.ActivateRandomBubble(event.bubbleId))
+                        }
+                        is SpeedModeTimerEvent.GameOver -> {
+                            handleSpeedModeGameOver()
+                        }
+                        is SpeedModeTimerEvent.Tick -> {
+                            // Update speed mode state based on elapsed time
+                            val deltaTime = speedModeTimerUseCase.getElapsedTime()
+                            speedModeUseCase.updateSpeedMode(deltaTime)
+
+                            // Update game state with new speed mode state
+                            _gameState.update { currentState ->
+                                currentState.copy(speedModeState = speedModeUseCase.speedModeState.value)
+                            }
+                        }
+                        else -> { /* Handle other events as needed */ }
+                    }
+                }
+
+                Timber.d("Speed mode timer started")
+            } catch (e: Exception) {
+                Timber.e(e, "Error starting speed mode timer")
+            }
+        }
+    }
+
+    private fun handleResetSpeedModeState() {
+        viewModelScope.launch {
+            try {
+                // Stop speed mode timer
+                speedModeTimerUseCase.stopTimer()
+
+                // Reset speed mode use case
+                speedModeUseCase.resetSpeedMode()
+
+                // Update game state
+                _gameState.update { currentState ->
+                    currentState.copy(
+                        speedModeState = speedModeUseCase.speedModeState.value,
+                        bubbles = currentState.bubbles.map { bubble ->
+                            bubble.copy(
+                                transparency = 1.0f,
+                                isSpeedModeActive = false,
+                                isActive = false,
+                                isPressed = false
+                            )
+                        }
+                    )
+                }
+
+                Timber.d("Speed mode state reset")
+            } catch (e: Exception) {
+                Timber.e(e, "Error resetting speed mode state")
+            }
+        }
+    }
+
+    private fun handleSpeedModeGameOver() {
+        viewModelScope.launch {
+            try {
+                // Stop speed mode timer
+                speedModeTimerUseCase.stopTimer()
+
+                // Mark game as over
+                _gameState.update { currentState ->
+                    currentState.copy(
+                        isGameOver = true,
+                        isPlaying = false,
+                        speedModeState = speedModeUseCase.speedModeState.value.copy(isGameOver = true)
+                    )
+                }
+
+                Timber.d("Speed mode game over")
+            } catch (e: Exception) {
+                Timber.e(e, "Error handling speed mode game over")
+            }
+        }
     }
 
     private fun handleUpdateHighScore(newHighScore: Int) {
