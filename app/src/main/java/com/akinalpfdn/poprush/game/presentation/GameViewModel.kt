@@ -6,8 +6,11 @@ import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameDifficulty
 import com.akinalpfdn.poprush.core.domain.model.GameIntent
+import com.akinalpfdn.poprush.core.domain.model.GameMode
+import com.akinalpfdn.poprush.core.domain.model.GameMod
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.model.SoundType
+import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
 import com.akinalpfdn.poprush.core.domain.repository.AudioRepository
 import com.akinalpfdn.poprush.core.domain.repository.GameRepository
 import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
@@ -147,6 +150,19 @@ class GameViewModel @Inject constructor(
             is GameIntent.LoadGameData -> handleLoadGameData()
             is GameIntent.SaveGameData -> handleSaveGameData()
             is GameIntent.AudioIntent -> handleAudioIntent(intent)
+            // Game Mode Selection Intents
+            is GameIntent.SelectGameMode -> handleSelectGameMode(intent.mode)
+            is GameIntent.SelectGameMod -> handleSelectGameMod(intent.mod)
+            // UI Navigation Intents
+            is GameIntent.NavigateToModPicker -> handleNavigateToModPicker()
+            is GameIntent.NavigateToGameSetup -> handleNavigateToGameSetup()
+            is GameIntent.ShowCoopComingSoon -> handleShowCoopComingSoon()
+            is GameIntent.HideComingSoonMessage -> handleHideComingSoonMessage()
+            // Speed Mode Intents (TODO: Implement in Phase 4)
+            is GameIntent.ActivateRandomBubble -> { /* TODO: Implement in Phase 4 */ }
+            is GameIntent.UpdateSpeedModeInterval -> { /* TODO: Implement in Phase 4 */ }
+            is GameIntent.StartSpeedModeTimer -> { /* TODO: Implement in Phase 4 */ }
+            is GameIntent.ResetSpeedModeState -> { /* TODO: Implement in Phase 4 */ }
         }
     }
 
@@ -491,6 +507,59 @@ class GameViewModel @Inject constructor(
      */
     private fun handleUpdateSelectedDuration(duration: kotlin.time.Duration) {
         _gameState.update { it.copy(selectedDuration = duration) }
+    }
+
+    // Game Mode Selection Handlers
+    private fun handleSelectGameMode(mode: GameMode) {
+        if (mode == GameMode.COOP) {
+            // Show coming soon toast and don't change the mode
+            _gameState.update { it.copy(showComingSoonToast = true) }
+            // Auto-hide toast after 3 seconds
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(3000)
+                _gameState.update { it.copy(showComingSoonToast = false) }
+            }
+        } else {
+            // Navigate to mod picker for single player
+            _gameState.update {
+                it.copy(
+                    gameMode = mode,
+                    currentScreen = StartScreenFlow.MOD_PICKER,
+                    showComingSoonToast = false
+                )
+            }
+        }
+    }
+
+    private fun handleSelectGameMod(mod: GameMod) {
+        _gameState.update {
+            it.copy(
+                selectedMod = mod,
+                currentScreen = StartScreenFlow.GAME_SETUP
+            )
+        }
+    }
+
+    // UI Navigation Handlers
+    private fun handleNavigateToModPicker() {
+        _gameState.update { it.copy(currentScreen = StartScreenFlow.MOD_PICKER) }
+    }
+
+    private fun handleNavigateToGameSetup() {
+        _gameState.update { it.copy(currentScreen = StartScreenFlow.GAME_SETUP) }
+    }
+
+    private fun handleShowCoopComingSoon() {
+        _gameState.update { it.copy(showComingSoonToast = true) }
+        // Auto-hide after 3 seconds
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(3000)
+            _gameState.update { it.copy(showComingSoonToast = false) }
+        }
+    }
+
+    private fun handleHideComingSoonMessage() {
+        _gameState.update { it.copy(showComingSoonToast = false) }
     }
 
     private fun handleUpdateHighScore(newHighScore: Int) {

@@ -23,8 +23,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameIntent
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
 import com.akinalpfdn.poprush.core.ui.component.BubbleGrid
 import com.akinalpfdn.poprush.game.presentation.component.GameHeader
+import com.akinalpfdn.poprush.game.presentation.component.CoopComingSoonToast
 import com.akinalpfdn.poprush.game.presentation.GameViewModel
 import com.akinalpfdn.poprush.game.presentation.component.PauseButton
 import com.akinalpfdn.poprush.game.presentation.component.SettingsOverlay
@@ -67,6 +69,8 @@ fun GameScreen(
             onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
             onTogglePause = { viewModel.processIntent(GameIntent.TogglePause) },
             onDurationChange = { duration -> viewModel.processIntent(GameIntent.UpdateSelectedDuration(duration)) },
+            onGameModeSelected = { mode -> viewModel.processIntent(GameIntent.SelectGameMode(mode)) },
+            onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -140,6 +144,12 @@ fun GameScreen(
             onDismiss = { viewModel.processIntent(GameIntent.HideBackConfirmation) },
             isVisible = gameState.showBackConfirmation
         )
+
+        // Co-op coming soon toast
+        CoopComingSoonToast(
+            isVisible = gameState.showComingSoonToast,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
@@ -155,6 +165,8 @@ private fun GameContent(
     onSelectShape: (BubbleShape) -> Unit,
     onTogglePause: () -> Unit,
     onDurationChange: (Duration) -> Unit,
+    onGameModeSelected: (com.akinalpfdn.poprush.core.domain.model.GameMode) -> Unit,
+    onGameModSelected: (com.akinalpfdn.poprush.core.domain.model.GameMod) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -180,12 +192,28 @@ private fun GameContent(
             // Always show the appropriate main content
             when {
                 !gameState.isPlaying && !gameState.isGameOver -> {
-                    StartScreen(
-                        gameState = gameState,
-                        onStartGame = onStartGame,
-                        onDurationChange = onDurationChange,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    when (gameState.currentScreen) {
+                        StartScreenFlow.MODE_SELECTION -> {
+                            ModeSelectionScreen(
+                                onModeSelected = onGameModeSelected,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        StartScreenFlow.MOD_PICKER -> {
+                            ModPickerScreen(
+                                onModSelected = onGameModSelected,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        StartScreenFlow.GAME_SETUP -> {
+                            StartScreen(
+                                gameState = gameState,
+                                onStartGame = onStartGame,
+                                onDurationChange = onDurationChange,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                 }
 
                 else -> {

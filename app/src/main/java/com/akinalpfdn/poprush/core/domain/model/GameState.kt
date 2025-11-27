@@ -22,6 +22,11 @@ import kotlin.time.Duration.Companion.seconds
  * @param musicEnabled Whether background music is enabled
  * @param soundVolume Current sound effects volume (0.0f to 1.0f)
  * @param musicVolume Current music volume (0.0f to 1.0f)
+ * @param gameMode Currently selected game mode (single or coop)
+ * @param selectedMod Currently selected game mod (classic or speed)
+ * @param currentScreen Current screen flow state for start screen navigation
+ * @param speedModeState State management for speed mode gameplay
+ * @param showComingSoonToast Whether to show the co-op coming soon toast message
  */
 data class GameState(
     val isPlaying: Boolean = false,
@@ -40,7 +45,12 @@ data class GameState(
     val soundEnabled: Boolean = true,
     val musicEnabled: Boolean = true,
     val soundVolume: Float = 1.0f,
-    val musicVolume: Float = 0.7f
+    val musicVolume: Float = 0.7f,
+    val gameMode: GameMode = GameMode.SINGLE,
+    val selectedMod: GameMod = GameMod.CLASSIC,
+    val currentScreen: StartScreenFlow = StartScreenFlow.MODE_SELECTION,
+    val speedModeState: SpeedModeState = SpeedModeState(),
+    val showComingSoonToast: Boolean = false
 ) {
     /**
      * Returns the number of currently active bubbles that can be pressed.

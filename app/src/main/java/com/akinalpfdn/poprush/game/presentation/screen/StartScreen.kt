@@ -57,22 +57,33 @@ fun StartScreen(
                 text = "POP RUSH",
                 color = Color(0xFF44403C),
                 fontSize = 36.sp,
-                fontFamily = roundedFont, // <--- Apply the rounded font here
+                fontFamily = roundedFont,
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-
-
-            // Duration picker
-            DurationPicker(
-                selectedDuration = gameState.selectedDuration,
-                onDurationChange = onDurationChange,
-                modifier = Modifier.padding(horizontal = 16.dp)
+            // Mode title
+            Text(
+                text = gameState.selectedMod.displayName,
+                color = Color(0xFF6B7280),
+                fontSize = 20.sp,
+                fontFamily = roundedFont,
+                fontWeight = FontWeight.Medium
             )
 
             Spacer(modifier = Modifier.height(32.dp))
+
+            // Duration picker - only show for Classic mode
+            if (gameState.selectedMod.durationRequired) {
+                DurationPicker(
+                    selectedDuration = gameState.selectedDuration,
+                    onDurationChange = onDurationChange,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+            }
 
             // Play button
             PlayButton(

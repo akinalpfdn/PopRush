@@ -140,6 +140,65 @@ sealed interface GameIntent {
      */
     data object SaveGameData : GameIntent
 
+    // Game Mode Selection Intents
+
+    /**
+     * Selects the game mode (single or co-op).
+     * @param mode The game mode to select
+     */
+    data class SelectGameMode(val mode: GameMode) : GameIntent
+
+    /**
+     * Selects the game mod (classic or speed).
+     * @param mod The game mod to select
+     */
+    data class SelectGameMod(val mod: GameMod) : GameIntent
+
+    // Speed Mode Specific Intents
+
+    /**
+     * Activates a random bubble in speed mode.
+     * @param bubbleId The ID of the bubble to activate
+     */
+    data class ActivateRandomBubble(val bubbleId: Int) : GameIntent
+
+    /**
+     * Updates the speed mode interval based on elapsed time.
+     */
+    data object UpdateSpeedModeInterval : GameIntent
+
+    /**
+     * Starts the speed mode timer system.
+     */
+    data object StartSpeedModeTimer : GameIntent
+
+    /**
+     * Resets the speed mode state to initial values.
+     */
+    data object ResetSpeedModeState : GameIntent
+
+    // UI Navigation Intents
+
+    /**
+     * Navigates to the mod picker screen.
+     */
+    data object NavigateToModPicker : GameIntent
+
+    /**
+     * Navigates to the game setup screen.
+     */
+    data object NavigateToGameSetup : GameIntent
+
+    /**
+     * Shows the co-op coming soon toast message.
+     */
+    data object ShowCoopComingSoon : GameIntent
+
+    /**
+     * Hides the coming soon toast message.
+     */
+    data object HideComingSoonMessage : GameIntent
+
     /**
      * Handles audio-related events.
      */
