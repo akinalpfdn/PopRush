@@ -102,8 +102,11 @@ class SpeedModeTimerUseCase @Inject constructor(
                     // Update speed mode state
                     speedModeUseCase.updateSpeedMode(deltaTime.milliseconds)
 
+                    // Calculate next activation time based on the previous activation time
+                    val nextActivationTime = lastActivationTime + speedModeUseCase.getCurrentIntervalMs()
+
                     // Check if it's time to activate a new bubble
-                    if (currentTime >= lastActivationTime + speedModeUseCase.getCurrentIntervalMs()) {
+                    if (currentTime >= nextActivationTime) {
                         if (isActive) {
                             triggerBubbleActivation()
                         }
@@ -160,10 +163,20 @@ class SpeedModeTimerUseCase @Inject constructor(
     suspend fun triggerBubbleActivation(bubbles: List<com.akinalpfdn.poprush.core.domain.model.Bubble>) {
         val speedModeState = speedModeUseCase.speedModeState.value
 
+        // Check if game is already over
         if (speedModeState.isGameOver) {
             _timerState.value = SpeedModeTimerState.GAME_OVER
             _timerEvents.value = SpeedModeTimerEvent.GameOver
             stopTimer()
+            return
+        }
+
+        // Check if all bubbles are active (game over condition)
+        if (speedModeUseCase.isGameOver(bubbles)) {
+            _timerState.value = SpeedModeTimerState.GAME_OVER
+            _timerEvents.value = SpeedModeTimerEvent.GameOver
+            stopTimer()
+            Timber.d("Speed mode game over - all bubbles are active")
             return
         }
 
@@ -175,10 +188,11 @@ class SpeedModeTimerUseCase @Inject constructor(
             _timerEvents.value = SpeedModeTimerEvent.ActivateBubble(id)
             Timber.d("Triggered activation for bubble $id")
         } ?: run {
-            // No more bubbles to activate
+            // No more bubbles to activate - this shouldn't happen if the check above works properly
             _timerState.value = SpeedModeTimerState.GAME_OVER
             _timerEvents.value = SpeedModeTimerEvent.GameOver
             stopTimer()
+            Timber.d("Speed mode game over - no inactive bubbles found")
         }
     }
 
@@ -196,11 +210,11 @@ class SpeedModeTimerUseCase @Inject constructor(
             return
         }
 
-        // Update the last activation time first
-        lastActivationTime = System.currentTimeMillis()
-
         // Trigger a generic activation request - ViewModel will handle the actual bubble selection
         _timerEvents.value = SpeedModeTimerEvent.ActivateBubble(-1) // Special value indicating random selection needed
+
+        // Update the last activation time AFTER triggering the event
+        lastActivationTime = System.currentTimeMillis()
         Timber.d("Triggered random bubble activation request")
     }
 

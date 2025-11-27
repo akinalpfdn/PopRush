@@ -46,9 +46,10 @@ data class Bubble(
 
     /**
      * Gets the effective transparency for rendering.
+     * In speed mode, uses the transparency property directly.
      */
     val effectiveTransparency: Float
-        get() = if (isSpeedModeActive) transparency else 1.0f
+        get() = transparency
 }
 
 /**

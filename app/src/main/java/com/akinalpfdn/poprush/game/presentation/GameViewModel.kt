@@ -670,6 +670,9 @@ class GameViewModel @Inject constructor(
                 val currentState = _gameState.value
                 val updatedBubbles = speedModeUseCase.activateBubble(bubbleId, currentState.bubbles)
 
+                val activeCount = updatedBubbles.count { it.isSpeedModeActive }
+                val transparentCount = updatedBubbles.count { it.transparency == 0.0f }
+
                 _gameState.update { it.copy(bubbles = updatedBubbles) }
 
                 // Check if speed mode is game over
@@ -677,7 +680,7 @@ class GameViewModel @Inject constructor(
                     handleSpeedModeGameOver()
                 }
 
-                Timber.d("Activated bubble $bubbleId in speed mode")
+                Timber.d("Activated bubble $bubbleId in speed mode. Active: $activeCount, Transparent: $transparentCount")
             } catch (e: Exception) {
                 Timber.e(e, "Error activating bubble in speed mode")
             }
@@ -726,6 +729,8 @@ class GameViewModel @Inject constructor(
                     )
                 }
 
+                Timber.d("Created ${initialBubbles.size} bubbles for speed mode, all with transparency=0.0f")
+
                 // Start the speed mode timer
                 speedModeTimerUseCase.startTimer()
 
@@ -734,6 +739,7 @@ class GameViewModel @Inject constructor(
                     speedModeTimerUseCase.timerEvents.collect { event ->
                         when (event) {
                             is SpeedModeTimerEvent.ActivateBubble -> {
+                                Timber.d("Speed mode timer: ActivateBubble event received, bubbleId=${event.bubbleId}")
                                 if (event.bubbleId == -1) {
                                     // Random selection needed
                                     val currentBubbles = _gameState.value.bubbles
@@ -746,6 +752,7 @@ class GameViewModel @Inject constructor(
                                 }
                             }
                             is SpeedModeTimerEvent.GameOver -> {
+                                Timber.d("Speed mode timer: GameOver event received")
                                 handleSpeedModeGameOver()
                             }
                             is SpeedModeTimerEvent.Tick -> {
@@ -758,7 +765,9 @@ class GameViewModel @Inject constructor(
                                     currentState.copy(speedModeState = speedModeUseCase.speedModeState.value)
                                 }
                             }
-                            else -> { /* Handle other events as needed */ }
+                            else -> {
+                                Timber.d("Speed mode timer: Unknown event received: $event")
+                            }
                         }
                     }
                 }
