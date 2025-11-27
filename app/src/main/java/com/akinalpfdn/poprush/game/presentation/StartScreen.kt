@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,6 +26,12 @@ import com.akinalpfdn.poprush.core.domain.model.GameState
  * @param onDurationChange Callback when duration selection changes
  * @param modifier Additional modifier for the screen
  */
+// This grabs the built-in Android "sans-serif-rounded" font
+val roundedFont = FontFamily(
+    androidx.compose.ui.text.font.Typeface(
+        android.graphics.Typeface.create("sans-serif-rounded", android.graphics.Typeface.BOLD)
+    )
+)
 @Composable
 fun StartScreen(
     gameState: GameState,
@@ -45,10 +52,10 @@ fun StartScreen(
             // Game title
             Text(
                 text = "POP RUSH",
-                color = Color(0xFF44403C), // stone-700
+                color = Color(0xFF44403C),
                 fontSize = 36.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = (-1).sp
+                fontFamily = roundedFont, // <--- Apply the rounded font here
+                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(8.dp))
