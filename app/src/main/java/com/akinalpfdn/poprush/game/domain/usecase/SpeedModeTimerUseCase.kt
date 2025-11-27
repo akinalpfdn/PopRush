@@ -74,8 +74,13 @@ class SpeedModeTimerUseCase @Inject constructor(
      * Starts the speed mode timer.
      */
     fun startTimer() {
+        Timber.d("startTimer() called: isTimerRunning=${isTimerRunning.get()}")
         if (isTimerRunning.compareAndSet(false, true)) {
-            stopTimer() // Cancel any existing timer
+            Timber.d("startTimer: Starting new timer (was not running)")
+
+            // Cancel any existing timer job first
+            timerJob?.cancel()
+            timerJob = null
 
             _timerState.value = SpeedModeTimerState.RUNNING
             lastUpdateTime = System.currentTimeMillis()
@@ -91,7 +96,9 @@ class SpeedModeTimerUseCase @Inject constructor(
                     triggerBubbleActivation()
                 }
 
-                // Main timer loop
+                // Main timer loop - simplified
+                Timber.d("Speed mode timer loop starting")
+
                 while (isActive && isTimerRunning.get()) {
                     val currentTime = System.currentTimeMillis()
                     val deltaTime = currentTime - lastUpdateTime
@@ -102,22 +109,24 @@ class SpeedModeTimerUseCase @Inject constructor(
                     // Update speed mode state
                     speedModeUseCase.updateSpeedMode(deltaTime.milliseconds)
 
-                    // Calculate next activation time based on the previous activation time
-                    val nextActivationTime = lastActivationTime + speedModeUseCase.getCurrentIntervalMs()
-
                     // Check if it's time to activate a new bubble
-                    if (currentTime >= nextActivationTime) {
-                        if (isActive) {
+                    val timeSinceLastActivation = currentTime - lastActivationTime
+                    val currentInterval = speedModeUseCase.getCurrentIntervalMs()
+
+                    if (timeSinceLastActivation >= currentInterval) {
+                        if (isActive && isTimerRunning.get()) {
+                            Timber.d("Timer: Activating bubble (timeSince: ${timeSinceLastActivation}ms, interval: ${currentInterval}ms)")
                             triggerBubbleActivation()
                         }
                     }
 
-                    // Emit tick event
+                    // Emit tick event for score/time updates
                     _timerEvents.value = SpeedModeTimerEvent.Tick
 
-                    // Small delay for the next tick
                     delay(TICK_INTERVAL_MS)
                 }
+
+                Timber.d("Speed mode timer loop ended")
             }
         }
     }
@@ -126,11 +135,14 @@ class SpeedModeTimerUseCase @Inject constructor(
      * Stops the speed mode timer.
      */
     fun stopTimer() {
-        if (isTimerRunning.compareAndSet(true, false)) {
+        val wasRunning = isTimerRunning.compareAndSet(true, false)
+        if (wasRunning) {
             timerJob?.cancel()
             timerJob = null
             _timerState.value = SpeedModeTimerState.STOPPED
-            Timber.d("Speed mode timer stopped")
+            Timber.w("Speed mode timer STOPPED by stopTimer() call")
+        } else {
+            Timber.w("stopTimer() called but timer was not running")
         }
     }
 
@@ -162,9 +174,14 @@ class SpeedModeTimerUseCase @Inject constructor(
      */
     suspend fun triggerBubbleActivation(bubbles: List<com.akinalpfdn.poprush.core.domain.model.Bubble>) {
         val speedModeState = speedModeUseCase.speedModeState.value
+        val activeCount = bubbles.count { it.isSpeedModeActive }
+        val totalCount = bubbles.size
+
+        Timber.d("triggerBubbleActivation(bubbles): total=$totalCount, active=$activeCount, isGameOver=${speedModeState.isGameOver}")
 
         // Check if game is already over
         if (speedModeState.isGameOver) {
+            Timber.d("triggerBubbleActivation: Game over (state), stopping timer")
             _timerState.value = SpeedModeTimerState.GAME_OVER
             _timerEvents.value = SpeedModeTimerEvent.GameOver
             stopTimer()
@@ -173,26 +190,27 @@ class SpeedModeTimerUseCase @Inject constructor(
 
         // Check if all bubbles are active (game over condition)
         if (speedModeUseCase.isGameOver(bubbles)) {
+            Timber.d("triggerBubbleActivation: Game over (all active), stopping timer")
             _timerState.value = SpeedModeTimerState.GAME_OVER
             _timerEvents.value = SpeedModeTimerEvent.GameOver
             stopTimer()
-            Timber.d("Speed mode game over - all bubbles are active")
             return
         }
 
         // Select a random bubble to activate from the current bubble list
+        Timber.d("triggerBubbleActivation: Calling selectRandomBubble")
         val (bubbleId, _) = speedModeUseCase.selectRandomBubble(bubbles)
 
         bubbleId?.let { id ->
             lastActivationTime = System.currentTimeMillis()
             _timerEvents.value = SpeedModeTimerEvent.ActivateBubble(id)
-            Timber.d("Triggered activation for bubble $id")
+            Timber.d("triggerBubbleActivation: SUCCESS - Triggered activation for bubble $id")
         } ?: run {
             // No more bubbles to activate - this shouldn't happen if the check above works properly
+            Timber.d("triggerBubbleActivation: FAILED - selectRandomBubble returned null")
             _timerState.value = SpeedModeTimerState.GAME_OVER
             _timerEvents.value = SpeedModeTimerEvent.GameOver
             stopTimer()
-            Timber.d("Speed mode game over - no inactive bubbles found")
         }
     }
 
@@ -204,6 +222,7 @@ class SpeedModeTimerUseCase @Inject constructor(
         val speedModeState = speedModeUseCase.speedModeState.value
 
         if (speedModeState.isGameOver) {
+            Timber.d("triggerBubbleActivation: Game over detected, stopping timer")
             _timerState.value = SpeedModeTimerState.GAME_OVER
             _timerEvents.value = SpeedModeTimerEvent.GameOver
             stopTimer()
@@ -215,7 +234,7 @@ class SpeedModeTimerUseCase @Inject constructor(
 
         // Update the last activation time AFTER triggering the event
         lastActivationTime = System.currentTimeMillis()
-        Timber.d("Triggered random bubble activation request")
+        Timber.d("triggerBubbleActivation: Sent random activation request")
     }
 
     /**

@@ -60,12 +60,16 @@ class SpeedModeUseCase @Inject constructor() {
      */
     fun selectRandomBubble(bubbles: List<Bubble>): Pair<Int?, SpeedModeState> {
         val inactiveBubbles = bubbles.filter { !it.isSpeedModeActive }
+        val totalBubbles = bubbles.size
+        val activeBubbles = bubbles.count { it.isSpeedModeActive }
+
+        Timber.d("selectRandomBubble: total=$totalBubbles, active=$activeBubbles, inactive=${inactiveBubbles.size}")
 
         if (inactiveBubbles.isEmpty()) {
             // All bubbles are active, game over
             val gameOverState = _speedModeState.value.copy(isGameOver = true)
             _speedModeState.value = gameOverState
-            Timber.d("Speed mode game over - all bubbles are active")
+            Timber.d("selectRandomBubble: Game over - all bubbles are active")
             return null to gameOverState
         }
 
@@ -76,7 +80,7 @@ class SpeedModeUseCase @Inject constructor() {
         )
         _speedModeState.value = updatedState
 
-        Timber.d("Selected bubble ${selectedBubble.id} for activation")
+        Timber.d("selectRandomBubble: SUCCESS - Selected bubble ${selectedBubble.id} for activation (was inactive)")
         return selectedBubble.id to updatedState
     }
 

@@ -213,14 +213,14 @@ class GameViewModel @Inject constructor(
                     }
 
                     GameMod.SPEED -> {
-                        // Speed mode: new logic
+                        // Speed mode: count up timer, no time limit
                         _gameState.update {
                             it.copy(
                                 isPlaying = true,
                                 isGameOver = false,
                                 isPaused = false,
-                                score = 0,
-                                timeRemaining = Duration.ZERO, // No time limit in speed mode
+                                score = 0, // Will be updated with time survived
+                                timeRemaining = Duration.ZERO, // Counts up from 0
                                 currentLevel = 1
                             )
                         }
@@ -228,7 +228,7 @@ class GameViewModel @Inject constructor(
                         // Start speed mode timer
                         processIntent(GameIntent.StartSpeedModeTimer)
 
-                        Timber.d("Speed mode game started")
+                        Timber.d("Speed mode game started - timer counts up, score = time survived")
                     }
                 }
 
@@ -741,13 +741,25 @@ class GameViewModel @Inject constructor(
                             is SpeedModeTimerEvent.ActivateBubble -> {
                                 Timber.d("Speed mode timer: ActivateBubble event received, bubbleId=${event.bubbleId}")
                                 if (event.bubbleId == -1) {
-                                    // Random selection needed
+                                    // Random selection needed - do it directly in ViewModel
                                     val currentBubbles = _gameState.value.bubbles
-                                    viewModelScope.launch {
-                                        speedModeTimerUseCase.triggerBubbleActivation(currentBubbles)
+                                    val activeCount = currentBubbles.count { it.isSpeedModeActive }
+                                    val totalCount = currentBubbles.size
+                                    Timber.d("Speed mode: Random selection needed. Active: $activeCount/$totalCount")
+
+                                    // Select random bubble directly
+                                    val (bubbleId, _) = speedModeUseCase.selectRandomBubble(currentBubbles)
+
+                                    bubbleId?.let { id ->
+                                        Timber.d("Speed mode: Selected bubble $id, now activating")
+                                        processIntent(GameIntent.ActivateRandomBubble(id))
+                                    } ?: run {
+                                        Timber.d("Speed mode: No bubbles to select - game over")
+                                        handleSpeedModeGameOver()
                                     }
                                 } else {
                                     // Specific bubble activation
+                                    Timber.d("Speed mode: Specific bubble activation requested: ${event.bubbleId}")
                                     processIntent(GameIntent.ActivateRandomBubble(event.bubbleId))
                                 }
                             }
@@ -760,9 +772,13 @@ class GameViewModel @Inject constructor(
                                 val deltaTime = speedModeTimerUseCase.getElapsedTime()
                                 speedModeUseCase.updateSpeedMode(deltaTime)
 
-                                // Update game state with new speed mode state
+                                // Update game state with time elapsed and score
                                 _gameState.update { currentState ->
-                                    currentState.copy(speedModeState = speedModeUseCase.speedModeState.value)
+                                    currentState.copy(
+                                        timeRemaining = deltaTime, // Count up timer
+                                        score = (deltaTime.inWholeSeconds).toInt(), // Score = seconds survived
+                                        speedModeState = speedModeUseCase.speedModeState.value
+                                    )
                                 }
                             }
                             else -> {
@@ -816,16 +832,18 @@ class GameViewModel @Inject constructor(
                 // Stop speed mode timer
                 speedModeTimerUseCase.stopTimer()
 
-                // Mark game as over
+                // Final score and mark game as over
                 _gameState.update { currentState ->
                     currentState.copy(
                         isGameOver = true,
                         isPlaying = false,
+                        score = (currentState.timeRemaining.inWholeSeconds).toInt(), // Final score = seconds survived
                         speedModeState = speedModeUseCase.speedModeState.value.copy(isGameOver = true)
                     )
                 }
 
-                Timber.d("Speed mode game over")
+                val finalScore = (_gameState.value.timeRemaining.inWholeSeconds).toInt()
+                Timber.d("Speed mode game over - Final score: $finalScore seconds")
             } catch (e: Exception) {
                 Timber.e(e, "Error handling speed mode game over")
             }
