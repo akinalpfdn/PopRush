@@ -2,8 +2,11 @@ package com.akinalpfdn.poprush.game.domain.usecase
 
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -16,7 +19,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
+import com.akinalpfdn.poprush.core.domain.model.Bubble
 
 /**
  * Speed mode timer state for managing bubble activation intervals.
@@ -59,9 +62,9 @@ class SpeedModeTimerUseCase @Inject constructor(
     private val _timerState = MutableStateFlow(SpeedModeTimerState.STOPPED)
     val timerState: StateFlow<SpeedModeTimerState> = _timerState.asStateFlow()
 
-    // Timer events flow
-    private val _timerEvents = MutableStateFlow<SpeedModeTimerEvent?>(null)
-    val timerEvents: StateFlow<SpeedModeTimerEvent?> = _timerEvents.asStateFlow()
+    // FIX: Use SharedFlow instead of StateFlow to prevent event dropping
+    private val _timerEvents = MutableSharedFlow<SpeedModeTimerEvent>(extraBufferCapacity = 64)
+    val timerEvents: SharedFlow<SpeedModeTimerEvent> = _timerEvents.asSharedFlow()
 
     // Private state
     private var timerJob: Job? = null
@@ -96,7 +99,7 @@ class SpeedModeTimerUseCase @Inject constructor(
                     triggerBubbleActivation()
                 }
 
-                // Main timer loop - simplified
+                // Main timer loop
                 Timber.d("Speed mode timer loop starting")
 
                 while (isActive && isTimerRunning.get()) {
@@ -106,7 +109,7 @@ class SpeedModeTimerUseCase @Inject constructor(
 
                     elapsedTime += deltaTime.milliseconds
 
-                    // Update speed mode state
+                    // Logic Update: Update speed mode state here (logic side)
                     speedModeUseCase.updateSpeedMode(deltaTime.milliseconds)
 
                     // Check if it's time to activate a new bubble
@@ -121,7 +124,8 @@ class SpeedModeTimerUseCase @Inject constructor(
                     }
 
                     // Emit tick event for score/time updates
-                    _timerEvents.value = SpeedModeTimerEvent.Tick
+                    // Use tryEmit for non-blocking emit in tight loop
+                    _timerEvents.tryEmit(SpeedModeTimerEvent.Tick)
 
                     delay(TICK_INTERVAL_MS)
                 }
@@ -170,53 +174,32 @@ class SpeedModeTimerUseCase @Inject constructor(
 
     /**
      * Triggers a bubble activation event.
-     * This should be called from the ViewModel with the current bubble list.
+     * This preserves the original method signature but delegates to the new event flow if possible.
      */
-    suspend fun triggerBubbleActivation(bubbles: List<com.akinalpfdn.poprush.core.domain.model.Bubble>) {
+    suspend fun triggerBubbleActivation(bubbles: List<Bubble>) {
         val speedModeState = speedModeUseCase.speedModeState.value
-        val activeCount = bubbles.count { it.isSpeedModeActive }
-        val totalCount = bubbles.size
 
-        Timber.d("triggerBubbleActivation(bubbles): total=$totalCount, active=$activeCount, isGameOver=${speedModeState.isGameOver}")
+        Timber.d("triggerBubbleActivation(bubbles): total=${bubbles.size}, isGameOver=${speedModeState.isGameOver}")
 
         // Check if game is already over
-        if (speedModeState.isGameOver) {
-            Timber.d("triggerBubbleActivation: Game over (state), stopping timer")
+        if (speedModeState.isGameOver || speedModeUseCase.isGameOver(bubbles)) {
+            Timber.d("triggerBubbleActivation: Game over condition met")
             _timerState.value = SpeedModeTimerState.GAME_OVER
-            _timerEvents.value = SpeedModeTimerEvent.GameOver
+            _timerEvents.emit(SpeedModeTimerEvent.GameOver)
             stopTimer()
             return
         }
 
-        // Check if all bubbles are active (game over condition)
-        if (speedModeUseCase.isGameOver(bubbles)) {
-            Timber.d("triggerBubbleActivation: Game over (all active), stopping timer")
-            _timerState.value = SpeedModeTimerState.GAME_OVER
-            _timerEvents.value = SpeedModeTimerEvent.GameOver
-            stopTimer()
-            return
-        }
-
-        // Select a random bubble to activate from the current bubble list
-        Timber.d("triggerBubbleActivation: Calling selectRandomBubble")
-        val (bubbleId, _) = speedModeUseCase.selectRandomBubble(bubbles)
-
-        bubbleId?.let { id ->
-            lastActivationTime = System.currentTimeMillis()
-            _timerEvents.value = SpeedModeTimerEvent.ActivateBubble(id)
-            Timber.d("triggerBubbleActivation: SUCCESS - Triggered activation for bubble $id")
-        } ?: run {
-            // No more bubbles to activate - this shouldn't happen if the check above works properly
-            Timber.d("triggerBubbleActivation: FAILED - selectRandomBubble returned null")
-            _timerState.value = SpeedModeTimerState.GAME_OVER
-            _timerEvents.value = SpeedModeTimerEvent.GameOver
-            stopTimer()
-        }
+        // Select a random bubble logic is now handled in ViewModel via -1 event,
+        // but if this method is called manually, we can trigger the generic event
+        // or attempt to use the logic here if needed.
+        // To remain consistent with the fix, we emit the request for activation.
+        _timerEvents.emit(SpeedModeTimerEvent.ActivateBubble(-1))
+        lastActivationTime = System.currentTimeMillis()
     }
 
     /**
      * Internal trigger method used by the timer loop.
-     * This will trigger an event that the ViewModel should handle.
      */
     private suspend fun triggerBubbleActivation() {
         val speedModeState = speedModeUseCase.speedModeState.value
@@ -224,13 +207,14 @@ class SpeedModeTimerUseCase @Inject constructor(
         if (speedModeState.isGameOver) {
             Timber.d("triggerBubbleActivation: Game over detected, stopping timer")
             _timerState.value = SpeedModeTimerState.GAME_OVER
-            _timerEvents.value = SpeedModeTimerEvent.GameOver
+            _timerEvents.emit(SpeedModeTimerEvent.GameOver)
             stopTimer()
             return
         }
 
-        // Trigger a generic activation request - ViewModel will handle the actual bubble selection
-        _timerEvents.value = SpeedModeTimerEvent.ActivateBubble(-1) // Special value indicating random selection needed
+        // Trigger a random activation request
+        // ViewModel will handle the actual bubble selection
+        _timerEvents.emit(SpeedModeTimerEvent.ActivateBubble(-1))
 
         // Update the last activation time AFTER triggering the event
         lastActivationTime = System.currentTimeMillis()
@@ -242,7 +226,8 @@ class SpeedModeTimerUseCase @Inject constructor(
      */
     fun triggerManualActivation(bubbleId: Int) {
         if (isTimerRunning.get()) {
-            _timerEvents.value = SpeedModeTimerEvent.ActivateBubble(bubbleId)
+            // Safe emit for external calls
+            _timerEvents.tryEmit(SpeedModeTimerEvent.ActivateBubble(bubbleId))
             lastActivationTime = System.currentTimeMillis()
             Timber.d("Manual activation triggered for bubble $bubbleId")
         }
@@ -257,7 +242,7 @@ class SpeedModeTimerUseCase @Inject constructor(
         elapsedTime = Duration.ZERO
         lastActivationTime = 0L
         lastUpdateTime = 0L
-        _timerEvents.value = null
+        // SharedFlow does not need explicit nulling like StateFlow
         Timber.d("Speed mode timer reset")
     }
 

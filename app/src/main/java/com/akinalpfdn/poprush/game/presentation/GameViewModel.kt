@@ -22,6 +22,7 @@ import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerEvent
 import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.TimerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +53,7 @@ class GameViewModel @Inject constructor(
     private val speedModeUseCase: SpeedModeUseCase,
     private val speedModeTimerUseCase: SpeedModeTimerUseCase
 ) : ViewModel() {
-
+    private var speedModeCollectorJob: Job? = null
     // Private mutable state flow
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
@@ -701,21 +702,25 @@ class GameViewModel @Inject constructor(
     }
 
     private fun handleStartSpeedModeTimer() {
+        // FIX: Check if job is active to prevent multiple listeners (The Freeze Fix)
+        if (speedModeCollectorJob?.isActive == true) {
+            Timber.d("Speed mode timer already being collected, ignoring duplicate start request.")
+            return
+        }
+
         viewModelScope.launch {
             try {
-                // Show loading state
                 _gameState.update { it.copy(isLoadingSpeedMode = true) }
 
-                // Small delay to show the loading indicator
+                // Wait briefly for UI transition
                 kotlinx.coroutines.delay(500)
 
-                // Initialize speed mode
                 speedModeUseCase.initializeSpeedMode()
 
-                // Create initial bubbles for speed mode (all transparent/inactive)
+                // Initialize bubbles invisible for speed mode
                 val initialBubbles = initializeGameUseCase.execute().map { bubble ->
                     bubble.copy(
-                        transparency = 0.0f, // All transparent initially
+                        transparency = 0.0f,
                         isSpeedModeActive = false,
                         isActive = false,
                         isPressed = false
@@ -729,72 +734,51 @@ class GameViewModel @Inject constructor(
                     )
                 }
 
-                Timber.d("Created ${initialBubbles.size} bubbles for speed mode, all with transparency=0.0f")
-
-                // Start the speed mode timer
                 speedModeTimerUseCase.startTimer()
 
-                // Set up timer event listener as a separate job
-                launch {
+                // FIX: Assign job to property so we can track it
+                speedModeCollectorJob = launch {
                     speedModeTimerUseCase.timerEvents.collect { event ->
                         when (event) {
                             is SpeedModeTimerEvent.ActivateBubble -> {
-                                Timber.d("Speed mode timer: ActivateBubble event received, bubbleId=${event.bubbleId}")
                                 if (event.bubbleId == -1) {
-                                    // Random selection needed - do it directly in ViewModel
+                                    // Random selection needed
                                     val currentBubbles = _gameState.value.bubbles
-                                    val activeCount = currentBubbles.count { it.isSpeedModeActive }
-                                    val totalCount = currentBubbles.size
-                                    Timber.d("Speed mode: Random selection needed. Active: $activeCount/$totalCount")
-
-                                    // Select random bubble directly
                                     val (bubbleId, _) = speedModeUseCase.selectRandomBubble(currentBubbles)
 
                                     bubbleId?.let { id ->
-                                        Timber.d("Speed mode: Selected bubble $id, now activating")
                                         processIntent(GameIntent.ActivateRandomBubble(id))
                                     } ?: run {
-                                        Timber.d("Speed mode: No bubbles to select - game over")
                                         handleSpeedModeGameOver()
                                     }
                                 } else {
-                                    // Specific bubble activation
-                                    Timber.d("Speed mode: Specific bubble activation requested: ${event.bubbleId}")
                                     processIntent(GameIntent.ActivateRandomBubble(event.bubbleId))
                                 }
                             }
                             is SpeedModeTimerEvent.GameOver -> {
-                                Timber.d("Speed mode timer: GameOver event received")
                                 handleSpeedModeGameOver()
                             }
                             is SpeedModeTimerEvent.Tick -> {
-                                // Update speed mode state based on elapsed time
-                                val deltaTime = speedModeTimerUseCase.getElapsedTime()
-                                speedModeUseCase.updateSpeedMode(deltaTime)
+                                // FIX: Only read total time. DO NOT call updateSpeedMode() here.
+                                val totalElapsedTime = speedModeTimerUseCase.getElapsedTime()
 
-                                // Update game state with time elapsed and score
                                 _gameState.update { currentState ->
                                     currentState.copy(
-                                        timeRemaining = deltaTime, // Count up timer
-                                        score = (deltaTime.inWholeSeconds).toInt(), // Score = seconds survived
+                                        timeRemaining = totalElapsedTime,
+                                        score = (totalElapsedTime.inWholeSeconds).toInt(),
                                         speedModeState = speedModeUseCase.speedModeState.value
                                     )
                                 }
                             }
-                            else -> {
-                                Timber.d("Speed mode timer: Unknown event received: $event")
-                            }
+                            else -> { /* Ignore others */ }
                         }
                     }
                 }
-
-                Timber.d("Speed mode timer started")
             } catch (e: Exception) {
                 Timber.e(e, "Error starting speed mode timer")
             }
         }
     }
-
     private fun handleResetSpeedModeState() {
         viewModelScope.launch {
             try {
