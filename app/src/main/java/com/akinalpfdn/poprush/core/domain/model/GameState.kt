@@ -50,7 +50,8 @@ data class GameState(
     val selectedMod: GameMod = GameMod.CLASSIC,
     val currentScreen: StartScreenFlow = StartScreenFlow.MODE_SELECTION,
     val speedModeState: SpeedModeState = SpeedModeState(),
-    val showComingSoonToast: Boolean = false
+    val showComingSoonToast: Boolean = false,
+    val isLoadingSpeedMode: Boolean = false
 ) {
     /**
      * Returns the number of currently active bubbles that can be pressed.

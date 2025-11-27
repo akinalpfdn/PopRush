@@ -324,6 +324,11 @@ class GameViewModel @Inject constructor(
                 timerUseCase.stopTimer()
                 speedModeTimerUseCase.stopTimer()
 
+                // Reset speed mode state if needed
+                if (currentState.selectedMod == GameMod.SPEED) {
+                    speedModeUseCase.resetSpeedMode()
+                }
+
                 // Stop music
                 audioRepository.stopMusic()
 
@@ -360,9 +365,15 @@ class GameViewModel @Inject constructor(
             viewModelScope.launch {
                 if (newPausedState) {
                     timerUseCase.pauseTimer()
+                    if (currentState.selectedMod == GameMod.SPEED) {
+                        speedModeTimerUseCase.pauseTimer()
+                    }
                     audioRepository.pauseMusic()
                 } else {
                     timerUseCase.resumeTimer()
+                    if (currentState.selectedMod == GameMod.SPEED) {
+                        speedModeTimerUseCase.resumeTimer()
+                    }
                     audioRepository.resumeMusic()
                 }
             }
@@ -382,8 +393,12 @@ class GameViewModel @Inject constructor(
     private fun handleResetGame() {
         viewModelScope.launch {
             try {
-                // Stop timer
+                // Stop timers
                 timerUseCase.stopTimer()
+                speedModeTimerUseCase.stopTimer()
+
+                // Reset speed mode state
+                speedModeUseCase.resetSpeedMode()
 
                 // Reset to initial state
                 _gameState.update { currentState ->
@@ -394,7 +409,8 @@ class GameViewModel @Inject constructor(
                         score = 0,
                         currentLevel = 1,
                         bubbles = emptyList(),
-                        timeRemaining = GameState.GAME_DURATION
+                        timeRemaining = GameState.GAME_DURATION,
+                        speedModeState = speedModeUseCase.speedModeState.value
                     )
                 }
 
@@ -412,30 +428,65 @@ class GameViewModel @Inject constructor(
                 val currentState = _gameState.value
                 if (!currentState.isPlaying || currentState.isPaused) return@launch
 
-                val result = handleBubblePressUseCase.execute(
-                    bubbles = currentState.bubbles,
-                    bubbleId = bubbleId
-                )
+                when (currentState.selectedMod) {
+                    GameMod.CLASSIC -> {
+                        // Classic mode: existing logic
+                        val result = handleBubblePressUseCase.execute(
+                            bubbles = currentState.bubbles,
+                            bubbleId = bubbleId
+                        )
 
-                if (result.success) {
-                    // Update bubbles
-                    _gameState.update { it.copy(bubbles = result.updatedBubbles) }
+                        if (result.success) {
+                            // Update bubbles
+                            _gameState.update { it.copy(bubbles = result.updatedBubbles) }
 
-                    // Play sound with haptic feedback
-                    val settings = getCurrentSettings()
-                    audioRepository.playSoundWithHaptic(
-                        SoundType.BUBBLE_PRESS,
-                        settings.hapticFeedback
-                    )
+                            // Play sound with haptic feedback
+                            val settings = getCurrentSettings()
+                            audioRepository.playSoundWithHaptic(
+                                SoundType.BUBBLE_PRESS,
+                                settings.hapticFeedback
+                            )
 
-                    // Check if level is complete
-                    if (result.isLevelComplete) {
-                        _gameState.update { it.copy(score = it.score + 1) }
-                        audioRepository.playSound(SoundType.LEVEL_COMPLETE)
+                            // Check if level is complete
+                            if (result.isLevelComplete) {
+                                _gameState.update { it.copy(score = it.score + 1) }
+                                audioRepository.playSound(SoundType.LEVEL_COMPLETE)
 
-                        // Generate new level after a short delay
-                        kotlinx.coroutines.delay(200)
-                        handleGenerateNewLevel()
+                                // Generate new level after a short delay
+                                kotlinx.coroutines.delay(200)
+                                handleGenerateNewLevel()
+                            }
+                        }
+
+                        Timber.d("Classic mode bubble $bubbleId pressed: success=${result.success}")
+                    }
+
+                    GameMod.SPEED -> {
+                        // Speed mode: deactivate bubble logic
+                        val bubble = currentState.bubbles.find { it.id == bubbleId }
+
+                        if (bubble != null && bubble.isSpeedModeActive) {
+                            // Deactivate the bubble (make it transparent again)
+                            val updatedBubbles = speedModeUseCase.deactivateBubble(bubbleId, currentState.bubbles)
+                            val settings = getCurrentSettings()
+
+                            _gameState.update {
+                                it.copy(
+                                    bubbles = updatedBubbles,
+                                    score = currentState.score + 1 // Increment score for speed mode
+                                )
+                            }
+
+                            // Play sound with haptic feedback
+                            audioRepository.playSoundWithHaptic(
+                                SoundType.BUBBLE_PRESS,
+                                settings.hapticFeedback
+                            )
+
+                            Timber.d("Speed mode bubble $bubbleId deactivated")
+                        } else {
+                            Timber.d("Speed mode bubble $bubbleId not active for deactivation")
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -632,6 +683,12 @@ class GameViewModel @Inject constructor(
     private fun handleStartSpeedModeTimer() {
         viewModelScope.launch {
             try {
+                // Show loading state
+                _gameState.update { it.copy(isLoadingSpeedMode = true) }
+
+                // Small delay to show the loading indicator
+                kotlinx.coroutines.delay(500)
+
                 // Initialize speed mode
                 speedModeUseCase.initializeSpeedMode()
 
@@ -645,31 +702,47 @@ class GameViewModel @Inject constructor(
                     )
                 }
 
-                _gameState.update { it.copy(bubbles = initialBubbles) }
+                _gameState.update {
+                    it.copy(
+                        bubbles = initialBubbles,
+                        isLoadingSpeedMode = false
+                    )
+                }
 
                 // Start the speed mode timer
                 speedModeTimerUseCase.startTimer()
 
-                // Listen for speed mode timer events
-                speedModeTimerUseCase.timerEvents.collect { event ->
-                    when (event) {
-                        is SpeedModeTimerEvent.ActivateBubble -> {
-                            processIntent(GameIntent.ActivateRandomBubble(event.bubbleId))
-                        }
-                        is SpeedModeTimerEvent.GameOver -> {
-                            handleSpeedModeGameOver()
-                        }
-                        is SpeedModeTimerEvent.Tick -> {
-                            // Update speed mode state based on elapsed time
-                            val deltaTime = speedModeTimerUseCase.getElapsedTime()
-                            speedModeUseCase.updateSpeedMode(deltaTime)
-
-                            // Update game state with new speed mode state
-                            _gameState.update { currentState ->
-                                currentState.copy(speedModeState = speedModeUseCase.speedModeState.value)
+                // Set up timer event listener as a separate job
+                launch {
+                    speedModeTimerUseCase.timerEvents.collect { event ->
+                        when (event) {
+                            is SpeedModeTimerEvent.ActivateBubble -> {
+                                if (event.bubbleId == -1) {
+                                    // Random selection needed
+                                    val currentBubbles = _gameState.value.bubbles
+                                    viewModelScope.launch {
+                                        speedModeTimerUseCase.triggerBubbleActivation(currentBubbles)
+                                    }
+                                } else {
+                                    // Specific bubble activation
+                                    processIntent(GameIntent.ActivateRandomBubble(event.bubbleId))
+                                }
                             }
+                            is SpeedModeTimerEvent.GameOver -> {
+                                handleSpeedModeGameOver()
+                            }
+                            is SpeedModeTimerEvent.Tick -> {
+                                // Update speed mode state based on elapsed time
+                                val deltaTime = speedModeTimerUseCase.getElapsedTime()
+                                speedModeUseCase.updateSpeedMode(deltaTime)
+
+                                // Update game state with new speed mode state
+                                _gameState.update { currentState ->
+                                    currentState.copy(speedModeState = speedModeUseCase.speedModeState.value)
+                                }
+                            }
+                            else -> { /* Handle other events as needed */ }
                         }
-                        else -> { /* Handle other events as needed */ }
                     }
                 }
 

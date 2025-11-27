@@ -155,8 +155,9 @@ class SpeedModeTimerUseCase @Inject constructor(
 
     /**
      * Triggers a bubble activation event.
+     * This should be called from the ViewModel with the current bubble list.
      */
-    private suspend fun triggerBubbleActivation() {
+    suspend fun triggerBubbleActivation(bubbles: List<com.akinalpfdn.poprush.core.domain.model.Bubble>) {
         val speedModeState = speedModeUseCase.speedModeState.value
 
         if (speedModeState.isGameOver) {
@@ -166,8 +167,8 @@ class SpeedModeTimerUseCase @Inject constructor(
             return
         }
 
-        // Select a random bubble to activate
-        val (bubbleId, _) = speedModeUseCase.selectRandomBubble(emptyList()) // We'll pass actual bubbles from ViewModel
+        // Select a random bubble to activate from the current bubble list
+        val (bubbleId, _) = speedModeUseCase.selectRandomBubble(bubbles)
 
         bubbleId?.let { id ->
             lastActivationTime = System.currentTimeMillis()
@@ -179,6 +180,26 @@ class SpeedModeTimerUseCase @Inject constructor(
             _timerEvents.value = SpeedModeTimerEvent.GameOver
             stopTimer()
         }
+    }
+
+    /**
+     * Internal trigger method used by the timer loop.
+     * This will trigger an event that the ViewModel should handle.
+     */
+    private suspend fun triggerBubbleActivation() {
+        val speedModeState = speedModeUseCase.speedModeState.value
+
+        if (speedModeState.isGameOver) {
+            _timerState.value = SpeedModeTimerState.GAME_OVER
+            _timerEvents.value = SpeedModeTimerEvent.GameOver
+            stopTimer()
+            return
+        }
+
+        // Trigger a generic activation request - ViewModel will handle the actual bubble selection
+        lastActivationTime = System.currentTimeMillis()
+        _timerEvents.value = SpeedModeTimerEvent.ActivateBubble(-1) // Special value indicating random selection needed
+        Timber.d("Triggered random bubble activation request")
     }
 
     /**

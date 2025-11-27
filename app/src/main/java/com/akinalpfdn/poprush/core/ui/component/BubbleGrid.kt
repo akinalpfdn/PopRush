@@ -76,7 +76,7 @@ fun BubbleGrid(
                             shape = selectedShape,
                             bubbleSize = finalBubbleSize,
                             onClick = onBubblePress,
-                            enabled = enabled
+                            enabled = enabled && bubble.canBePressed
                         )
                     }
                 }

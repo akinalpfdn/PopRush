@@ -61,9 +61,19 @@ fun Bubble(
         label = "glow"
     )
 
+    // 3. Speed Mode Transparency Animation
+    val transparencyAnimation by animateFloatAsState(
+        targetValue = bubble.effectiveTransparency,
+        animationSpec = tween(300, easing = EaseInOutCubic),
+        label = "transparency"
+    )
+
     val bubbleColor = PastelColors.getColor(bubble.color)
-    // Darken slightly on press
-    val finalColor = if (bubble.isPressed) bubbleColor.copy(alpha = 0.9f) else bubbleColor
+
+    // Apply transparency and darken slightly on press
+    val finalColor = bubbleColor.copy(
+        alpha = if (bubble.isPressed) transparencyAnimation * 0.9f else transparencyAnimation
+    )
 
     Box(
         modifier = modifier
@@ -87,30 +97,63 @@ fun Bubble(
             drawCustomShape(shape, finalColor, size.width)
         }
 
-        // Active State (Lit) - Black Overlay + Inner Shaped Core
-        if (bubble.isActive && !bubble.isPressed) {
+        // Active State (Classic Mode vs Speed Mode)
+        if (bubble.isVisuallyActive && !bubble.isPressed && transparencyAnimation > 0.1f) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val fullSize = size.width
 
-                // 1. Dark Overlay (Full Size)
-                drawCustomShape(
-                    shape = shape,
-                    color = Color.Black.copy(alpha = 0.2f),
-                    size = fullSize
-                )
+                when {
+                    // Classic Mode: Traditional black overlay + glowing core
+                    bubble.isActive -> {
+                        // 1. Dark Overlay (Full Size)
+                        drawCustomShape(
+                            shape = shape,
+                            color = Color.Black.copy(alpha = 0.2f * transparencyAnimation),
+                            size = fullSize
+                        )
 
-                // 2. Glowing Core (Inner Scaled Shape)
-                // We calculate the offset to center the smaller shape inside the larger one
-                val coreScale = 0.4f
-                val coreSize = fullSize * coreScale
-                val centerOffset = (fullSize - coreSize) / 2
+                        // 2. Glowing Core (Inner Scaled Shape)
+                        val coreScale = 0.4f
+                        val coreSize = fullSize * coreScale
+                        val centerOffset = (fullSize - coreSize) / 2
 
-                translate(left = centerOffset, top = centerOffset) {
-                    drawCustomShape(
-                        shape = shape,
-                        color = Color(0xFF292524).copy(alpha = glowAlpha), // Stone-800
-                        size = coreSize
-                    )
+                        translate(left = centerOffset, top = centerOffset) {
+                            drawCustomShape(
+                                shape = shape,
+                                color = Color(0xFF292524).copy(alpha = glowAlpha * transparencyAnimation), // Stone-800
+                                size = coreSize
+                            )
+                        }
+                    }
+
+                    // Speed Mode: Enhanced glow effect for activated bubbles
+                    bubble.isSpeedModeActive -> {
+                        // 1. Bright glow effect for speed mode active bubbles
+                        val glowScale = 0.8f
+                        val glowSize = fullSize * glowScale
+                        val glowCenterOffset = (fullSize - glowSize) / 2
+
+                        translate(left = glowCenterOffset, top = glowCenterOffset) {
+                            drawCustomShape(
+                                shape = shape,
+                                color = Color.White.copy(alpha = glowAlpha * 0.3f * transparencyAnimation),
+                                size = glowSize
+                            )
+                        }
+
+                        // 2. Inner bright core
+                        val coreScale = 0.5f
+                        val coreSize = fullSize * coreScale
+                        val centerOffset = (fullSize - coreSize) / 2
+
+                        translate(left = centerOffset, top = centerOffset) {
+                            drawCustomShape(
+                                shape = shape,
+                                color = Color(0xFF292524).copy(alpha = glowAlpha * transparencyAnimation), // Stone-800
+                                size = coreSize
+                            )
+                        }
+                    }
                 }
             }
         }

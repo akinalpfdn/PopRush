@@ -9,7 +9,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -102,6 +110,26 @@ private fun ModeButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+
+    val backgroundColor by animateColorAsState(
+        targetValue = when {
+            isPressed -> Color(0xFF44403C) // stone-700
+            mode == GameMode.SINGLE -> Color(0xFF1C1917) // stone-800
+            else -> Color(0xFF292524) // stone-900
+        },
+        animationSpec = tween(200, easing = EaseOutCubic),
+        label = "backgroundColor"
+    )
+
+    // Handle the press animation with LaunchedEffect
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            kotlinx.coroutines.delay(100)
+            isPressed = false
+        }
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -110,10 +138,13 @@ private fun ModeButton(
         Box(
             modifier = modifier
                 .background(
-                    color = Color(0xFF1C1917), // stone-800
+                    color = backgroundColor,
                     shape = CircleShape
                 )
-                .clickable { onClick() }
+                .clickable {
+                    isPressed = true
+                    onClick()
+                }
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -128,7 +159,7 @@ private fun ModeButton(
         // Mode label
         Text(
             text = mode.displayName,
-            color = Color(0xFF1C1917),
+            color = backgroundColor,
             fontFamily = roundedFont,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp

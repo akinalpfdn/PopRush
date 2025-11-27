@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -27,10 +28,12 @@ import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
 import com.akinalpfdn.poprush.core.ui.component.BubbleGrid
 import com.akinalpfdn.poprush.game.presentation.component.GameHeader
 import com.akinalpfdn.poprush.game.presentation.component.CoopComingSoonToast
-import com.akinalpfdn.poprush.game.presentation.GameViewModel
+import com.akinalpfdn.poprush.game.presentation.component.LoadingOverlay
+import com.akinalpfdn.poprush.game.presentation.component.SpeedModeLoadingOverlay
 import com.akinalpfdn.poprush.game.presentation.component.PauseButton
 import com.akinalpfdn.poprush.game.presentation.component.SettingsOverlay
 import com.akinalpfdn.poprush.game.presentation.component.BackConfirmationDialog
+import com.akinalpfdn.poprush.game.presentation.GameViewModel
 import kotlin.time.Duration
 
 /**
@@ -40,6 +43,7 @@ import kotlin.time.Duration
  * @param viewModel The game ViewModel for state management
  * @param modifier Additional modifier for the screen
  */
+@OptIn(androidx.compose.animation.ExperimentalAnimationApi::class)
 @Composable
 fun GameScreen(
     viewModel: GameViewModel = hiltViewModel(),
@@ -150,12 +154,19 @@ fun GameScreen(
             isVisible = gameState.showComingSoonToast,
             modifier = Modifier.fillMaxSize()
         )
+
+        // Speed mode loading overlay
+        SpeedModeLoadingOverlay(
+            isVisible = gameState.isLoadingSpeedMode,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
 /**
  * Main game content including header, bubble grid, and controls.
  */
+@OptIn(androidx.compose.animation.ExperimentalAnimationApi::class)
 @Composable
 private fun GameContent(
     gameState: GameState,
@@ -189,29 +200,39 @@ private fun GameContent(
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            // Always show the appropriate main content
+            // Always show the appropriate main content with smooth transitions
             when {
                 !gameState.isPlaying && !gameState.isGameOver -> {
-                    when (gameState.currentScreen) {
-                        StartScreenFlow.MODE_SELECTION -> {
-                            ModeSelectionScreen(
-                                onModeSelected = onGameModeSelected,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                        StartScreenFlow.MOD_PICKER -> {
-                            ModPickerScreen(
-                                onModSelected = onGameModSelected,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                        StartScreenFlow.GAME_SETUP -> {
-                            StartScreen(
-                                gameState = gameState,
-                                onStartGame = onStartGame,
-                                onDurationChange = onDurationChange,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                    AnimatedContent(
+                        targetState = gameState.currentScreen,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(300, easing = LinearEasing)) with
+                            fadeOut(animationSpec = tween(200, easing = LinearEasing))
+                        },
+                        contentKey = { it },
+                        label = "startScreenTransition"
+                    ) { currentScreen ->
+                        when (currentScreen) {
+                            StartScreenFlow.MODE_SELECTION -> {
+                                ModeSelectionScreen(
+                                    onModeSelected = onGameModeSelected,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            StartScreenFlow.MOD_PICKER -> {
+                                ModPickerScreen(
+                                    onModSelected = onGameModSelected,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            StartScreenFlow.GAME_SETUP -> {
+                                StartScreen(
+                                    gameState = gameState,
+                                    onStartGame = onStartGame,
+                                    onDurationChange = onDurationChange,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
                         }
                     }
                 }
