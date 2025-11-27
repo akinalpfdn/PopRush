@@ -1,46 +1,37 @@
 package com.akinalpfdn.poprush.game.presentation.screen
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
-import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameMod
 
-/**
- * Mod picker screen shown after selecting Single Player mode.
- * Allows users to choose between Classic and Speed game modes.
- *
- * @param onModSelected Callback when a game mod is selected
- * @param modifier Additional modifier for the screen
- */
+private val DarkGray = Color(0xFF1C1917)
+private val ClassicGreen = Color(0xFF4ADE80)
+private val SpeedRed = Color(0xFFF87171)
+
 @Composable
 fun ModPickerScreen(
     onModSelected: (GameMod) -> Unit,
@@ -49,44 +40,58 @@ fun ModPickerScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White.copy(alpha = 0.6f)), // Semi-transparent white overlay
-        contentAlignment = Alignment.Center
+            .background(Color.White)
     ) {
-        Column(
+        // We use LazyColumn with Arrangement.Center to vertically center the whole block
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.Center, // Centers content vertically
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 24.dp)
+            contentPadding = PaddingValues(vertical = 24.dp) // Avoid clipping on small screens
         ) {
-            // Title
-            Text(
-                text = "Choose Game Mode",
-                color = Color(0xFF44403C),
-                fontSize = 28.sp,
-                fontFamily = roundedFont,
-                fontWeight = FontWeight.Bold
-            )
+            // Header is now an item so it scrolls and centers with the list
+            item {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Game Modes",
+                        color = DarkGray,
+                        fontSize = 32.sp,
+                        fontFamily = roundedFont,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp
+                    )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                    Text(
+                        text = "Select your challenge",
+                        color = Color.Gray,
+                        fontSize = 16.sp,
+                        fontFamily = roundedFont,
+                        fontWeight = FontWeight.Medium
+                    )
 
-            // Mod cards
-            Column(
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                // Classic Mode Card
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
+            }
+
+            item {
                 ModCard(
-                    mod = GameMod.CLASSIC,
                     title = "Classic Mode",
-                    description = "Pop bubbles before time runs out!\nChoose your duration and test your reflexes.",
+                    description = "Pop bubbles against the clock. Test your reflexes in this timeless challenge.",
                     icon = Icons.Default.Timer,
+                    accentColor = ClassicGreen,
                     onClick = { onModSelected(GameMod.CLASSIC) }
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
-                // Speed Mode Card
+            item {
                 ModCard(
-                    mod = GameMod.SPEED,
                     title = "Speed Mode",
-                    description = "Cells light up randomly!\nClick them before they all activate.\nSpeed increases over time!",
+                    description = "Cells light up randomly! The pace quickens with every second.",
                     icon = Icons.Default.Speed,
+                    accentColor = SpeedRed,
                     onClick = { onModSelected(GameMod.SPEED) }
                 )
             }
@@ -94,143 +99,90 @@ fun ModPickerScreen(
     }
 }
 
-/**
- * Individual mod selection card with icon, title, and description.
- */
 @Composable
 private fun ModCard(
-    mod: GameMod,
     title: String,
     description: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    icon: ImageVector,
+    accentColor: Color,
+    onClick: () -> Unit
 ) {
-    var isPressed by remember { mutableStateOf(false) }
-    var elevation by remember { mutableStateOf(8.dp) }
-    var borderColor by remember { mutableStateOf(Color(0xFFD1D5DB)) } // gray-300
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Handle the press animation with LaunchedEffect
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            kotlinx.coroutines.delay(150)
-            isPressed = false
-            elevation = 8.dp
-            borderColor = Color(0xFFD1D5DB)
-        }
-    }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        label = "scale"
+    )
 
     Card(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                isPressed = true
-                elevation = 12.dp
-                borderColor = when (mod) {
-                    GameMod.CLASSIC -> Color(0xFF86EFAC) // green-400
-                    GameMod.SPEED -> Color(0xFFFCA5A5) // red-400
-                }
-                onClick()
-            }
-            .border(
-                width = 2.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(16.dp)
-            )
-            .shadow(
-                elevation = elevation,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = when (mod) {
-                    GameMod.CLASSIC -> Color(0xFF86EFAC) // green-400
-                    GameMod.SPEED -> Color(0xFFFCA5A5) // red-400
-                }
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.9f)
-        )
+            containerColor = DarkGray
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+                .padding(8.dp) // Reduced padding from 20.dp
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon with mode-specific background
             Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .background(
-                        color = when (mod) {
-                            GameMod.CLASSIC -> Color(0xFFDCFCE7) // green-100
-                            GameMod.SPEED -> Color(0xFFFEE2E2) // red-100
-                        },
-                        shape = RoundedCornerShape(12.dp)
-                    ),
+                    .size(48.dp) // Slightly smaller icon box to match reduced padding
+                    .clip(CircleShape)
+                    .background(accentColor.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = title,
-                    tint = when (mod) {
-                        GameMod.CLASSIC -> Color(0xFF166534) // green-800
-                        GameMod.SPEED -> Color(0xFF991B1B) // red-800
-                    },
-                    modifier = Modifier.size(32.dp)
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(20.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            // Text content
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
                     text = title,
-                    color = Color(0xFF1C1917),
-                    fontSize = 20.sp,
+                    color = Color.White,
                     fontFamily = roundedFont,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = description,
-                    color = Color(0xFF6B7280), // gray-500
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.Default,
-                    lineHeight = 18.sp,
-                    textAlign = TextAlign.Start
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontFamily = roundedFont,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
                 )
             }
 
-            // Arrow indicator with animation
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isPressed,
-                enter = fadeIn(animationSpec = tween(100)),
-                exit = fadeOut(animationSpec = tween(100))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Select",
-                    tint = when (mod) {
-                        GameMod.CLASSIC -> Color(0xFF86EFAC) // green-400
-                        GameMod.SPEED -> Color(0xFFFCA5A5) // red-400
-                    },
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+            Spacer(modifier = Modifier.width(8.dp))
 
-            if (!isPressed) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Select",
-                    tint = Color(0xFF9CA3AF), // gray-400
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.3f),
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }

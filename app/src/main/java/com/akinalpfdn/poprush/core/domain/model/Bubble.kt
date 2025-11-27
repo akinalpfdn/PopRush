@@ -26,9 +26,10 @@ data class Bubble(
 ) {
     /**
      * Checks if this bubble should be visible and interactive.
+     * In speed mode, bubbles are always visible, just with different active states.
      */
     val isVisible: Boolean
-        get() = transparency > 0.0f // Only visible if not fully transparent
+        get() = transparency > 0.0f || isSpeedModeActive // Always visible in speed mode or if transparent
 
     /**
      * Checks if this bubble can be pressed (active and not already pressed).

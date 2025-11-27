@@ -164,6 +164,7 @@ class GameViewModel @Inject constructor(
             is GameIntent.NavigateToGameSetup -> handleNavigateToGameSetup()
             is GameIntent.ShowCoopComingSoon -> handleShowCoopComingSoon()
             is GameIntent.HideComingSoonMessage -> handleHideComingSoonMessage()
+            is GameIntent.NavigateBack -> handleNavigateBack()
             // Speed Mode Intents
             is GameIntent.ActivateRandomBubble -> handleActivateRandomBubble(intent.bubbleId)
             is GameIntent.UpdateSpeedModeInterval -> handleUpdateSpeedModeInterval()
@@ -646,6 +647,22 @@ class GameViewModel @Inject constructor(
         _gameState.update { it.copy(showComingSoonToast = false) }
     }
 
+    private fun handleNavigateBack() {
+        val currentScreen = _gameState.value.currentScreen
+        val newScreen = when (currentScreen) {
+            StartScreenFlow.GAME_SETUP -> StartScreenFlow.MOD_PICKER
+            StartScreenFlow.MOD_PICKER -> StartScreenFlow.MODE_SELECTION
+            StartScreenFlow.MODE_SELECTION -> StartScreenFlow.MODE_SELECTION // Already at first screen, stay here
+        }
+
+        _gameState.update { it.copy(currentScreen = newScreen) }
+
+        // Play back navigation sound
+        viewModelScope.launch {
+            audioRepository.playSound(SoundType.BUTTON_PRESS)
+        }
+    }
+
     // Speed Mode Handlers
     private fun handleActivateRandomBubble(bubbleId: Int) {
         viewModelScope.launch {
@@ -692,7 +709,7 @@ class GameViewModel @Inject constructor(
                 // Initialize speed mode
                 speedModeUseCase.initializeSpeedMode()
 
-                // Create initial bubbles for speed mode (all transparent)
+                // Create initial bubbles for speed mode (all transparent/inactive)
                 val initialBubbles = initializeGameUseCase.execute().map { bubble ->
                     bubble.copy(
                         transparency = 0.0f, // All transparent initially

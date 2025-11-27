@@ -1,39 +1,33 @@
 package com.akinalpfdn.poprush.game.presentation.screen
 
-import android.graphics.Typeface
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameMode
 
-/**
- * Mode selection screen shown at the very start of the game.
- * Allows users to choose between Single Player and Co-op modes.
- *
- * @param onModeSelected Callback when a game mode is selected
- * @param modifier Additional modifier for the screen
- */
+// Define constants for the preferred dark gray palette
+private val DarkGray = Color(0xFF1C1917)
+private val StoneGray = Color(0xFF44403C)
+
 @Composable
 fun ModeSelectionScreen(
     onModeSelected: (GameMode) -> Unit,
@@ -42,127 +36,128 @@ fun ModeSelectionScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White.copy(alpha = 0.6f)), // Semi-transparent white overlay
+            .background(Color.White), // Clean background
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.padding(24.dp)
         ) {
-            // Game title
-            Text(
-                text = "POP RUSH",
-                color = Color(0xFF44403C),
-                fontSize = 36.sp,
-                fontFamily = roundedFont,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Subtitle
-            Text(
-                text = "Choose Your Game Mode",
-                color = Color(0xFF6B7280),
-                fontSize = 18.sp,
-                fontFamily = roundedFont,
-                fontWeight = FontWeight.Medium
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // Mode buttons
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(32.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Header Section
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(0.4f),
+                verticalArrangement = Arrangement.Center
             ) {
-                // Single Player Button
-                ModeButton(
-                    mode = GameMode.SINGLE,
-                    icon = Icons.Default.Person,
-                    onClick = { onModeSelected(GameMode.SINGLE) },
-                    modifier = Modifier
-                        .defaultMinSize(minWidth = 140.dp)
-                        .height(140.dp)
+                Text(
+                    text = "POP RUSH",
+                    color = DarkGray,
+                    fontSize = 42.sp,
+                    fontFamily = roundedFont,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 2.sp
                 )
 
-                // Co-op Button
-                ModeButton(
-                    mode = GameMode.COOP,
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Select Mode",
+                    color = Color.Gray,
+                    fontSize = 16.sp,
+                    fontFamily = roundedFont,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            // Buttons Section
+            Column(
+                modifier = Modifier.weight(0.6f),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                GameModeCard(
+                    title = "Single Player",
+                    subtitle = "Challenge yourself",
+                    icon = Icons.Default.Person,
+                    onClick = { onModeSelected(GameMode.SINGLE) }
+                )
+
+                GameModeCard(
+                    title = "Co-op",
+                    subtitle = "Play with a friend",
                     icon = Icons.Default.Group,
-                    onClick = { onModeSelected(GameMode.COOP) },
-                    modifier = Modifier
-                        .defaultMinSize(minWidth = 140.dp)
-                        .height(140.dp)
+                    onClick = { onModeSelected(GameMode.COOP) }
                 )
             }
         }
     }
 }
 
-/**
- * Individual mode button with icon and text.
- */
 @Composable
-private fun ModeButton(
-    mode: GameMode,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+private fun GameModeCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit
 ) {
-    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
-    val backgroundColor by animateColorAsState(
-        targetValue = when {
-            isPressed -> Color(0xFF44403C) // stone-700
-            mode == GameMode.SINGLE -> Color(0xFF1C1917) // stone-800
-            else -> Color(0xFF292524) // stone-900
-        },
-        animationSpec = tween(200, easing = EaseOutCubic),
-        label = "backgroundColor"
+    // Subtle bounce animation on press
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        label = "buttonScale"
     )
 
-    // Handle the press animation with LaunchedEffect
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            kotlinx.coroutines.delay(100)
-            isPressed = false
-        }
-    }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null, // Disable default ripple for custom scale effect
+                onClick = onClick
+            ),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = DarkGray
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        // Icon button
-        Box(
-            modifier = modifier
-                .background(
-                    color = backgroundColor,
-                    shape = CircleShape
-                )
-                .clickable {
-                    isPressed = true
-                    onClick()
-                }
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Column(
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontFamily = roundedFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+                Text(
+                    text = subtitle,
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontFamily = roundedFont,
+                    fontSize = 14.sp
+                )
+            }
+
             Icon(
                 imageVector = icon,
-                contentDescription = mode.displayName,
+                contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                    .padding(8.dp)
             )
         }
-
-        // Mode label
-        Text(
-            text = mode.displayName,
-            color = backgroundColor,
-            fontFamily = roundedFont,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp
-        )
     }
 }

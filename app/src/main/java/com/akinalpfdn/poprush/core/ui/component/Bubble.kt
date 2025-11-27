@@ -71,6 +71,8 @@ fun Bubble(
     val bubbleColor = PastelColors.getColor(bubble.color)
 
     // Apply transparency and darken slightly on press
+    // In speed mode: transparencyAnimation = 1.0f when active, 0.0f when inactive
+    // In classic mode: always show color, but add dark overlay for active state
     val finalColor = bubbleColor.copy(
         alpha = if (bubble.isPressed) transparencyAnimation * 0.9f else transparencyAnimation
     )
@@ -126,23 +128,23 @@ fun Bubble(
                         }
                     }
 
-                    // Speed Mode: Enhanced glow effect for activated bubbles
+                    // Speed Mode: Just show the bubble color, no overlay needed since transparency handles visibility
                     bubble.isSpeedModeActive -> {
-                        // 1. Bright glow effect for speed mode active bubbles
-                        val glowScale = 0.8f
+                        // In speed mode, active bubbles just show their color with a subtle glow
+                        val glowScale = 0.9f
                         val glowSize = fullSize * glowScale
                         val glowCenterOffset = (fullSize - glowSize) / 2
 
                         translate(left = glowCenterOffset, top = glowCenterOffset) {
                             drawCustomShape(
                                 shape = shape,
-                                color = Color.White.copy(alpha = glowAlpha * 0.3f * transparencyAnimation),
+                                color = Color.White.copy(alpha = glowAlpha * 0.2f * transparencyAnimation),
                                 size = glowSize
                             )
                         }
 
-                        // 2. Inner bright core
-                        val coreScale = 0.5f
+                        // Small bright center for better visibility
+                        val coreScale = 0.6f
                         val coreSize = fullSize * coreScale
                         val centerOffset = (fullSize - coreSize) / 2
 

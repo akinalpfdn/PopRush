@@ -61,6 +61,11 @@ fun GameScreen(
         viewModel.processIntent(GameIntent.ShowBackConfirmation)
     }
 
+    // Handle back press for start screens (navigate back in flow)
+    BackHandler(enabled = !gameState.isPlaying && !gameState.isGameOver) {
+        viewModel.processIntent(GameIntent.NavigateBack)
+    }
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {

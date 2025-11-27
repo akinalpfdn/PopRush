@@ -82,6 +82,7 @@ class SpeedModeUseCase @Inject constructor() {
 
     /**
      * Activates the specified bubble in speed mode.
+     * Makes the bubble colored (visible) when active.
      */
     fun activateBubble(bubbleId: Int, bubbles: List<Bubble>): List<Bubble> {
         return bubbles.map { bubble ->
@@ -95,7 +96,7 @@ class SpeedModeUseCase @Inject constructor() {
 
     /**
      * Deactivates the specified bubble when clicked in speed mode.
-     * Makes the bubble transparent again.
+     * Makes the bubble disappear (transparent) when clicked.
      */
     fun deactivateBubble(bubbleId: Int, bubbles: List<Bubble>): List<Bubble> {
         return bubbles.map { bubble ->

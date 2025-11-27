@@ -190,6 +190,11 @@ sealed interface GameIntent {
     data object NavigateToGameSetup : GameIntent
 
     /**
+     * Navigates back to the previous screen in the start screen flow.
+     */
+    data object NavigateBack : GameIntent
+
+    /**
      * Shows the co-op coming soon toast message.
      */
     data object ShowCoopComingSoon : GameIntent

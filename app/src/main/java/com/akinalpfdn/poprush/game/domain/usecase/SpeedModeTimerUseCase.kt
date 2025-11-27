@@ -196,8 +196,10 @@ class SpeedModeTimerUseCase @Inject constructor(
             return
         }
 
-        // Trigger a generic activation request - ViewModel will handle the actual bubble selection
+        // Update the last activation time first
         lastActivationTime = System.currentTimeMillis()
+
+        // Trigger a generic activation request - ViewModel will handle the actual bubble selection
         _timerEvents.value = SpeedModeTimerEvent.ActivateBubble(-1) // Special value indicating random selection needed
         Timber.d("Triggered random bubble activation request")
     }
