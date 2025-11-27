@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.akinalpfdn.poprush.core.domain.model.Bubble
@@ -72,16 +73,7 @@ fun Bubble(
                 scaleY = pressScale
                 translationY = pressTranslation
             }
-            .then(
-                // Only show shadow if NOT pressed
-                if (!bubble.isPressed) {
-                    Modifier.shadow(
-                        elevation = 4.dp,
-                        shape = getShapeOutline(shape),
-                        spotColor = Color.Black.copy(alpha = 0.1f)
-                    )
-                } else Modifier
-            )
+
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -95,22 +87,32 @@ fun Bubble(
             drawCustomShape(shape, finalColor, size.width)
         }
 
-        // Active State (Lit) - Black Overlay + Glow Core
+        // Active State (Lit) - Black Overlay + Inner Shaped Core
         if (bubble.isActive && !bubble.isPressed) {
-            // Dark Overlay
             Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCustomShape(shape, Color.Black.copy(alpha = 0.2f), size.width)
-            }
+                val fullSize = size.width
 
-            // Glowing Core
-            Box(
-                modifier = Modifier
-                    .size(bubbleSize * 0.4f)
-                    .background(
+                // 1. Dark Overlay (Full Size)
+                drawCustomShape(
+                    shape = shape,
+                    color = Color.Black.copy(alpha = 0.2f),
+                    size = fullSize
+                )
+
+                // 2. Glowing Core (Inner Scaled Shape)
+                // We calculate the offset to center the smaller shape inside the larger one
+                val coreScale = 0.4f
+                val coreSize = fullSize * coreScale
+                val centerOffset = (fullSize - coreSize) / 2
+
+                translate(left = centerOffset, top = centerOffset) {
+                    drawCustomShape(
+                        shape = shape,
                         color = Color(0xFF292524).copy(alpha = glowAlpha), // Stone-800
-                        shape = CircleShape
+                        size = coreSize
                     )
-            )
+                }
+            }
         }
     }
 }
@@ -121,7 +123,7 @@ private fun getShapeOutline(shape: BubbleShape): Shape {
     return when (shape) {
         BubbleShape.CIRCLE -> CircleShape
         BubbleShape.SQUARE -> RoundedCornerShape(12.dp)
-        else -> CircleShape // Fallback for shadows on complex shapes
+        else -> RoundedCornerShape(12.dp) // Fallback for shadows on complex shapes
     }
 }
 
@@ -133,64 +135,109 @@ private fun DrawScope.drawCustomShape(shape: BubbleShape, color: Color, size: Fl
         BubbleShape.CIRCLE -> drawCircle(color, radius, center)
         BubbleShape.SQUARE -> drawRoundRect(
             color = color,
-            cornerRadius = CornerRadius(12.dp.toPx(), 12.dp.toPx()),
+            // Changed to relative size for consistent look across different sizes
+            cornerRadius = CornerRadius(size * 0.2f, size * 0.2f),
             size = Size(size, size)
         )
+        // Fixed: Now calls a specific Star path function
+        BubbleShape.STAR -> drawPath(createStarPath(center, radius), color)
         BubbleShape.HEXAGON -> drawPath(createHexagonPath(center, radius), color)
         BubbleShape.TRIANGLE -> drawPath(createTrianglePath(center, radius), color)
-        BubbleShape.HEART -> drawPath(createHeartPath(center, radius), color)
+        BubbleShape.HEART -> drawPath(createHeartPath(center, size), color) // Heart needs full size for better aspect ratio
         else -> drawCircle(color, radius, center)
     }
 }
 
-private fun createHexagonPath(center: Offset, radius: Float): Path {
+// --- Path Generators ---
+
+// Generates a standard 5-pointed star
+private fun createStarPath(center: Offset, radius: Float): Path {
     val path = Path()
-    val angleStep = 60f * (PI / 180f).toFloat()
-    for (i in 0 until 6) {
-        val x = center.x + radius * cos(i * angleStep)
-        val y = center.y + radius * sin(i * angleStep)
+    val points = 5
+    val innerRadius = radius / 2.5f // Ratio for a classic star look
+    var angle = -PI / 2 // Start at top (90 degrees)
+
+    // Calculate 10 points (5 outer, 5 inner)
+    for (i in 0 until points * 2) {
+        val r = if (i % 2 == 0) radius else innerRadius
+        val x = center.x + r * cos(angle).toFloat()
+        val y = center.y + r * sin(angle).toFloat()
+
         if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        angle += PI / points
     }
     path.close()
     return path
 }
 
-private fun createTrianglePath(center: Offset, radius: Float): Path {
+// Generates a regular hexagon
+private fun createHexagonPath(center: Offset, radius: Float): Path {
     val path = Path()
-    val height = radius * sqrt(3f)
-    path.moveTo(center.x, center.y - height / 2)
-    path.lineTo(center.x - radius, center.y + height / 2)
-    path.lineTo(center.x + radius, center.y + height / 2)
+    val points = 6
+    var angle = -PI / 2 // Start at top
+
+    for (i in 0 until points) {
+        val x = center.x + radius * cos(angle).toFloat()
+        val y = center.y + radius * sin(angle).toFloat()
+
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        angle += (2 * PI) / points
+    }
     path.close()
     return path
 }
 
-private fun createHeartPath(center: Offset, radius: Float): Path {
+// Generates an equilateral triangle
+private fun createTrianglePath(center: Offset, radius: Float): Path {
     val path = Path()
-    val width = radius * 2
-    val height = radius * 2
-    val topCurveHeight = height * 0.35f
-    path.moveTo(center.x, center.y - height * 0.2f)
-    path.cubicTo(
-        center.x, center.y - height * 0.5f,
-        center.x - width * 0.5f, center.y - height * 0.5f,
-        center.x - width * 0.5f, center.y - height * 0.2f
+
+    // Top point
+    path.moveTo(center.x, center.y - radius)
+
+    // Bottom Right (angles relative to center)
+    val angleRight = PI / 6 // 30 degrees
+    path.lineTo(
+        center.x + radius * cos(angleRight).toFloat(),
+        center.y + radius * sin(angleRight).toFloat()
     )
-    path.cubicTo(
-        center.x - width * 0.5f, center.y + height * 0.1f,
-        center.x, center.y + height * 0.4f,
-        center.x, center.y + height * 0.5f
+
+    // Bottom Left
+    val angleLeft = 5 * PI / 6 // 150 degrees
+    path.lineTo(
+        center.x + radius * cos(angleLeft).toFloat(),
+        center.y + radius * sin(angleLeft).toFloat()
     )
+
+    path.close()
+    return path
+}
+
+// Generates a heart shape using Cubic Bezier curves
+private fun createHeartPath(center: Offset, size: Float): Path {
+    val path = Path()
+    val width = size
+    val height = size
+
+    // Starting point (Bottom tip)
+    val bottomTipX = center.x
+    val bottomTipY = center.y + (height * 0.35f)
+
+    path.moveTo(bottomTipX, bottomTipY)
+
+    // Left curve (Bottom to Top-Left)
     path.cubicTo(
-        center.x, center.y + height * 0.4f,
-        center.x + width * 0.5f, center.y + height * 0.1f,
-        center.x + width * 0.5f, center.y - height * 0.2f
+        center.x - width * 0.5f, center.y + height * 0.1f, // Control point 1
+        center.x - width * 0.5f, center.y - height * 0.4f, // Control point 2
+        center.x, center.y - height * 0.15f                // Top middle dip
     )
+
+    // Right curve (Top-Right to Bottom)
     path.cubicTo(
-        center.x + width * 0.5f, center.y - height * 0.5f,
-        center.x, center.y - height * 0.5f,
-        center.x, center.y - height * 0.2f
+        center.x + width * 0.5f, center.y - height * 0.4f, // Control point 1
+        center.x + width * 0.5f, center.y + height * 0.1f, // Control point 2
+        bottomTipX, bottomTipY                             // Back to start
     )
+
     path.close()
     return path
 }

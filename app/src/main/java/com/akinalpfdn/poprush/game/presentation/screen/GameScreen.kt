@@ -1,4 +1,4 @@
-package com.akinalpfdn.poprush.game.presentation
+package com.akinalpfdn.poprush.game.presentation.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
@@ -9,7 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +24,12 @@ import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameIntent
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.ui.component.BubbleGrid
+import com.akinalpfdn.poprush.game.presentation.component.GameHeader
+import com.akinalpfdn.poprush.game.presentation.GameViewModel
+import com.akinalpfdn.poprush.game.presentation.component.PauseButton
+import com.akinalpfdn.poprush.game.presentation.component.SettingsOverlay
+import com.akinalpfdn.poprush.game.presentation.component.BackConfirmationDialog
+import kotlin.time.Duration
 
 /**
  * Main game screen that orchestrates the entire PopRush game experience.
@@ -149,7 +154,7 @@ private fun GameContent(
     onToggleSettings: () -> Unit,
     onSelectShape: (BubbleShape) -> Unit,
     onTogglePause: () -> Unit,
-    onDurationChange: (kotlin.time.Duration) -> Unit,
+    onDurationChange: (Duration) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(

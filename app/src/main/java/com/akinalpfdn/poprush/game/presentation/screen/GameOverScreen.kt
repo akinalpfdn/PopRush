@@ -1,4 +1,4 @@
-package com.akinalpfdn.poprush.game.presentation
+package com.akinalpfdn.poprush.game.presentation.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

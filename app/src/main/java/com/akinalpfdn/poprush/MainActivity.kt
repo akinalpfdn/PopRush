@@ -5,15 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import com.akinalpfdn.poprush.game.presentation.GameScreen
+import com.akinalpfdn.poprush.game.presentation.screen.GameScreen
 import com.akinalpfdn.poprush.ui.theme.PopRushTheme
 import dagger.hilt.android.AndroidEntryPoint
 

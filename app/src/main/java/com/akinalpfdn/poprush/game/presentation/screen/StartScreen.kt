@@ -1,5 +1,6 @@
-package com.akinalpfdn.poprush.game.presentation
+package com.akinalpfdn.poprush.game.presentation.screen
 
+import android.graphics.Typeface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.game.presentation.component.DurationPicker
+import kotlin.time.Duration
 
 /**
  * Start screen shown when the game hasn't started yet.
@@ -29,14 +32,14 @@ import com.akinalpfdn.poprush.core.domain.model.GameState
 // This grabs the built-in Android "sans-serif-rounded" font
 val roundedFont = FontFamily(
     androidx.compose.ui.text.font.Typeface(
-        android.graphics.Typeface.create("sans-serif-rounded", android.graphics.Typeface.BOLD)
+        Typeface.create("sans-serif-rounded", Typeface.BOLD)
     )
 )
 @Composable
 fun StartScreen(
     gameState: GameState,
     onStartGame: () -> Unit,
-    onDurationChange: (kotlin.time.Duration) -> Unit,
+    onDurationChange: (Duration) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
