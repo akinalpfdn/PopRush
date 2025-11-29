@@ -180,6 +180,16 @@ class GameViewModel @Inject constructor(
             try {
                 val currentState = _gameState.value
 
+                // CRITICAL: Stop ALL timers and jobs to prevent mode conflicts
+                timerUseCase.stopTimer()
+                speedModeTimerUseCase.stopTimer()
+                speedModeCollectorJob?.cancel()
+                speedModeCollectorJob = null
+                speedModeUseCase.resetSpeedMode()
+
+                // Clear any existing bubbles to ensure clean state
+                _gameState.update { it.copy(bubbles = emptyList()) }
+
                 when (currentState.selectedMod) {
                     GameMod.CLASSIC -> {
                         // Classic mode: existing logic
@@ -252,13 +262,21 @@ class GameViewModel @Inject constructor(
     private fun handleBackToMenu() {
         viewModelScope.launch {
             try {
-                // Stop any running timer
+                // Stop ALL running timers (both classic and speed mode)
                 timerUseCase.stopTimer()
+                speedModeTimerUseCase.stopTimer()
+
+                // Stop speed mode collector job if running
+                speedModeCollectorJob?.cancel()
+                speedModeCollectorJob = null
 
                 // Stop background music
                 audioRepository.stopMusic()
 
-                // Reset game state to initial state (similar to ResetGame)
+                // Reset speed mode state
+                speedModeUseCase.resetSpeedMode()
+
+                // Reset game state to initial state
                 _gameState.update { currentState ->
                     currentState.copy(
                         isPlaying = false,
@@ -268,7 +286,11 @@ class GameViewModel @Inject constructor(
                         currentLevel = 1,
                         timeRemaining = GameState.GAME_DURATION,
                         showSettings = false,
-                        showBackConfirmation = false
+                        showBackConfirmation = false,
+                        bubbles = emptyList(),
+                        selectedMod = GameMod.CLASSIC, // Reset to default mode
+                        gameMode = GameMode.SINGLE, // Reset to default game mode
+                        selectedDuration = GameState.GAME_DURATION
                     )
                 }
 
@@ -321,9 +343,13 @@ class GameViewModel @Inject constructor(
             try {
                 val currentState = _gameState.value
 
-                // Stop the timers
+                // Stop ALL timers
                 timerUseCase.stopTimer()
                 speedModeTimerUseCase.stopTimer()
+
+                // Stop speed mode collector job if running
+                speedModeCollectorJob?.cancel()
+                speedModeCollectorJob = null
 
                 // Reset speed mode state if needed
                 if (currentState.selectedMod == GameMod.SPEED) {
@@ -365,16 +391,13 @@ class GameViewModel @Inject constructor(
             val newPausedState = !currentState.isPaused
             viewModelScope.launch {
                 if (newPausedState) {
+                    // Pause both timers
                     timerUseCase.pauseTimer()
-                    if (currentState.selectedMod == GameMod.SPEED) {
-                        speedModeTimerUseCase.pauseTimer()
-                    }
+                    speedModeTimerUseCase.pauseTimer()
                     audioRepository.pauseMusic()
                 } else {
                     timerUseCase.resumeTimer()
-                    if (currentState.selectedMod == GameMod.SPEED) {
-                        speedModeTimerUseCase.resumeTimer()
-                    }
+                    speedModeTimerUseCase.resumeTimer()
                     audioRepository.resumeMusic()
                 }
             }
@@ -919,10 +942,14 @@ class GameViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         viewModelScope.launch {
+            // Stop ALL timers and cleanup resources
             timerUseCase.stopTimer()
+            speedModeTimerUseCase.stopTimer()
+            speedModeCollectorJob?.cancel()
+            speedModeTimerUseCase.cleanup()
+            speedModeUseCase.resetSpeedMode()
             audioRepository.release()
         }
-        Timber.d("GameViewModel cleared")
     }
 }
 
