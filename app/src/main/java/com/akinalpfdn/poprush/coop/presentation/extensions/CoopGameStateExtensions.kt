@@ -16,55 +16,76 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 
 /**
- * Placeholder extension properties for CoopGameState
- * These will be replaced with actual properties when CoopGameState is fully implemented in Phase 4
+ * Extension properties for easy access to coop game state from UI components
  */
 
-// Placeholder properties - will be implemented in Phase 4
+// Use actual properties from CoopGameState
 val CoopGameState.currentPhase: CoopGamePhase
-    get() = CoopGamePhase.WAITING // TODO: Implement actual phase tracking
+    get() = gamePhase
 
 val CoopGameState.localPlayerName: String
-    get() = "Player" // TODO: Implement actual player name tracking
+    get() = localPlayerName
 
 val CoopGameState.localPlayerColor: BubbleColor
-    get() = BubbleColor.ROSE // TODO: Implement actual player color tracking
+    get() = localPlayerColor
 
 val CoopGameState.localPlayerScore: Int
-    get() = 0 // TODO: Implement actual score tracking
+    get() = localScore
 
 val CoopGameState.remotePlayerName: String
-    get() = "" // TODO: Implement actual remote player name tracking
+    get() = opponentPlayerName
 
 val CoopGameState.remotePlayerColor: BubbleColor
-    get() = BubbleColor.SKY // TODO: Implement actual remote player color tracking
+    get() = opponentPlayerColor
 
 val CoopGameState.remotePlayerScore: Int
-    get() = 0 // TODO: Implement actual remote score tracking
+    get() = opponentScore
 
 val CoopGameState.timeRemaining: Long
-    get() = 60_000L // TODO: Implement actual time remaining tracking (in milliseconds)
-
-val CoopGameState.bubbles: List<CoopBubble>
-    get() = emptyList() // TODO: Implement actual bubble tracking
+    get() = {
+        // For now, use a 60 second game duration
+        // In Phase 4, this will be based on actual game timing
+        val gameDuration = 60_000L // 60 seconds in milliseconds
+        val elapsed = elapsedTime.inWholeMilliseconds
+        (gameDuration - elapsed).coerceAtLeast(0L)
+    }()
 
 /**
  * Converts CoopGameState to GameState for compatibility with existing UI components
- * Note: This is a placeholder implementation for Phase 3. Phase 4 will implement the actual CoopGameState.
  */
 fun CoopGameState.toGameState(): GameState {
-    // Since CoopGameState is not fully implemented yet, return a placeholder GameState
-    // This will be replaced with proper implementation in Phase 4
+    val timeRemainingDuration = timeRemaining.milliseconds
+    val convertedBubbles = bubbles.map { coopBubble ->
+        com.akinalpfdn.poprush.core.domain.model.Bubble(
+            id = coopBubble.id,
+            position = coopBubble.position,
+            row = coopBubble.row,
+            col = coopBubble.col,
+            color = coopBubble.owner?.let { ownerId ->
+                // Convert owner ID back to color - for now, use player colors
+                when (ownerId) {
+                    localPlayerId -> localPlayerColor
+                    opponentPlayerId -> opponentPlayerColor
+                    else -> com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE
+                }
+            } ?: com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
+            isActive = currentPhase == CoopGamePhase.PLAYING,
+            isPressed = false, // In coop mode, bubbles are never "pressed" like in single player
+            transparency = if (coopBubble.owner == null) 0.3f else 1.0f, // Unowned bubbles are semi-transparent
+            isSpeedModeActive = currentPhase == CoopGamePhase.PLAYING
+        )
+    }
+
     return GameState(
-        isPlaying = false, // TODO: Use currentPhase when implemented
-        isGameOver = false, // TODO: Use currentPhase when implemented
-        isPaused = false,
-        score = 0, // TODO: Use localPlayerScore when implemented
-        highScore = 0, // TODO: Use maxOf(localPlayerScore, remotePlayerScore) when implemented
-        timeRemaining = 60_000.milliseconds, // TODO: Use timeRemaining when implemented
+        isPlaying = currentPhase == CoopGamePhase.PLAYING,
+        isGameOver = currentPhase == CoopGamePhase.FINISHED,
+        isPaused = currentPhase == CoopGamePhase.PAUSED,
+        score = localScore, // Use local player's score as primary score
+        highScore = maxOf(localScore, opponentScore),
+        timeRemaining = timeRemainingDuration,
         currentLevel = 1,
-        bubbles = emptyList(), // TODO: Convert coopBubbles when implemented
-        selectedShape = BubbleShape.CIRCLE,
+        bubbles = convertedBubbles,
+        selectedShape = com.akinalpfdn.poprush.core.domain.model.BubbleShape.CIRCLE,
         zoomLevel = 1.0f,
         showSettings = false,
         showBackConfirmation = false,

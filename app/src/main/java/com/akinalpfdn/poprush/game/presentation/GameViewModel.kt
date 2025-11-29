@@ -21,6 +21,7 @@ import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerEvent
 import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.TimerUseCase
+import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -51,7 +52,8 @@ class GameViewModel @Inject constructor(
     private val handleBubblePressUseCase: HandleBubblePressUseCase,
     private val timerUseCase: TimerUseCase,
     private val speedModeUseCase: SpeedModeUseCase,
-    private val speedModeTimerUseCase: SpeedModeTimerUseCase
+    private val speedModeTimerUseCase: SpeedModeTimerUseCase,
+    private val coopUseCase: CoopUseCase
 ) : ViewModel() {
     private var speedModeCollectorJob: Job? = null
     // Private mutable state flow
@@ -939,72 +941,196 @@ class GameViewModel @Inject constructor(
      * Handles updating the coop player name.
      */
     private fun handleUpdateCoopPlayerName(playerName: String) {
-        // TODO: Update coop state with player name
-        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+        viewModelScope.launch {
+            try {
+                // Update the coop state with the new player name
+                _gameState.update { currentState ->
+                    val updatedCoopState = currentState.coopState?.copy(
+                        localPlayerName = playerName
+                    ) ?: createInitialCoopState().copy(localPlayerName = playerName)
+                    currentState.copy(coopState = updatedCoopState)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to update coop player name")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to update player name: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
      * Handles updating the coop player color.
      */
     private fun handleUpdateCoopPlayerColor(playerColor: com.akinalpfdn.poprush.core.domain.model.BubbleColor) {
-        // TODO: Update coop state with player color
-        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+        viewModelScope.launch {
+            try {
+                // Update the coop state with the new player color
+                _gameState.update { currentState ->
+                    val updatedCoopState = currentState.coopState?.copy(
+                        localPlayerColor = playerColor
+                    ) ?: createInitialCoopState().copy(localPlayerColor = playerColor)
+                    currentState.copy(coopState = updatedCoopState)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to update coop player color")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to update player color: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
      * Handles starting the coop connection process.
      */
     private fun handleStartCoopConnection() {
-        // TODO: Start coop connection process
-        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+        viewModelScope.launch {
+            try {
+                // Show the connection dialog
+                _gameState.update { it.copy(showCoopConnectionDialog = true) }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to start coop connection")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to start connection: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
      * Handles starting to host a coop game.
      */
     private fun handleStartHosting() {
-        // TODO: Start hosting process using CoopUseCase
-        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+        viewModelScope.launch {
+            try {
+                val coopState = _gameState.value.coopState ?: createInitialCoopState()
+                coopUseCase.startHosting(coopState.localPlayerName, coopState.localPlayerColor)
+                    .collect { result ->
+                        result.onSuccess {
+                            // Update state based on connection status
+                            collectCoopConnectionState()
+                        }.onFailure { exception ->
+                            _gameState.update {
+                                it.copy(coopErrorMessage = "Hosting failed: ${exception.message}")
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to start hosting")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to start hosting: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
      * Handles stopping hosting a coop game.
      */
     private fun handleStopHosting() {
-        // TODO: Stop hosting process using CoopUseCase
-        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+        viewModelScope.launch {
+            try {
+                coopUseCase.stopHosting()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to stop hosting")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to stop hosting: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
      * Handles starting discovery for coop games.
      */
     private fun handleStartDiscovery() {
-        // TODO: Start discovery process using CoopUseCase
-        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+        viewModelScope.launch {
+            try {
+                val coopState = _gameState.value.coopState ?: createInitialCoopState()
+                coopUseCase.startDiscovering()
+                    .collect { result ->
+                        result.onSuccess {
+                            // Update state based on discovery status
+                            collectCoopConnectionState()
+                        }.onFailure { exception ->
+                            _gameState.update {
+                                it.copy(coopErrorMessage = "Discovery failed: ${exception.message}")
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to start discovery")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to start discovery: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
      * Handles stopping discovery for coop games.
      */
     private fun handleStopDiscovery() {
-        // TODO: Stop discovery process using CoopUseCase
-        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+        viewModelScope.launch {
+            try {
+                coopUseCase.stopDiscovering()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to stop discovery")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to stop discovery: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
      * Handles connecting to a specific endpoint.
      */
     private fun handleConnectToEndpoint(endpointId: String) {
-        // TODO: Connect to endpoint using CoopUseCase
-        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+        viewModelScope.launch {
+            try {
+                coopUseCase.requestConnection(endpointId)
+                    .collect { result ->
+                        result.onSuccess {
+                            // Update state based on connection status
+                            collectCoopConnectionState()
+                        }.onFailure { exception ->
+                            _gameState.update {
+                                it.copy(coopErrorMessage = "Connection failed: ${exception.message}")
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to connect to endpoint")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to connect: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
      * Handles disconnecting from coop game.
      */
     private fun handleDisconnectCoop() {
-        // TODO: Disconnect using CoopUseCase
-        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+        viewModelScope.launch {
+            try {
+                coopUseCase.disconnect()
+                // Reset coop state
+                _gameState.update { currentState ->
+                    currentState.copy(
+                        coopState = createInitialCoopState(),
+                        showCoopConnectionDialog = false
+                    )
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to disconnect")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to disconnect: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
@@ -1016,6 +1142,76 @@ class GameViewModel @Inject constructor(
                 showCoopConnectionDialog = false,
                 coopErrorMessage = null
             )
+        }
+    }
+
+    /**
+     * Creates an initial coop state with default values.
+     */
+    private fun createInitialCoopState() = com.akinalpfdn.poprush.coop.domain.model.CoopGameState(
+        localPlayerId = "player_${System.currentTimeMillis()}",
+        localPlayerName = "Player",
+        localPlayerColor = com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
+        bubbles = generateInitialCoopBubbles()
+    )
+
+    /**
+     * Generates initial coop bubbles with proper grid layout.
+     */
+    private fun generateInitialCoopBubbles(): List<com.akinalpfdn.poprush.coop.domain.model.CoopBubble> {
+        val rowSizes = listOf(5, 6, 7, 8, 7, 6, 5)
+        var bubbleId = 0
+        val bubbles = mutableListOf<com.akinalpfdn.poprush.coop.domain.model.CoopBubble>()
+
+        for ((rowIndex, size) in rowSizes.withIndex()) {
+            for (colIndex in 0 until size) {
+                bubbles.add(
+                    com.akinalpfdn.poprush.coop.domain.model.CoopBubble(
+                        id = bubbleId,
+                        position = bubbleId,
+                        row = rowIndex,
+                        col = colIndex
+                    )
+                )
+                bubbleId++
+            }
+        }
+
+        return bubbles
+    }
+
+    /**
+     * Collects coop connection state updates.
+     */
+    private fun collectCoopConnectionState() {
+        viewModelScope.launch {
+            try {
+                // Collect connection state updates
+                coopUseCase.connectionState
+                    .collect { connectionState ->
+                        _gameState.update { currentState ->
+                            val updatedCoopState = currentState.coopState?.copy(
+                                isConnectionEstablished = connectionState == com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
+                            ) ?: createInitialCoopState().copy(
+                                isConnectionEstablished = connectionState == com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
+                            )
+                            currentState.copy(coopState = updatedCoopState)
+                        }
+                    }
+
+                // Collect error messages
+                coopUseCase.errorMessages
+                    .collect { errorMessage ->
+                        _gameState.update {
+                            it.copy(coopErrorMessage = errorMessage)
+                        }
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to collect coop connection state")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Connection error: ${e.message}")
+                }
+            }
         }
     }
 

@@ -39,6 +39,7 @@ import com.akinalpfdn.poprush.coop.presentation.screen.CoopPlayerSetupScreen
 import com.akinalpfdn.poprush.coop.presentation.screen.CoopConnectionScreen
 import com.akinalpfdn.poprush.coop.presentation.screen.CoopGameplayScreen
 import com.akinalpfdn.poprush.coop.presentation.component.CoopConnectionOverlay
+import com.akinalpfdn.poprush.game.presentation.component.CoopConnectionSetupScreen
 import kotlin.time.Duration
 
 /**
@@ -86,6 +87,7 @@ fun GameScreen(
             onGameModeSelected = { mode -> viewModel.processIntent(GameIntent.SelectGameMode(mode)) },
             onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
             onDisconnectCoop = { viewModel.processIntent(GameIntent.DisconnectCoop) },
+            onStartCoopConnection = { viewModel.processIntent(GameIntent.StartCoopConnection) },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -213,6 +215,7 @@ private fun GameContent(
     onGameModeSelected: (com.akinalpfdn.poprush.core.domain.model.GameMode) -> Unit,
     onGameModSelected: (com.akinalpfdn.poprush.core.domain.model.GameMod) -> Unit,
     onDisconnectCoop: () -> Unit,
+    onStartCoopConnection: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -269,11 +272,11 @@ private fun GameContent(
                                 )
                             }
                             StartScreenFlow.COOP_CONNECTION -> {
-                                // TODO: Will be implemented in Phase 2
-                                Text(
-                                    text = "Co-op connection screen - Coming in Phase 2",
-                                    modifier = Modifier.fillMaxSize(),
-                                    textAlign = TextAlign.Center
+                                // Coop connection setup
+                                CoopConnectionSetupScreen(
+                                    onShowConnectionDialog = { onStartCoopConnection() },
+                                    onBack = { onGameModeSelected(com.akinalpfdn.poprush.core.domain.model.GameMode.SINGLE) },
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
                         }

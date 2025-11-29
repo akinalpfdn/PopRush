@@ -32,7 +32,6 @@ import com.akinalpfdn.poprush.coop.presentation.extensions.remotePlayerName
 import com.akinalpfdn.poprush.coop.presentation.extensions.remotePlayerColor
 import com.akinalpfdn.poprush.coop.presentation.extensions.remotePlayerScore
 import com.akinalpfdn.poprush.coop.presentation.extensions.timeRemaining
-import com.akinalpfdn.poprush.coop.presentation.extensions.bubbles
 import com.akinalpfdn.poprush.core.ui.component.BubbleGrid
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
