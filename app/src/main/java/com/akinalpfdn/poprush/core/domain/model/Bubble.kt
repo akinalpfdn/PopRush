@@ -1,5 +1,8 @@
 package com.akinalpfdn.poprush.core.domain.model
 
+import androidx.compose.ui.graphics.Color
+import com.akinalpfdn.poprush.core.ui.theme.PastelColors
+
 /**
  * Represents a single bubble in the game grid.
  *
@@ -61,5 +64,11 @@ enum class BubbleColor {
     SKY,
     EMERALD,
     AMBER,
-    VIOLET
+    VIOLET;
+
+    /**
+     * Gets the Compose Color for this bubble color.
+     */
+    val color: Color
+        get() = PastelColors.getColor(this)
 }

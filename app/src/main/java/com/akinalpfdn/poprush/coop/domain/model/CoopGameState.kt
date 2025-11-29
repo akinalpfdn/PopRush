@@ -73,9 +73,9 @@ data class CoopBubble(
 data class CoopGameState(
     val isHost: Boolean = false,
     val localPlayerId: String = "",
-    val localPlayerName: String = "",
+    val localPlayerName: String = "Player",
     val opponentPlayerId: String = "",
-    val opponentPlayerName: String = "",
+    val opponentPlayerName: String = "Opponent",
     val isConnectionEstablished: Boolean = false,
     val connectionPhase: CoopConnectionPhase = CoopConnectionPhase.DISCONNECTED,
     val localScore: Int = 0,

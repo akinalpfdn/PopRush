@@ -53,7 +53,12 @@ fun CoopConnectionOverlay(
 ) {
     if (isVisible) {
         Dialog(
-            onDismissRequest = { /* Prevent dismiss when connection is active */ },
+            onDismissRequest = {
+                // Only allow dismiss when disconnected and not in connection flow
+                if (connectionState == ConnectionState.DISCONNECTED) {
+                    onClose()
+                }
+            },
             properties = DialogProperties(
                 usePlatformDefaultWidth = false,
                 dismissOnBackPress = connectionState == ConnectionState.DISCONNECTED,
@@ -105,11 +110,12 @@ private fun CoopConnectionDialogContent(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var currentStep by remember { mutableStateOf(CoopConnectionStep.SETUP) }
+    var currentStep by remember { mutableStateOf(CoopConnectionStep.HOST_JOIN_SELECTION) }
+    var selectedIsHost by remember { mutableStateOf(false) }
 
-    // Auto-transition from setup to connection when player setup is complete
+    // Auto-transition from host/join selection to connection when connection starts
     LaunchedEffect(connectionState) {
-        if (connectionState != ConnectionState.DISCONNECTED && currentStep == CoopConnectionStep.SETUP) {
+        if (connectionState != ConnectionState.DISCONNECTED && currentStep == CoopConnectionStep.HOST_JOIN_SELECTION) {
             currentStep = CoopConnectionStep.CONNECTION
         }
     }
@@ -135,7 +141,27 @@ private fun CoopConnectionDialogContent(
             label = "connectionStepTransition"
         ) { step ->
             when (step) {
-                CoopConnectionStep.SETUP -> {
+                CoopConnectionStep.HOST_JOIN_SELECTION -> {
+                    HostJoinSelectionStep(
+                        playerName = playerName,
+                        playerColor = playerColor,
+                        onHostSelected = {
+                            selectedIsHost = true
+                            currentStep = CoopConnectionStep.CONNECTION
+                            onStartHosting()
+                        },
+                        onJoinSelected = {
+                            selectedIsHost = false
+                            currentStep = CoopConnectionStep.CONNECTION
+                            onStartDiscovery()
+                        },
+                        onCustomizeProfile = {
+                            currentStep = CoopConnectionStep.PLAYER_SETUP
+                        },
+                        onBack = onClose
+                    )
+                }
+                CoopConnectionStep.PLAYER_SETUP -> {
                     PlayerSetupStep(
                         playerName = playerName,
                         playerColor = playerColor,
@@ -143,14 +169,19 @@ private fun CoopConnectionDialogContent(
                         isHost = isHost,
                         onPlayerNameChange = onPlayerNameChange,
                         onColorSelected = onColorSelected,
-                        onContinue = onPlayerSetupComplete,
-                        onBack = onClose
+                        onContinue = {
+                            currentStep = CoopConnectionStep.HOST_JOIN_SELECTION
+                        },
+                        onBack = {
+                            currentStep = CoopConnectionStep.HOST_JOIN_SELECTION
+                        }
                     )
                 }
                 CoopConnectionStep.CONNECTION -> {
                     ConnectionStep(
                         playerName = playerName,
                         playerColor = playerColor,
+                        isHost = selectedIsHost,
                         connectionState = connectionState,
                         discoveredEndpoints = discoveredEndpoints,
                         errorMessage = errorMessage,
@@ -163,7 +194,7 @@ private fun CoopConnectionDialogContent(
                         onBack = {
                             // Only allow going back if disconnected
                             if (connectionState == ConnectionState.DISCONNECTED) {
-                                currentStep = CoopConnectionStep.SETUP
+                                currentStep = CoopConnectionStep.HOST_JOIN_SELECTION
                             } else {
                                 onClose()
                             }
@@ -208,9 +239,251 @@ private fun PlayerSetupStep(
 }
 
 @Composable
+private fun HostJoinSelectionStep(
+    playerName: String,
+    playerColor: com.akinalpfdn.poprush.core.domain.model.BubbleColor,
+    onHostSelected: () -> Unit,
+    onJoinSelected: () -> Unit,
+    onCustomizeProfile: () -> Unit,
+    onBack: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            // Header
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WifiTethering,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = playerColor.color
+                )
+
+                Text(
+                    text = "Choose Your Role",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    fontFamily = FontFamily.Default
+                )
+
+                Text(
+                    text = "Host a game or join an existing one",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    fontFamily = FontFamily.Default
+                )
+            }
+
+            // Player info
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(
+                            color = playerColor.color,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                )
+                Text(
+                    text = playerName.ifEmpty { "Player" },
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = FontFamily.Default
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Customize Profile button (at the top)
+            OutlinedButton(
+                onClick = onCustomizeProfile,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                border = ButtonDefaults.outlinedButtonBorder.copy(
+                    width = 1.dp
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Customize Profile",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = FontFamily.Default
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Host and Join buttons
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Host button
+                Button(
+                    onClick = onHostSelected,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Host",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontSize = 18.sp,
+                        fontFamily = FontFamily.Default
+                    )
+                }
+
+                // Join button
+                OutlinedButton(
+                    onClick = onJoinSelected,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        width = 2.dp
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Join",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = FontFamily.Default
+                    )
+                }
+            }
+
+            // Info cards
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                InfoCard(
+                    icon = Icons.Default.Add,
+                    title = "Host Game",
+                    description = "Create a new game and wait for others to join you",
+                    iconTint = MaterialTheme.colorScheme.primary
+                )
+
+                InfoCard(
+                    icon = Icons.Default.Search,
+                    title = "Join Game",
+                    description = "Find and join a game hosted by someone nearby",
+                    iconTint = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            // Back button
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Back",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontFamily = FontFamily.Default
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String,
+    iconTint: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = iconTint
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+                fontFamily = FontFamily.Default
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = FontFamily.Default
+            )
+        }
+    }
+}
+
+@Composable
 private fun ConnectionStep(
     playerName: String,
     playerColor: com.akinalpfdn.poprush.core.domain.model.BubbleColor,
+    isHost: Boolean,
     connectionState: ConnectionState,
     discoveredEndpoints: List<com.akinalpfdn.poprush.coop.domain.model.EndpointInfo>,
     errorMessage: String?,
@@ -402,6 +675,7 @@ fun CoopConnectionSuccessToast(
  * Enum representing the connection flow steps
  */
 private enum class CoopConnectionStep {
-    SETUP,
+    HOST_JOIN_SELECTION,
+    PLAYER_SETUP,
     CONNECTION
 }

@@ -177,13 +177,22 @@ fun GameScreen(
         // Coop connection overlay
         CoopConnectionOverlay(
             isVisible = gameState.showCoopConnectionDialog,
-            playerName = "", // Will be handled by coop state
-            playerColor = com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE, // Will be handled by coop state
-            opponentColor = null, // Will be handled by coop state
-            connectionState = com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED, // Will be handled by coop state
+            playerName = gameState.coopState?.localPlayerName ?: "Player",
+            playerColor = gameState.coopState?.localPlayerColor ?: com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
+            opponentColor = gameState.coopState?.opponentPlayerColor,
+            connectionState = gameState.coopState?.let {
+                when (it.connectionPhase) {
+                    com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.DISCONNECTED -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED
+                    com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.ADVERTISING -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.ADVERTISING
+                    com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.DISCOVERING -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCOVERING
+                    com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.CONNECTING -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTING
+                    com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.CONNECTED -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
+                    com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.ERROR -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED // Map ERROR to DISCONNECTED
+                }
+            } ?: com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED,
             discoveredEndpoints = emptyList(), // Will be handled by coop state
             errorMessage = gameState.coopErrorMessage,
-            isHost = false, // Will be handled by coop state
+            isHost = gameState.coopState?.isHost ?: false,
             onPlayerNameChange = { viewModel.processIntent(GameIntent.UpdateCoopPlayerName(it)) },
             onColorSelected = { viewModel.processIntent(GameIntent.UpdateCoopPlayerColor(it)) },
             onPlayerSetupComplete = { viewModel.processIntent(GameIntent.StartCoopConnection) },

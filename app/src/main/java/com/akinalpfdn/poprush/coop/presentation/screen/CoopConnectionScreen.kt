@@ -39,6 +39,7 @@ private val ErrorRed = Color(0xFFEF4444)
 fun CoopConnectionScreen(
     playerName: String,
     playerColor: BubbleColor,
+    isHost: Boolean = false,
     connectionState: ConnectionState,
     discoveredEndpoints: List<EndpointInfo>,
     errorMessage: String?,
@@ -86,6 +87,52 @@ fun CoopConnectionScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // -- Role Indicator --
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isHost) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    }
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isHost) Icons.Default.Add else Icons.Default.Search,
+                        contentDescription = null,
+                        tint = if (isHost) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        },
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = if (isHost) "Hosting Game" else "Joining Game",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isHost) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        },
+                        fontFamily = FontFamily.Default
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // -- Dynamic Content --
             Box(
                 modifier = Modifier.weight(1f),
@@ -93,7 +140,16 @@ fun CoopConnectionScreen(
             ) {
                 when (connectionState) {
                     ConnectionState.DISCONNECTED -> {
+                        // Auto-start the appropriate action based on role
+                        LaunchedEffect(isHost) {
+                            if (isHost) {
+                                onStartHosting()
+                            } else {
+                                onStartDiscovery()
+                            }
+                        }
                         DisconnectedView(
+                            isHost = isHost,
                             onStartHosting = onStartHosting,
                             onStartDiscovery = onStartDiscovery
                         )
@@ -151,6 +207,7 @@ fun CoopConnectionScreen(
 
 @Composable
 private fun DisconnectedView(
+    isHost: Boolean,
     onStartHosting: () -> Unit,
     onStartDiscovery: () -> Unit
 ) {
@@ -160,7 +217,7 @@ private fun DisconnectedView(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = "SETUP GAME",
+            text = if (isHost) "HOSTING GAME" else "JOINING GAME",
             color = DarkGray,
             fontSize = 32.sp,
             fontFamily = FontFamily.Default,
@@ -169,7 +226,7 @@ private fun DisconnectedView(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Select your role",
+            text = if (isHost) "Creating your game room..." else "Searching for nearby games...",
             color = Color.Gray,
             fontSize = 16.sp,
             fontFamily = FontFamily.Default,
@@ -178,21 +235,65 @@ private fun DisconnectedView(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        CoopActionCard(
-            title = "Host Game",
-            subtitle = "Create a room for others",
-            icon = Icons.Default.WifiTethering,
-            onClick = onStartHosting
-        )
+        // Show appropriate action card based on role
+        if (isHost) {
+            CoopActionCard(
+                title = "Start Hosting",
+                subtitle = "Create a room for others to join",
+                icon = Icons.Default.WifiTethering,
+                onClick = onStartHosting
+            )
+        } else {
+            CoopActionCard(
+                title = "Search for Games",
+                subtitle = "Find nearby game rooms",
+                icon = Icons.Default.Search,
+                onClick = onStartDiscovery
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        CoopActionCard(
-            title = "Join Game",
-            subtitle = "Search for nearby rooms",
-            icon = Icons.Default.Search,
-            onClick = onStartDiscovery
-        )
+        // Show the other option as secondary
+        if (isHost) {
+            OutlinedButton(
+                onClick = onStartDiscovery,
+                modifier = Modifier.fillMaxWidth(),
+                border = ButtonDefaults.outlinedButtonBorder.copy(
+                    width = 1.dp
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Switch to Joining",
+                    fontFamily = FontFamily.Default
+                )
+            }
+        } else {
+            OutlinedButton(
+                onClick = onStartHosting,
+                modifier = Modifier.fillMaxWidth(),
+                border = ButtonDefaults.outlinedButtonBorder.copy(
+                    width = 1.dp
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WifiTethering,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Switch to Hosting",
+                    fontFamily = FontFamily.Default
+                )
+            }
+        }
     }
 }
 
