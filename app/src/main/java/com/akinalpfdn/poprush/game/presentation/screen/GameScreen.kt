@@ -15,6 +15,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -40,6 +43,8 @@ import com.akinalpfdn.poprush.coop.presentation.screen.CoopConnectionScreen
 import com.akinalpfdn.poprush.coop.presentation.screen.CoopGameplayScreen
 import com.akinalpfdn.poprush.coop.presentation.component.CoopConnectionOverlay
 import com.akinalpfdn.poprush.game.presentation.component.CoopConnectionSetupScreen
+import com.akinalpfdn.poprush.coop.presentation.component.CoopPermissionsDialog
+import com.akinalpfdn.poprush.coop.presentation.permission.rememberCoopPermissionManager
 import kotlin.time.Duration
 
 /**
@@ -56,6 +61,38 @@ fun GameScreen(
     modifier: Modifier = Modifier
 ) {
     val gameState by viewModel.gameState.collectAsStateWithLifecycle()
+
+    // Get the current context for permission management
+    val context = LocalContext.current
+
+    // Permission manager for coop mode
+    val permissionManager = rememberCoopPermissionManager(context)
+
+    // State for permissions dialog
+    var showPermissionsDialog by remember { mutableStateOf(false) }
+    var hasCheckedPermissions by remember { mutableStateOf(false) }
+    var pendingCoopSelection by remember { mutableStateOf(false) }
+
+    // Function to open app settings
+    fun openAppSettings() {
+        val intent = Intent().apply {
+            action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            data = Uri.fromParts("package", context.packageName, null)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(intent)
+    }
+
+    // Check permissions on first load if we haven't checked yet
+    LaunchedEffect(hasCheckedPermissions) {
+        if (!hasCheckedPermissions) {
+            hasCheckedPermissions = true
+            // Only show permissions dialog if permissions are missing
+            if (!permissionManager.hasPermissions) {
+                showPermissionsDialog = true
+            }
+        }
+    }
 
     // Handle back press for settings
     BackHandler(enabled = gameState.showSettings) {
@@ -88,6 +125,13 @@ fun GameScreen(
             onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
             onDisconnectCoop = { viewModel.processIntent(GameIntent.DisconnectCoop) },
             onStartCoopConnection = { viewModel.processIntent(GameIntent.StartCoopConnection) },
+            permissionManager = permissionManager,
+            showPermissionsDialog = showPermissionsDialog,
+            onShowPermissionsDialog = { showPermissionsDialog = true },
+            onHidePermissionsDialog = { showPermissionsDialog = false },
+            pendingCoopSelection = pendingCoopSelection,
+            setPendingCoopSelection = { pendingCoopSelection = it },
+            openAppSettings = { openAppSettings() },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -225,6 +269,13 @@ private fun GameContent(
     onGameModSelected: (com.akinalpfdn.poprush.core.domain.model.GameMod) -> Unit,
     onDisconnectCoop: () -> Unit,
     onStartCoopConnection: () -> Unit,
+    permissionManager: com.akinalpfdn.poprush.coop.presentation.permission.CoopPermissionManager,
+    showPermissionsDialog: Boolean,
+    onShowPermissionsDialog: () -> Unit,
+    onHidePermissionsDialog: () -> Unit,
+    pendingCoopSelection: Boolean,
+    setPendingCoopSelection: (Boolean) -> Unit,
+    openAppSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -262,7 +313,19 @@ private fun GameContent(
                         when (currentScreen) {
                             StartScreenFlow.MODE_SELECTION -> {
                                 ModeSelectionScreen(
-                                    onModeSelected = onGameModeSelected,
+                                    onModeSelected = { mode ->
+                                        // Check permissions if COOP mode is selected
+                                        if (mode == com.akinalpfdn.poprush.core.domain.model.GameMode.COOP) {
+                                            if (permissionManager.hasPermissions) {
+                                                onGameModeSelected(mode)
+                                            } else {
+                                                setPendingCoopSelection(true)
+                                                onShowPermissionsDialog()
+                                            }
+                                        } else {
+                                            onGameModeSelected(mode)
+                                        }
+                                    },
                                     modifier = Modifier.fillMaxSize()
                                 )
                             }
@@ -330,6 +393,30 @@ private fun GameContent(
                 )
             }
         }
+
+        // Permissions dialog for coop mode
+        CoopPermissionsDialog(
+            isVisible = showPermissionsDialog,
+            missingPermissions = permissionManager.getMissingPermissionsDisplay(),
+            onRequestPermissions = {
+                onHidePermissionsDialog()
+                openAppSettings()
+            },
+            onDismiss = {
+                onHidePermissionsDialog()
+                // Refresh permissions in case user granted them via settings
+                permissionManager.refreshPermissions()
+                // If we had a pending COOP selection and now have permissions, proceed
+                if (pendingCoopSelection && permissionManager.hasPermissions) {
+                    setPendingCoopSelection(false)
+                    onGameModeSelected(com.akinalpfdn.poprush.core.domain.model.GameMode.COOP)
+                }
+            },
+            onNotNow = {
+                onHidePermissionsDialog()
+                setPendingCoopSelection(false)
+            }
+        )
     }
 }
 

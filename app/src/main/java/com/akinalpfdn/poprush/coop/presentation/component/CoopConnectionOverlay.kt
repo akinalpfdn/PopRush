@@ -123,7 +123,7 @@ private fun CoopConnectionDialogContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f))
+            .background(Color.Black.copy(alpha = 0.6f))
     ) {
         @OptIn(ExperimentalAnimationApi::class)
         AnimatedContent(
@@ -270,13 +270,14 @@ private fun HostJoinSelectionStep(
                     imageVector = Icons.Default.WifiTethering,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
-                    tint = playerColor.color
+                    tint = Color.Black
                 )
 
                 Text(
                     text = "Choose Your Role",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
+                    color = Color.Black,
                     textAlign = TextAlign.Center,
                     fontFamily = FontFamily.Default
                 )
@@ -284,7 +285,7 @@ private fun HostJoinSelectionStep(
                 Text(
                     text = "Host a game or join an existing one",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.Black.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center,
                     fontFamily = FontFamily.Default
                 )
@@ -300,7 +301,7 @@ private fun HostJoinSelectionStep(
                     modifier = Modifier
                         .size(32.dp)
                         .background(
-                            color = playerColor.color,
+                            color = playerColor.color.copy(alpha = 0.8f),
                             shape = RoundedCornerShape(16.dp)
                         )
                 )
@@ -308,6 +309,7 @@ private fun HostJoinSelectionStep(
                     text = playerName.ifEmpty { "Player" },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
+                    color = Color.Black,
                     fontFamily = FontFamily.Default
                 )
             }
@@ -320,21 +322,22 @@ private fun HostJoinSelectionStep(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    width = 1.dp
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = Color.Black.copy(alpha = 0.3f)
                 )
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = Color.Black
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Customize Profile",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = Color.Black,
                     fontFamily = FontFamily.Default
                 )
             }
@@ -353,19 +356,22 @@ private fun HostJoinSelectionStep(
                         .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = Color.Black,
+                        contentColor = Color.White
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Host",
                         style = MaterialTheme.typography.titleMedium,
                         fontSize = 18.sp,
+                        color = Color.White,
                         fontFamily = FontFamily.Default
                     )
                 }
@@ -376,22 +382,23 @@ private fun HostJoinSelectionStep(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    border = ButtonDefaults.outlinedButtonBorder.copy(
-                        width = 2.dp
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = 2.dp,
+                        color = Color.Black
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = Color.Black
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Join",
                         style = MaterialTheme.typography.titleMedium,
                         fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Color.Black,
                         fontFamily = FontFamily.Default
                     )
                 }
@@ -443,13 +450,13 @@ private fun InfoCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     description: String,
-    iconTint: Color = MaterialTheme.colorScheme.primary
+    iconTint: Color = Color.Black
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                color = Color.Black.copy(alpha = 0.05f),
                 shape = RoundedCornerShape(12.dp)
             )
             .padding(16.dp),
@@ -467,12 +474,13 @@ private fun InfoCard(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium,
+                color = Color.Black,
                 fontFamily = FontFamily.Default
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.Black.copy(alpha = 0.6f),
                 fontFamily = FontFamily.Default
             )
         }
