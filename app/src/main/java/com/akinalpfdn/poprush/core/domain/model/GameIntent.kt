@@ -262,6 +262,59 @@ sealed interface GameIntent {
     data object ClearCoopError : GameIntent
 
     /**
+     * Updates the coop player name.
+     * @param playerName The new player name
+     */
+    data class UpdateCoopPlayerName(val playerName: String) : GameIntent
+
+    /**
+     * Updates the coop player color.
+     * @param playerColor The new player color
+     */
+    data class UpdateCoopPlayerColor(val playerColor: BubbleColor) : GameIntent
+
+    /**
+     * Starts the coop connection process.
+     */
+    data object StartCoopConnection : GameIntent
+
+    /**
+     * Starts hosting a coop game.
+     */
+    data object StartHosting : GameIntent
+
+    /**
+     * Stops hosting a coop game.
+     */
+    data object StopHosting : GameIntent
+
+    /**
+     * Starts discovering coop games.
+     */
+    data object StartDiscovery : GameIntent
+
+    /**
+     * Stops discovering coop games.
+     */
+    data object StopDiscovery : GameIntent
+
+    /**
+     * Connects to a specific endpoint.
+     * @param endpointId The ID of the endpoint to connect to
+     */
+    data class ConnectToEndpoint(val endpointId: String) : GameIntent
+
+    /**
+     * Disconnects from coop game.
+     */
+    data object DisconnectCoop : GameIntent
+
+    /**
+     * Closes the coop connection dialog.
+     */
+    data object CloseCoopConnection : GameIntent
+
+    /**
      * Handles audio-related events.
      */
     sealed interface AudioIntent : GameIntent {

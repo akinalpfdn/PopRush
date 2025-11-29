@@ -35,6 +35,10 @@ import com.akinalpfdn.poprush.game.presentation.component.PauseButton
 import com.akinalpfdn.poprush.game.presentation.component.SettingsOverlay
 import com.akinalpfdn.poprush.game.presentation.component.BackConfirmationDialog
 import com.akinalpfdn.poprush.game.presentation.GameViewModel
+import com.akinalpfdn.poprush.coop.presentation.screen.CoopPlayerSetupScreen
+import com.akinalpfdn.poprush.coop.presentation.screen.CoopConnectionScreen
+import com.akinalpfdn.poprush.coop.presentation.screen.CoopGameplayScreen
+import com.akinalpfdn.poprush.coop.presentation.component.CoopConnectionOverlay
 import kotlin.time.Duration
 
 /**
@@ -81,6 +85,7 @@ fun GameScreen(
             onDurationChange = { duration -> viewModel.processIntent(GameIntent.UpdateSelectedDuration(duration)) },
             onGameModeSelected = { mode -> viewModel.processIntent(GameIntent.SelectGameMode(mode)) },
             onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
+            onDisconnectCoop = { viewModel.processIntent(GameIntent.DisconnectCoop) },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -166,6 +171,29 @@ fun GameScreen(
         //     isVisible = false, // gameState.isLoadingSpeedMode when implemented
         //     modifier = Modifier.fillMaxSize()
         // )
+
+        // Coop connection overlay
+        CoopConnectionOverlay(
+            isVisible = gameState.showCoopConnectionDialog,
+            playerName = "", // Will be handled by coop state
+            playerColor = com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE, // Will be handled by coop state
+            opponentColor = null, // Will be handled by coop state
+            connectionState = com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED, // Will be handled by coop state
+            discoveredEndpoints = emptyList(), // Will be handled by coop state
+            errorMessage = gameState.coopErrorMessage,
+            isHost = false, // Will be handled by coop state
+            onPlayerNameChange = { viewModel.processIntent(GameIntent.UpdateCoopPlayerName(it)) },
+            onColorSelected = { viewModel.processIntent(GameIntent.UpdateCoopPlayerColor(it)) },
+            onPlayerSetupComplete = { viewModel.processIntent(GameIntent.StartCoopConnection) },
+            onStartHosting = { viewModel.processIntent(GameIntent.StartHosting) },
+            onStopHosting = { viewModel.processIntent(GameIntent.StopHosting) },
+            onStartDiscovery = { viewModel.processIntent(GameIntent.StartDiscovery) },
+            onStopDiscovery = { viewModel.processIntent(GameIntent.StopDiscovery) },
+            onConnectToEndpoint = { viewModel.processIntent(GameIntent.ConnectToEndpoint(it)) },
+            onDisconnect = { viewModel.processIntent(GameIntent.DisconnectCoop) },
+            onClose = { viewModel.processIntent(GameIntent.CloseCoopConnection) },
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
@@ -184,6 +212,7 @@ private fun GameContent(
     onDurationChange: (Duration) -> Unit,
     onGameModeSelected: (com.akinalpfdn.poprush.core.domain.model.GameMode) -> Unit,
     onGameModSelected: (com.akinalpfdn.poprush.core.domain.model.GameMod) -> Unit,
+    onDisconnectCoop: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -252,14 +281,25 @@ private fun GameContent(
                 }
 
                 else -> {
-                    BubbleGrid(
-                        gameState = gameState,
-                        selectedShape = gameState.selectedShape,
-                        zoomLevel = gameState.zoomLevel,
-                        onBubblePress = onBubblePress,
-                        enabled = gameState.isPlaying && !gameState.isPaused,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    if (gameState.isCoopMode && gameState.coopState != null) {
+                        // Coop gameplay
+                        CoopGameplayScreen(
+                            coopGameState = gameState.coopState,
+                            onBubbleClick = onBubblePress,
+                            onPause = onTogglePause,
+                            onDisconnect = onDisconnectCoop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        BubbleGrid(
+                            gameState = gameState,
+                            selectedShape = gameState.selectedShape,
+                            zoomLevel = gameState.zoomLevel,
+                            onBubblePress = onBubblePress,
+                            enabled = gameState.isPlaying && !gameState.isPaused,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }

@@ -168,6 +168,16 @@ class GameViewModel @Inject constructor(
             is GameIntent.HideCoopConnectionDialog -> handleHideCoopConnectionDialog()
             is GameIntent.ShowCoopError -> handleShowCoopError(intent.errorMessage)
             is GameIntent.ClearCoopError -> handleClearCoopError()
+            is GameIntent.UpdateCoopPlayerName -> handleUpdateCoopPlayerName(intent.playerName)
+            is GameIntent.UpdateCoopPlayerColor -> handleUpdateCoopPlayerColor(intent.playerColor)
+            is GameIntent.StartCoopConnection -> handleStartCoopConnection()
+            is GameIntent.StartHosting -> handleStartHosting()
+            is GameIntent.StopHosting -> handleStopHosting()
+            is GameIntent.StartDiscovery -> handleStartDiscovery()
+            is GameIntent.StopDiscovery -> handleStopDiscovery()
+            is GameIntent.ConnectToEndpoint -> handleConnectToEndpoint(intent.endpointId)
+            is GameIntent.DisconnectCoop -> handleDisconnectCoop()
+            is GameIntent.CloseCoopConnection -> handleCloseCoopConnection()
             is GameIntent.AudioIntent -> handleAudioIntent(intent)
             // Game Mode Selection Intents
             is GameIntent.SelectGameMode -> handleSelectGameMode(intent.mode)
@@ -923,6 +933,90 @@ class GameViewModel @Inject constructor(
 
     private fun handleClearCoopError() {
         _gameState.update { it.copy(coopErrorMessage = null) }
+    }
+
+    /**
+     * Handles updating the coop player name.
+     */
+    private fun handleUpdateCoopPlayerName(playerName: String) {
+        // TODO: Update coop state with player name
+        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+    }
+
+    /**
+     * Handles updating the coop player color.
+     */
+    private fun handleUpdateCoopPlayerColor(playerColor: com.akinalpfdn.poprush.core.domain.model.BubbleColor) {
+        // TODO: Update coop state with player color
+        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+    }
+
+    /**
+     * Handles starting the coop connection process.
+     */
+    private fun handleStartCoopConnection() {
+        // TODO: Start coop connection process
+        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+    }
+
+    /**
+     * Handles starting to host a coop game.
+     */
+    private fun handleStartHosting() {
+        // TODO: Start hosting process using CoopUseCase
+        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+    }
+
+    /**
+     * Handles stopping hosting a coop game.
+     */
+    private fun handleStopHosting() {
+        // TODO: Stop hosting process using CoopUseCase
+        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+    }
+
+    /**
+     * Handles starting discovery for coop games.
+     */
+    private fun handleStartDiscovery() {
+        // TODO: Start discovery process using CoopUseCase
+        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+    }
+
+    /**
+     * Handles stopping discovery for coop games.
+     */
+    private fun handleStopDiscovery() {
+        // TODO: Stop discovery process using CoopUseCase
+        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+    }
+
+    /**
+     * Handles connecting to a specific endpoint.
+     */
+    private fun handleConnectToEndpoint(endpointId: String) {
+        // TODO: Connect to endpoint using CoopUseCase
+        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+    }
+
+    /**
+     * Handles disconnecting from coop game.
+     */
+    private fun handleDisconnectCoop() {
+        // TODO: Disconnect using CoopUseCase
+        // This will be implemented in Phase 4 when we integrate with CoopUseCase
+    }
+
+    /**
+     * Handles closing the coop connection dialog.
+     */
+    private fun handleCloseCoopConnection() {
+        _gameState.update {
+            it.copy(
+                showCoopConnectionDialog = false,
+                coopErrorMessage = null
+            )
+        }
     }
 
     // Audio Intents
