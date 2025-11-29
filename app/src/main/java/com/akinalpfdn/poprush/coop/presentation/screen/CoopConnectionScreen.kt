@@ -1,8 +1,10 @@
 package com.akinalpfdn.poprush.coop.presentation.screen
 
-import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,10 +16,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,9 +28,12 @@ import com.akinalpfdn.poprush.coop.domain.model.EndpointInfo
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
 
-/**
- * Main coop connection screen for hosting and joining games
- */
+// Theme Colors
+private val DarkGray = Color(0xFF1C1917)
+private val LightGray = Color(0xFFF5F5F4)
+private val SuccessGreen = Color(0xFF22C55E)
+private val ErrorRed = Color(0xFFEF4444)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoopConnectionScreen(
@@ -51,594 +54,448 @@ fun CoopConnectionScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.White)
     ) {
-        // Back button
-        IconButton(
-            onClick = onBackToMenu,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    shape = CircleShape
-                )
-                .size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        // Main content
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Player info card
-            PlayerInfoCard(
-                playerName = playerName,
-                playerColor = playerColor,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Connection status
-            ConnectionStatusCard(
-                connectionState = connectionState,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Main content based on connection state
-            when (connectionState) {
-                ConnectionState.DISCONNECTED -> {
-                    DisconnectedContent(
-                        onStartHosting = onStartHosting,
-                        onStartDiscovery = onStartDiscovery,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                ConnectionState.ADVERTISING -> {
-                    AdvertisingContent(
-                        onStopHosting = onStopHosting,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                ConnectionState.DISCOVERING -> {
-                    DiscoveringContent(
-                        discoveredEndpoints = discoveredEndpoints,
-                        onStopDiscovery = onStopDiscovery,
-                        onConnectToEndpoint = onConnectToEndpoint,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                ConnectionState.CONNECTING -> {
-                    ConnectingContent(
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                ConnectionState.CONNECTED -> {
-                    ConnectedContent(
-                        onDisconnect = onDisconnect,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            // Error message
-            errorMessage?.let { message ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+            // -- Top Bar --
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBackToMenu,
+                    modifier = Modifier
+                        .background(LightGray, CircleShape)
+                        .size(48.dp)
                 ) {
-                    Text(
-                        text = message,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(16.dp),
-                        textAlign = TextAlign.Center,
-                        fontFamily = FontFamily.Default
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlayerInfoCard(
-    playerName: String,
-    playerColor: BubbleColor,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Player color indicator
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(
-                        color = PastelColors.getColor(playerColor),
-                        shape = CircleShape
-                    )
-            )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "You",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Default
-                )
-                Text(
-                    text = playerName.ifEmpty { "Player" },
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Default
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ConnectionStatusCard(
-    connectionState: ConnectionState,
-    modifier: Modifier = Modifier
-) {
-    val (statusText, statusColor) = when (connectionState) {
-        ConnectionState.DISCONNECTED -> "Ready to Connect" to MaterialTheme.colorScheme.outline
-        ConnectionState.ADVERTISING -> "Hosting Game" to MaterialTheme.colorScheme.primary
-        ConnectionState.DISCOVERING -> "Searching for Games" to MaterialTheme.colorScheme.primary
-        ConnectionState.CONNECTING -> "Connecting..." to MaterialTheme.colorScheme.tertiary
-        ConnectionState.CONNECTED -> "Connected!" to Color(0xFF4CAF50)
-    }
-
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = statusColor.copy(alpha = 0.1f)
-        ),
-        modifier = modifier
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            when (connectionState) {
-                ConnectionState.ADVERTISING, ConnectionState.DISCOVERING -> {
-                    ConnectionPulseIndicator(
-                        color = statusColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                ConnectionState.CONNECTED -> {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Connected",
-                        tint = statusColor,
-                        modifier = Modifier.size(24.dp)
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = DarkGray
                     )
                 }
-                else -> {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .background(
-                                color = statusColor,
-                                shape = CircleShape
-                            )
-                    )
-                }
+                Spacer(modifier = Modifier.weight(1f))
+                // Small Player Badge
+                PlayerBadge(playerName, playerColor)
             }
 
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = statusColor,
-                fontFamily = FontFamily.Default
-            )
-        }
-    }
-}
+            Spacer(modifier = Modifier.height(32.dp))
 
-@Composable
-private fun ConnectionPulseIndicator(
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    val infiniteTransition = rememberInfiniteTransition()
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
-    Box(
-        modifier = modifier.scale(scale),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .background(
-                    color = color.copy(alpha = alpha),
-                    shape = CircleShape
-                )
-        )
-    }
-}
-
-@Composable
-private fun DisconnectedContent(
-    onStartHosting: () -> Unit,
-    onStartDiscovery: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Choose Your Role",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            fontFamily = FontFamily.Default
-        )
-
-        Text(
-            text = "Host a game or join an existing one",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            fontFamily = FontFamily.Default
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Host button
-            Button(
-                onClick = onStartHosting,
+            // -- Dynamic Content --
+            Box(
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.WifiTethering,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Host Game")
+                when (connectionState) {
+                    ConnectionState.DISCONNECTED -> {
+                        DisconnectedView(
+                            onStartHosting = onStartHosting,
+                            onStartDiscovery = onStartDiscovery
+                        )
+                    }
+                    ConnectionState.ADVERTISING -> {
+                        AdvertisingView(
+                            onStopHosting = onStopHosting
+                        )
+                    }
+                    ConnectionState.DISCOVERING -> {
+                        DiscoveryView(
+                            endpoints = discoveredEndpoints,
+                            onConnect = onConnectToEndpoint,
+                            onStopDiscovery = onStopDiscovery
+                        )
+                    }
+                    ConnectionState.CONNECTING -> {
+                        ConnectingView()
+                    }
+                    ConnectionState.CONNECTED -> {
+                        ConnectedView(
+                            onDisconnect = onDisconnect
+                        )
+                    }
+                }
             }
+        }
 
-            // Join button
-            OutlinedButton(
-                onClick = onStartDiscovery,
-                modifier = Modifier.weight(1f)
+        // -- Error Toast --
+        errorMessage?.let { message ->
+            Card(
+                colors = CardDefaults.cardColors(containerColor = ErrorRed),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(24.dp)
+                    .fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                Text(
+                    text = message,
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp),
+                    textAlign = TextAlign.Center,
+                    fontFamily = FontFamily.Default,
+                    fontSize = 14.sp
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Join Game")
             }
         }
     }
 }
 
+// -------------------------------------------------------------------------
+// Sub-Views
+// -------------------------------------------------------------------------
+
 @Composable
-private fun AdvertisingContent(
-    onStopHosting: () -> Unit,
-    modifier: Modifier = Modifier
+private fun DisconnectedView(
+    onStartHosting: () -> Unit,
+    onStartDiscovery: () -> Unit
 ) {
     Column(
-        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = "Waiting for Players",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            fontFamily = FontFamily.Default
+            text = "SETUP GAME",
+            color = DarkGray,
+            fontSize = 32.sp,
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.sp
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Select your role",
+            color = Color.Gray,
+            fontSize = 16.sp,
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.SemiBold
         )
 
-        Text(
-            text = "Other players can discover and join your game",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            fontFamily = FontFamily.Default
+        Spacer(modifier = Modifier.height(48.dp))
+
+        CoopActionCard(
+            title = "Host Game",
+            subtitle = "Create a room for others",
+            icon = Icons.Default.WifiTethering,
+            onClick = onStartHosting
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        CoopActionCard(
+            title = "Join Game",
+            subtitle = "Search for nearby rooms",
+            icon = Icons.Default.Search,
+            onClick = onStartDiscovery
+        )
+    }
+}
+
+@Composable
+private fun AdvertisingView(onStopHosting: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        PulseAnimation(color = DarkGray)
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Hosting...",
+            color = DarkGray,
+            fontSize = 24.sp,
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Waiting for players to join",
+            color = Color.Gray,
+            fontSize = 16.sp,
+            fontFamily = FontFamily.Default,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
 
         Button(
             onClick = onStopHosting,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error
-            )
+                containerColor = LightGray,
+                contentColor = ErrorRed
+            ),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.height(50.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Stop,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Stop Hosting")
+            Text("Cancel Hosting", fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-private fun DiscoveringContent(
-    discoveredEndpoints: List<EndpointInfo>,
-    onStopDiscovery: () -> Unit,
-    onConnectToEndpoint: (String) -> Unit,
-    modifier: Modifier = Modifier
+private fun DiscoveryView(
+    endpoints: List<EndpointInfo>,
+    onConnect: (String) -> Unit,
+    onStopDiscovery: () -> Unit
 ) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = "Available Games",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            fontFamily = FontFamily.Default
+            text = "NEARBY GAMES",
+            color = DarkGray,
+            fontSize = 24.sp,
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.ExtraBold
         )
+        Spacer(modifier = Modifier.height(16.dp))
 
-        if (discoveredEndpoints.isEmpty()) {
+        if (endpoints.isEmpty()) {
             Box(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
+                    .background(LightGray, RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SearchOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = DarkGray, strokeWidth = 3.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "No games found",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "Scanning...",
+                        color = Color.Gray,
                         fontFamily = FontFamily.Default
                     )
                 }
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(discoveredEndpoints) { endpoint ->
-                    EndpointCard(
-                        endpoint = endpoint,
-                        onConnect = { onConnectToEndpoint(endpoint.id) }
-                    )
+                items(endpoints) { endpoint ->
+                    EndpointItem(endpoint) { onConnect(endpoint.id) }
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = onStopDiscovery,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error
+                containerColor = ErrorRed,
+                contentColor = Color.White
             ),
-            modifier = Modifier.fillMaxWidth()
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Stop,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Stop Searching")
+            Text("Stop Searching", fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
     }
 }
 
 @Composable
-private fun EndpointCard(
-    endpoint: EndpointInfo,
-    onConnect: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = endpoint.getPlayerName(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = FontFamily.Default
-                )
-
-                endpoint.getPlayerColor()?.let { color ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "Color:",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontFamily = FontFamily.Default
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(16.dp)
-                                .background(
-                                    color = PastelColors.getColor(color),
-                                    shape = CircleShape
-                                )
-                        )
-                    }
-                }
-            }
-
-            IconButton(
-                onClick = onConnect,
-                modifier = Modifier
-                    .background(
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = CircleShape
-                    )
-                    .size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Connect",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ConnectingContent(
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+private fun ConnectingView() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(
-            modifier = Modifier.size(48.dp),
-            color = MaterialTheme.colorScheme.primary,
-            strokeWidth = 4.dp,
-            strokeCap = StrokeCap.Round
+            modifier = Modifier.size(60.dp),
+            color = DarkGray,
+            strokeWidth = 6.dp
         )
-
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Establishing Connection",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            fontFamily = FontFamily.Default
-        )
-
-        Text(
-            text = "Please wait while we connect to the game...",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            fontFamily = FontFamily.Default
+            text = "Connecting...",
+            color = DarkGray,
+            fontSize = 20.sp,
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Bold
         )
     }
 }
 
 @Composable
-private fun ConnectedContent(
-    onDisconnect: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+private fun ConnectedView(onDisconnect: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
             imageVector = Icons.Default.CheckCircle,
             contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = Color(0xFF4CAF50)
+            tint = SuccessGreen,
+            modifier = Modifier.size(100.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Connected!",
+            color = DarkGray,
+            fontSize = 28.sp,
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.ExtraBold
         )
 
-        Text(
-            text = "Connection Successful!",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            color = Color(0xFF4CAF50),
-            fontFamily = FontFamily.Default
-        )
-
-        Text(
-            text = "Ready to start the game",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            fontFamily = FontFamily.Default
-        )
+        Spacer(modifier = Modifier.height(48.dp))
 
         Button(
             onClick = onDisconnect,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Disconnect")
+            Text("Disconnect", fontFamily = FontFamily.Default, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+// -------------------------------------------------------------------------
+// UI Components
+// -------------------------------------------------------------------------
+
+@Composable
+private fun PlayerBadge(name: String, color: BubbleColor) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .background(LightGray, RoundedCornerShape(50))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .background(PastelColors.getColor(color), CircleShape)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = name.ifEmpty { "Player" },
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Bold,
+            color = DarkGray,
+            fontSize = 14.sp
+        )
+    }
+}
+
+@Composable
+private fun CoopActionCard(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "scale")
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .scale(scale)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = DarkGray),
+        elevation = CardDefaults.cardElevation(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontFamily = FontFamily.Default,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+                Text(
+                    text = subtitle,
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontFamily = FontFamily.Default,
+                    fontSize = 14.sp
+                )
+            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                    .padding(8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(LightGray, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column {
+            Text(
+                text = endpoint.getPlayerName(),
+                fontFamily = FontFamily.Default,
+                fontWeight = FontWeight.Bold,
+                color = DarkGray,
+                fontSize = 16.sp
+            )
+            endpoint.getPlayerColor()?.let { color ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                    Box(modifier = Modifier.size(10.dp).background(PastelColors.getColor(color), CircleShape))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Color", fontSize = 12.sp, color = Color.Gray, fontFamily = FontFamily.Default)
+                }
+            }
+        }
+        Icon(
+            imageVector = Icons.Default.NavigateNext,
+            contentDescription = "Join",
+            tint = DarkGray
+        )
+    }
+}
+
+@Composable
+private fun PulseAnimation(color: Color) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.8f, targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(tween(1000, easing = EaseInOutCubic), RepeatMode.Reverse),
+        label = "scale"
+    )
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f, targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(tween(1000, easing = EaseInOutCubic), RepeatMode.Reverse),
+        label = "alpha"
+    )
+
+    Box(contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .scale(scale)
+                .background(color.copy(alpha = 0.1f), CircleShape)
+        )
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .background(color.copy(alpha = alpha), CircleShape)
+        )
+        Icon(
+            imageVector = Icons.Default.WifiTethering,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(32.dp)
+        )
     }
 }

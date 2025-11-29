@@ -1,37 +1,39 @@
 package com.akinalpfdn.poprush.coop.presentation.screen
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.coop.presentation.component.CoopColorPicker
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
+import com.akinalpfdn.poprush.core.ui.theme.PastelColors 
 
-/**
- * Player setup screen for coop mode
- * Allows players to enter their name and select their color before connection
- */
-@OptIn(ExperimentalMaterial3Api::class)
+// Theme Colors
+private val DarkGray = Color(0xFF1C1917)
+private val LightGray = Color(0xFFF5F5F4)
+
 @Composable
 fun CoopPlayerSetupScreen(
     playerName: String,
@@ -46,154 +48,159 @@ fun CoopPlayerSetupScreen(
 ) {
     val focusManager = LocalFocusManager.current
     val isNameValid = playerName.trim().isNotEmpty()
+    val scrollState = rememberScrollState() // 1. Create scroll state
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.White)
+            .imePadding() // 2. Handle Keyboard
     ) {
-        // Back button
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    shape = CircleShape
-                )
-                .size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        // Main content
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(horizontal = 24.dp)
+                .verticalScroll(scrollState), // 3. Make column scrollable
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Title
-            Text(
-                text = if (isHost) "Host Game" else "Join Game",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                fontFamily = FontFamily.Default
-            )
-
-            Text(
-                text = "Set up your player profile",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                fontFamily = FontFamily.Default
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Player setup card
-            Card(
+            // -- Top Navigation --
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
+                IconButton(
+                    onClick = onBack,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                        .background(LightGray, CircleShape)
+                        .size(48.dp)
                 ) {
-                    // Player name input
-                    PlayerNameInput(
-                        playerName = playerName,
-                        onNameChange = onPlayerNameChange,
-                        onSubmit = { focusManager.moveFocus(FocusDirection.Down) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    // Color picker
-                    CoopColorPicker(
-                        availableColors = BubbleColor.values().toList(),
-                        selectedColor = playerColor,
-                        opponentColor = opponentColor,
-                        onColorSelected = onColorSelected,
-                        title = "Choose Your Color",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    // Player preview
-                    PlayerPreview(
-                        playerName = playerName.trim(),
-                        playerColor = playerColor,
-                        modifier = Modifier.fillMaxWidth()
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = DarkGray
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Connection instructions
-            ConnectionInstructions(
-                isHost = isHost,
-                modifier = Modifier.fillMaxWidth()
+            // -- Title Section --
+            Text(
+                text = if (isHost) "CREATE LOBBY" else "JOIN LOBBY",
+                style = MaterialTheme.typography.headlineMedium,
+                color = DarkGray,
+                fontFamily = FontFamily.Default,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.sp
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "Customize your profile",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.Gray,
+                fontFamily = FontFamily.Default,
+                fontWeight = FontWeight.Medium
+            )
 
-            // Continue button
-            Button(
-                onClick = onContinue,
-                enabled = isNameValid,
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // -- Live Avatar Preview --
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                    .size(120.dp)
+                    .background(
+                        color = PastelColors.getColor(playerColor),
+                        shape = CircleShape
+                    )
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isHost) Icons.Default.WifiTethering else Icons.Default.Search,
+                    imageVector = Icons.Default.Person,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(60.dp),
+                    tint = Color.White
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = if (isHost) "Start Hosting" else "Search for Games",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontSize = 18.sp
+                // Edit badge
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-4).dp, y = (-4).dp)
+                        .background(Color.White, CircleShape)
+                        .padding(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = DarkGray
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // -- Input Forms --
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Name Input
+                StyledNameInput(
+                    playerName = playerName,
+                    onNameChange = onPlayerNameChange,
+                    onDone = { focusManager.clearFocus() }
+                )
+
+                // Color Picker
+                CoopColorPicker(
+                    availableColors = BubbleColor.values().toList(),
+                    selectedColor = playerColor,
+                    opponentColor = opponentColor,
+                    onColorSelected = onColorSelected,
+                    title = "CHOOSE COLOR",
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
+
+            // 4. Replaced weight(1f) with fixed spacing to allow scrolling
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // -- Instructions --
+            InfoPill(isHost)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // -- Action Button --
+            PrimaryActionButton(
+                text = if (isHost) "Start Hosting" else "Search Games",
+                icon = if (isHost) Icons.Default.WifiTethering else Icons.Default.Search,
+                enabled = isNameValid,
+                onClick = onContinue
+            )
+
+            // Extra padding at the bottom for comfortable scrolling
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PlayerNameInput(
+private fun StyledNameInput(
     playerName: String,
     onNameChange: (String) -> Unit,
-    onSubmit: () -> Unit,
-    modifier: Modifier = Modifier
+    onDone: () -> Unit
 ) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Your Name",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            fontFamily = FontFamily.Default
+            text = "DISPLAY NAME",
+            style = MaterialTheme.typography.labelLarge,
+            color = DarkGray.copy(alpha = 0.6f),
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Bold
         )
 
         OutlinedTextField(
@@ -201,151 +208,112 @@ private fun PlayerNameInput(
             onValueChange = onNameChange,
             placeholder = {
                 Text(
-                    text = "Enter your name",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Default
+                    "Enter name...",
+                    fontFamily = FontFamily.Default,
+                    color = Color.Gray
                 )
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            trailingIcon = {
-                if (playerName.isNotEmpty()) {
-                    IconButton(
-                        onClick = { onNameChange("") }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Next
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = LightGray,
+                unfocusedContainerColor = LightGray,
+                disabledContainerColor = LightGray,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                cursorColor = DarkGray,
+                focusedTextColor = DarkGray,
+                unfocusedTextColor = DarkGray
             ),
-            keyboardActions = KeyboardActions(
-                onNext = { onSubmit() }
+            shape = RoundedCornerShape(16.dp),
+            textStyle = MaterialTheme.typography.titleMedium.copy(
+                fontFamily = FontFamily.Default,
+                fontWeight = FontWeight.Bold
             ),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onDone() }),
+            trailingIcon = if (playerName.isNotEmpty()) {
+                {
+                    IconButton(onClick = { onNameChange("") }) {
+                        Icon(Icons.Default.Cancel, null, tint = Color.Gray)
+                    }
+                }
+            } else null,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
 
 @Composable
-private fun PlayerPreview(
-    playerName: String,
-    playerColor: BubbleColor,
-    modifier: Modifier = Modifier
-) {
-    val displayName = if (playerName.isEmpty()) "Player" else playerName
-
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-        ),
-        modifier = modifier
+private fun InfoPill(isHost: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(LightGray.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Player avatar with color
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .background(
-                        color = com.akinalpfdn.poprush.core.ui.theme.PastelColors.getColor(playerColor),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = Color.White
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Your Profile",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Default
-                )
-                Text(
-                    text = displayName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Default
-                )
-            }
-
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = "Ready",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = if (isHost) "Bluetooth & Location required to host." else "Bluetooth & Location required to join.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Gray,
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
 @Composable
-private fun ConnectionInstructions(
-    isHost: Boolean,
-    modifier: Modifier = Modifier
+private fun PrimaryActionButton(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "scale")
+
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .scale(scale),
+        shape = RoundedCornerShape(20.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = DarkGray,
+            contentColor = Color.White,
+            disabledContainerColor = LightGray,
+            disabledContentColor = Color.Gray
         ),
-        modifier = modifier
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = if (enabled) 8.dp else 0.dp
+        ),
+        interactionSource = interactionSource
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = if (isHost) Icons.Default.WifiTethering else Icons.Default.Search,
+                imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.secondary
+                modifier = Modifier.size(24.dp)
             )
-
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = if (isHost) "Host Instructions" else "Join Instructions",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                fontFamily = FontFamily.Default
-            )
-
-            Text(
-                text = if (isHost) {
-                    "Other players will be able to discover and join your game. Make sure Bluetooth and Location are enabled."
-                } else {
-                    "We'll search for nearby games you can join. Make sure Bluetooth and Location are enabled."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                lineHeight = 20.sp,
-                fontFamily = FontFamily.Default
+                text = text,
+                fontSize = 20.sp,
+                fontFamily = FontFamily.Default,
+                fontWeight = FontWeight.Bold
             )
         }
     }
