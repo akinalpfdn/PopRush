@@ -156,6 +156,18 @@ class GameViewModel @Inject constructor(
             is GameIntent.ResetGame -> handleResetGame()
             is GameIntent.LoadGameData -> handleLoadGameData()
             is GameIntent.SaveGameData -> handleSaveGameData()
+            // Coop Mode Intents
+            is GameIntent.StartCoopAdvertising -> handleStartCoopAdvertising(intent.playerName, intent.selectedColor)
+            is GameIntent.StartCoopDiscovery -> handleStartCoopDiscovery(intent.playerName, intent.selectedColor)
+            is GameIntent.StopCoopConnection -> handleStopCoopConnection()
+            is GameIntent.CoopClaimBubble -> handleCoopClaimBubble(intent.bubbleId)
+            is GameIntent.CoopSyncBubbles -> handleCoopSyncBubbles(intent.bubbles)
+            is GameIntent.CoopSyncScores -> handleCoopSyncScores(intent.localScore, intent.opponentScore)
+            is GameIntent.CoopGameFinished -> handleCoopGameFinished(intent.winnerId)
+            is GameIntent.ShowCoopConnectionDialog -> handleShowCoopConnectionDialog()
+            is GameIntent.HideCoopConnectionDialog -> handleHideCoopConnectionDialog()
+            is GameIntent.ShowCoopError -> handleShowCoopError(intent.errorMessage)
+            is GameIntent.ClearCoopError -> handleClearCoopError()
             is GameIntent.AudioIntent -> handleAudioIntent(intent)
             // Game Mode Selection Intents
             is GameIntent.SelectGameMode -> handleSelectGameMode(intent.mode)
@@ -163,9 +175,7 @@ class GameViewModel @Inject constructor(
             // UI Navigation Intents
             is GameIntent.NavigateToModPicker -> handleNavigateToModPicker()
             is GameIntent.NavigateToGameSetup -> handleNavigateToGameSetup()
-            is GameIntent.ShowCoopComingSoon -> handleShowCoopComingSoon()
-            is GameIntent.HideComingSoonMessage -> handleHideComingSoonMessage()
-            is GameIntent.NavigateBack -> handleNavigateBack()
+                        is GameIntent.NavigateBack -> handleNavigateBack()
             // Speed Mode Intents
             is GameIntent.ActivateRandomBubble -> handleActivateRandomBubble(intent.bubbleId)
             is GameIntent.UpdateSpeedModeInterval -> handleUpdateSpeedModeInterval()
@@ -620,12 +630,13 @@ class GameViewModel @Inject constructor(
     // Game Mode Selection Handlers
     private fun handleSelectGameMode(mode: GameMode) {
         if (mode == GameMode.COOP) {
-            // Show coming soon toast and don't change the mode
-            _gameState.update { it.copy(showComingSoonToast = true) }
-            // Auto-hide toast after 3 seconds
-            viewModelScope.launch {
-                kotlinx.coroutines.delay(3000)
-                _gameState.update { it.copy(showComingSoonToast = false) }
+            // Navigate to connection screen for coop mode
+            _gameState.update {
+                it.copy(
+                    gameMode = mode,
+                    currentScreen = StartScreenFlow.COOP_CONNECTION,
+                    isCoopMode = true
+                )
             }
         } else {
             // Navigate to mod picker for single player
@@ -633,7 +644,7 @@ class GameViewModel @Inject constructor(
                 it.copy(
                     gameMode = mode,
                     currentScreen = StartScreenFlow.MOD_PICKER,
-                    showComingSoonToast = false
+                    isCoopMode = false
                 )
             }
         }
@@ -657,24 +668,12 @@ class GameViewModel @Inject constructor(
         _gameState.update { it.copy(currentScreen = StartScreenFlow.GAME_SETUP) }
     }
 
-    private fun handleShowCoopComingSoon() {
-        _gameState.update { it.copy(showComingSoonToast = true) }
-        // Auto-hide after 3 seconds
-        viewModelScope.launch {
-            kotlinx.coroutines.delay(3000)
-            _gameState.update { it.copy(showComingSoonToast = false) }
-        }
-    }
-
-    private fun handleHideComingSoonMessage() {
-        _gameState.update { it.copy(showComingSoonToast = false) }
-    }
-
     private fun handleNavigateBack() {
         val currentScreen = _gameState.value.currentScreen
         val newScreen = when (currentScreen) {
             StartScreenFlow.GAME_SETUP -> StartScreenFlow.MOD_PICKER
             StartScreenFlow.MOD_PICKER -> StartScreenFlow.MODE_SELECTION
+            StartScreenFlow.COOP_CONNECTION -> StartScreenFlow.MODE_SELECTION
             StartScreenFlow.MODE_SELECTION -> StartScreenFlow.MODE_SELECTION // Already at first screen, stay here
         }
 
@@ -729,7 +728,7 @@ class GameViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                _gameState.update { it.copy(isLoadingSpeedMode = true) }
+                // Speed mode loading state can be handled here if needed in the future
 
                 // Wait briefly for UI transition
                 kotlinx.coroutines.delay(500)
@@ -748,8 +747,7 @@ class GameViewModel @Inject constructor(
 
                 _gameState.update {
                     it.copy(
-                        bubbles = initialBubbles,
-                        isLoadingSpeedMode = false
+                        bubbles = initialBubbles
                     )
                 }
 
@@ -873,6 +871,58 @@ class GameViewModel @Inject constructor(
     private fun handleSaveGameData() {
         // This would be called when the app is backgrounded or destroyed
         // Most data is already saved automatically via repositories
+    }
+
+    // Coop Mode Intents (placeholders for Phase 2)
+    private fun handleStartCoopAdvertising(playerName: String, selectedColor: String) {
+        // TODO: Will be implemented in Phase 2
+        Timber.d("Coop advertising started for player: $playerName")
+    }
+
+    private fun handleStartCoopDiscovery(playerName: String, selectedColor: String) {
+        // TODO: Will be implemented in Phase 2
+        Timber.d("Coop discovery started for player: $playerName")
+    }
+
+    private fun handleStopCoopConnection() {
+        // TODO: Will be implemented in Phase 2
+        Timber.d("Coop connection stopped")
+    }
+
+    private fun handleCoopClaimBubble(bubbleId: Int) {
+        // TODO: Will be implemented in Phase 2
+        Timber.d("Coop bubble claimed: $bubbleId")
+    }
+
+    private fun handleCoopSyncBubbles(bubbles: List<com.akinalpfdn.poprush.coop.domain.model.CoopBubble>) {
+        // TODO: Will be implemented in Phase 2
+        Timber.d("Coop bubbles synced: ${bubbles.size}")
+    }
+
+    private fun handleCoopSyncScores(localScore: Int, opponentScore: Int) {
+        // TODO: Will be implemented in Phase 2
+        Timber.d("Coop scores synced: local=$localScore, opponent=$opponentScore")
+    }
+
+    private fun handleCoopGameFinished(winnerId: String?) {
+        // TODO: Will be implemented in Phase 2
+        Timber.d("Coop game finished. Winner: $winnerId")
+    }
+
+    private fun handleShowCoopConnectionDialog() {
+        _gameState.update { it.copy(showCoopConnectionDialog = true) }
+    }
+
+    private fun handleHideCoopConnectionDialog() {
+        _gameState.update { it.copy(showCoopConnectionDialog = false) }
+    }
+
+    private fun handleShowCoopError(errorMessage: String) {
+        _gameState.update { it.copy(coopErrorMessage = errorMessage) }
+    }
+
+    private fun handleClearCoopError() {
+        _gameState.update { it.copy(coopErrorMessage = null) }
     }
 
     // Audio Intents

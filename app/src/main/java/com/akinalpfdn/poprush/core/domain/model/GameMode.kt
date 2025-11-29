@@ -18,11 +18,3 @@ enum class GameMod(val displayName: String, val durationRequired: Boolean) {
     SPEED("Speed Mode", false)          // Mod 2 - no duration needed
 }
 
-/**
- * Represents the current flow state of the start screen navigation.
- */
-enum class StartScreenFlow {
-    MODE_SELECTION,    // Single vs Co-op selection
-    MOD_PICKER,        // Classic vs Speed selection
-    GAME_SETUP         // Duration picker and play button
-}

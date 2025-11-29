@@ -1,5 +1,6 @@
 package com.akinalpfdn.poprush.core.domain.model
 
+import com.akinalpfdn.poprush.coop.domain.model.CoopGameState
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -26,7 +27,8 @@ import kotlin.time.Duration.Companion.seconds
  * @param selectedMod Currently selected game mod (classic or speed)
  * @param currentScreen Current screen flow state for start screen navigation
  * @param speedModeState State management for speed mode gameplay
- * @param showComingSoonToast Whether to show the co-op coming soon toast message
+ * @param isCoopMode Whether the game is currently in coop mode
+* @param coopState Coop-specific game state when isCoopMode is true
  */
 data class GameState(
     val isPlaying: Boolean = false,
@@ -50,8 +52,10 @@ data class GameState(
     val selectedMod: GameMod = GameMod.CLASSIC,
     val currentScreen: StartScreenFlow = StartScreenFlow.MODE_SELECTION,
     val speedModeState: SpeedModeState = SpeedModeState(),
-    val showComingSoonToast: Boolean = false,
-    val isLoadingSpeedMode: Boolean = false
+    val isCoopMode: Boolean = false,
+    val coopState: CoopGameState? = null,
+    val showCoopConnectionDialog: Boolean = false,
+    val coopErrorMessage: String? = null
 ) {
     /**
      * Returns the number of currently active bubbles that can be pressed.

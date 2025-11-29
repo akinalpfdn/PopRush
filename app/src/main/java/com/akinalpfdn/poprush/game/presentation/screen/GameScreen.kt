@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -154,17 +155,17 @@ fun GameScreen(
             isVisible = gameState.showBackConfirmation
         )
 
-        // Co-op coming soon toast
-        CoopComingSoonToast(
-            isVisible = gameState.showComingSoonToast,
-            modifier = Modifier.fillMaxSize()
-        )
+        // TODO: Implement CoopComingSoonToast when needed
+        // CoopComingSoonToast(
+        //     isVisible = gameState.showCoopConnectionDialog,
+        //     modifier = Modifier.fillMaxSize()
+        // )
 
-        // Speed mode loading overlay
-        SpeedModeLoadingOverlay(
-            isVisible = gameState.isLoadingSpeedMode,
-            modifier = Modifier.fillMaxSize()
-        )
+        // TODO: Implement SpeedModeLoadingOverlay when needed
+        // SpeedModeLoadingOverlay(
+        //     isVisible = false, // gameState.isLoadingSpeedMode when implemented
+        //     modifier = Modifier.fillMaxSize()
+        // )
     }
 }
 
@@ -236,6 +237,14 @@ private fun GameContent(
                                     onStartGame = onStartGame,
                                     onDurationChange = onDurationChange,
                                     modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            StartScreenFlow.COOP_CONNECTION -> {
+                                // TODO: Will be implemented in Phase 2
+                                Text(
+                                    text = "Co-op connection screen - Coming in Phase 2",
+                                    modifier = Modifier.fillMaxSize(),
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }

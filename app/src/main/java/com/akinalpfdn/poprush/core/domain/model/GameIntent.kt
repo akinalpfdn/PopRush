@@ -194,15 +194,72 @@ sealed interface GameIntent {
      */
     data object NavigateBack : GameIntent
 
-    /**
-     * Shows the co-op coming soon toast message.
-     */
-    data object ShowCoopComingSoon : GameIntent
+      // Coop Mode Intents
 
     /**
-     * Hides the coming soon toast message.
+     * Starts advertising for a coop game (hosting).
+     * @param playerName The name of the local player
+     * @param selectedColor The color selected by the local player
      */
-    data object HideComingSoonMessage : GameIntent
+    data class StartCoopAdvertising(val playerName: String, val selectedColor: String) : GameIntent
+
+    /**
+     * Starts discovery for coop games (joining).
+     * @param playerName The name of the local player
+     * @param selectedColor The color selected by the local player
+     */
+    data class StartCoopDiscovery(val playerName: String, val selectedColor: String) : GameIntent
+
+    /**
+     * Stops the current coop connection.
+     */
+    data object StopCoopConnection : GameIntent
+
+    /**
+     * Claims a bubble for the local player in coop mode.
+     * @param bubbleId The ID of the bubble to claim
+     */
+    data class CoopClaimBubble(val bubbleId: Int) : GameIntent
+
+    /**
+     * Synchronizes bubble states with opponent.
+     * @param bubbles Current list of all bubbles with their owners
+     */
+    data class CoopSyncBubbles(val bubbles: List<com.akinalpfdn.poprush.coop.domain.model.CoopBubble>) : GameIntent
+
+    /**
+     * Synchronizes scores with opponent.
+     * @param localScore Current local player score
+     * @param opponentScore Current opponent score
+     */
+    data class CoopSyncScores(val localScore: Int, val opponentScore: Int) : GameIntent
+
+    /**
+     * Handles coop game over.
+     * @param winnerId The ID of the winning player (null for tie)
+     */
+    data class CoopGameFinished(val winnerId: String? = null) : GameIntent
+
+    /**
+     * Shows the coop connection dialog.
+     */
+    data object ShowCoopConnectionDialog : GameIntent
+
+    /**
+     * Hides the coop connection dialog.
+     */
+    data object HideCoopConnectionDialog : GameIntent
+
+    /**
+     * Shows coop error message.
+     * @param errorMessage The error message to display
+     */
+    data class ShowCoopError(val errorMessage: String) : GameIntent
+
+    /**
+     * Clears coop error message.
+     */
+    data object ClearCoopError : GameIntent
 
     /**
      * Handles audio-related events.

@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Pop Rush</string>
+
+    <!-- Coop Mode Strings -->
+    <string name="coop_color_picker_title">Choose Your Color</string>
+    <string name="coop_color_picker_title_with_name">Choose Your Color, %s</string>
+    <string name="coop_color_picker_confirm">Confirm</string>
+    <string name="coop_color_picker_cancel">Cancel</string>
 </resources>

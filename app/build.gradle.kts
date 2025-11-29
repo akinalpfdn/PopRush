@@ -92,6 +92,12 @@ dependencies {
     // Logging
     implementation(libs.timber)
 
+    // JSON Serialization
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Nearby Connections API for coop multiplayer
+    implementation("com.google.android.gms:play-services-nearby:18.7.0")
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
