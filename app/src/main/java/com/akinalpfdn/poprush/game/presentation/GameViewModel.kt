@@ -1002,9 +1002,15 @@ class GameViewModel @Inject constructor(
      * Handles starting to host a coop game.
      */
     private fun handleStartHosting() {
+        Timber.d("handleStartHosting() called - setting isHost to true")
         viewModelScope.launch {
             try {
-                val coopState = _gameState.value.coopState ?: createInitialCoopState()
+                // Update the gameState to reflect that this player is hosting
+                _gameState.update { currentState ->
+                    currentState.copy(coopState = (currentState.coopState ?: createInitialCoopState()).copy(isHost = true))
+                }
+                val coopState = _gameState.value.coopState!!
+                Timber.d("After update, coopState.isHost = ${coopState.isHost}")
                 coopUseCase.startHosting(coopState.localPlayerName, coopState.localPlayerColor)
                     .collect { result ->
                         result.onSuccess {
@@ -1047,7 +1053,11 @@ class GameViewModel @Inject constructor(
     private fun handleStartDiscovery() {
         viewModelScope.launch {
             try {
-                val coopState = _gameState.value.coopState ?: createInitialCoopState()
+                // Update the gameState to reflect that this player is joining
+                _gameState.update { currentState ->
+                    currentState.copy(coopState = (currentState.coopState ?: createInitialCoopState()).copy(isHost = false))
+                }
+                val coopState = _gameState.value.coopState!!
                 coopUseCase.startDiscovering()
                     .collect { result ->
                         result.onSuccess {
@@ -1190,11 +1200,18 @@ class GameViewModel @Inject constructor(
                 coopUseCase.connectionState
                     .collect { connectionState ->
                         _gameState.update { currentState ->
-                            val updatedCoopState = currentState.coopState?.copy(
-                                isConnectionEstablished = connectionState == com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
-                            ) ?: createInitialCoopState().copy(
-                                isConnectionEstablished = connectionState == com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
-                            )
+                            val currentCoopState = currentState.coopState
+                            Timber.d("collectCoopConnectionState: currentCoopState.isHost = ${currentCoopState?.isHost}")
+                            val updatedCoopState = if (currentCoopState != null) {
+                                currentCoopState.copy(
+                                    isConnectionEstablished = connectionState == com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
+                                )
+                            } else {
+                                createInitialCoopState().copy(
+                                    isConnectionEstablished = connectionState == com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
+                                )
+                            }
+                            Timber.d("collectCoopConnectionState: updatedCoopState.isHost = ${updatedCoopState.isHost}")
                             currentState.copy(coopState = updatedCoopState)
                         }
                     }

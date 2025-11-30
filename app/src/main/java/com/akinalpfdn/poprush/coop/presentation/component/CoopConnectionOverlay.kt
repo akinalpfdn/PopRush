@@ -23,6 +23,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.akinalpfdn.poprush.coop.domain.model.ConnectionState
 import com.akinalpfdn.poprush.coop.presentation.screen.CoopConnectionScreen
 import com.akinalpfdn.poprush.coop.presentation.screen.CoopPlayerSetupScreen
+import timber.log.Timber
 
 /**
  * Overlay component that manages the entire coop connection flow
@@ -51,6 +52,10 @@ fun CoopConnectionOverlay(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Debug: Log isHost value when CoopConnectionOverlay receives it
+    LaunchedEffect(isHost) {
+        Timber.d("CoopConnectionOverlay: isHost = $isHost, connectionState = $connectionState")
+    }
     if (isVisible) {
         Dialog(
             onDismissRequest = {
@@ -111,7 +116,6 @@ private fun CoopConnectionDialogContent(
     modifier: Modifier = Modifier
 ) {
     var currentStep by remember { mutableStateOf(CoopConnectionStep.HOST_JOIN_SELECTION) }
-    var selectedIsHost by remember { mutableStateOf(false) }
 
     // Auto-transition from host/join selection to connection when connection starts
     LaunchedEffect(connectionState) {
@@ -145,13 +149,12 @@ private fun CoopConnectionDialogContent(
                     HostJoinSelectionStep(
                         playerName = playerName,
                         playerColor = playerColor,
+                        isHost = isHost,
                         onHostSelected = {
-                            selectedIsHost = true
                             currentStep = CoopConnectionStep.CONNECTION
                             onStartHosting()
                         },
                         onJoinSelected = {
-                            selectedIsHost = false
                             currentStep = CoopConnectionStep.CONNECTION
                             onStartDiscovery()
                         },
@@ -181,7 +184,7 @@ private fun CoopConnectionDialogContent(
                     ConnectionStep(
                         playerName = playerName,
                         playerColor = playerColor,
-                        isHost = selectedIsHost,
+                        isHost = isHost,
                         connectionState = connectionState,
                         discoveredEndpoints = discoveredEndpoints,
                         errorMessage = errorMessage,
@@ -242,6 +245,7 @@ private fun PlayerSetupStep(
 private fun HostJoinSelectionStep(
     playerName: String,
     playerColor: com.akinalpfdn.poprush.core.domain.model.BubbleColor,
+    isHost: Boolean,
     onHostSelected: () -> Unit,
     onJoinSelected: () -> Unit,
     onCustomizeProfile: () -> Unit,
@@ -503,6 +507,11 @@ private fun ConnectionStep(
     onDisconnect: () -> Unit,
     onBack: () -> Unit
 ) {
+    // Debug: Log isHost value when ConnectionStep receives it and passes it to CoopConnectionScreen
+    LaunchedEffect(isHost) {
+        Timber.d("ConnectionStep: isHost = $isHost, connectionState = $connectionState")
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -513,6 +522,7 @@ private fun ConnectionStep(
         CoopConnectionScreen(
             playerName = playerName,
             playerColor = playerColor,
+            isHost = isHost, // CRITICAL FIX: Pass isHost parameter to CoopConnectionScreen
             connectionState = connectionState,
             discoveredEndpoints = discoveredEndpoints,
             errorMessage = errorMessage,

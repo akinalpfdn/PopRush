@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import timber.log.Timber
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
@@ -52,6 +53,11 @@ fun CoopConnectionScreen(
     onBackToMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Debug: Log when CoopConnectionScreen is rendered
+    LaunchedEffect(Unit) {
+        Timber.d("CoopConnectionScreen: isHost = $isHost, connectionState = $connectionState")
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -140,14 +146,7 @@ fun CoopConnectionScreen(
             ) {
                 when (connectionState) {
                     ConnectionState.DISCONNECTED -> {
-                        // Auto-start the appropriate action based on role
-                        LaunchedEffect(isHost) {
-                            if (isHost) {
-                                onStartHosting()
-                            } else {
-                                onStartDiscovery()
-                            }
-                        }
+                        // Show choice view for users to host or join
                         DisconnectedView(
                             isHost = isHost,
                             onStartHosting = onStartHosting,
@@ -211,6 +210,7 @@ private fun DisconnectedView(
     onStartHosting: () -> Unit,
     onStartDiscovery: () -> Unit
 ) {
+    Timber.d("DisconnectedView: isHost = $isHost")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

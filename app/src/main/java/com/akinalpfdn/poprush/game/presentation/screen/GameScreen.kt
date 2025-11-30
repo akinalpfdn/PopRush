@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import timber.log.Timber
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameIntent
 import com.akinalpfdn.poprush.core.domain.model.GameState
@@ -67,6 +68,11 @@ fun GameScreen(
 
     // Permission manager for coop mode
     val permissionManager = rememberCoopPermissionManager(context)
+
+    // Debug: Log isHost value from gameState
+    LaunchedEffect(gameState.coopState?.isHost) {
+        Timber.d("GameScreen: gameState.coopState?.isHost = ${gameState.coopState?.isHost}")
+    }
 
     // State for permissions dialog
     var showPermissionsDialog by remember { mutableStateOf(false) }
