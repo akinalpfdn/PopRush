@@ -298,14 +298,7 @@ class CoopHandler @Inject constructor(
         Timber.tag("COOP_CONNECTION").d("🎮 HANDLE_START_COOP_MATCH: Starting coop match!")
         scope.launch {
             try {
-                coopUseCase.sendGameStart().collect { result ->
-                    result.onSuccess {
-                        Timber.tag("COOP_CONNECTION").d("✅ GAME_START message sent successfully")
-                    }.onFailure { e ->
-                        Timber.tag("COOP_CONNECTION").e(e, "❌ Failed to send GAME_START message")
-                    }
-                }
-
+                // Update state immediately to start game for host
                 gameStateFlow.update { currentState ->
                     currentState.coopState?.let { coopState ->
                         val updatedCoopState = coopState.copy(
@@ -315,7 +308,15 @@ class CoopHandler @Inject constructor(
                         currentState.copy(coopState = updatedCoopState)
                     } ?: currentState
                 }
-                Timber.tag("COOP_CONNECTION").d("🎮 COOP_GAME_STARTED: Game is now in progress")
+                Timber.tag("COOP_CONNECTION").d("🎮 COOP_GAME_STARTED: Game is now in progress (Host)")
+
+                coopUseCase.sendGameStart().collect { result ->
+                    result.onSuccess {
+                        Timber.tag("COOP_CONNECTION").d("✅ GAME_START message sent successfully")
+                    }.onFailure { e ->
+                        Timber.tag("COOP_CONNECTION").e(e, "❌ Failed to send GAME_START message")
+                    }
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to start coop game")
                 gameStateFlow.update {
