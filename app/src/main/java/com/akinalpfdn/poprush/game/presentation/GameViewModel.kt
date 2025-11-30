@@ -21,6 +21,8 @@ import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerEvent
 import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.TimerUseCase
+import com.akinalpfdn.poprush.coop.domain.model.ConnectionState
+import com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -1201,17 +1203,29 @@ class GameViewModel @Inject constructor(
                     .collect { connectionState ->
                         _gameState.update { currentState ->
                             val currentCoopState = currentState.coopState
-                            Timber.d("collectCoopConnectionState: currentCoopState.isHost = ${currentCoopState?.isHost}")
+                            Timber.d("collectCoopConnectionState: currentCoopState.isHost = ${currentCoopState?.isHost}, connectionState = $connectionState")
+
+                            // Map ConnectionState to CoopConnectionPhase
+                            val connectionPhase = when (connectionState) {
+                                ConnectionState.DISCONNECTED -> CoopConnectionPhase.DISCONNECTED
+                                ConnectionState.ADVERTISING -> CoopConnectionPhase.ADVERTISING
+                                ConnectionState.DISCOVERING -> CoopConnectionPhase.DISCOVERING
+                                ConnectionState.CONNECTING -> CoopConnectionPhase.CONNECTING
+                                ConnectionState.CONNECTED -> CoopConnectionPhase.CONNECTED
+                            }
+
                             val updatedCoopState = if (currentCoopState != null) {
                                 currentCoopState.copy(
-                                    isConnectionEstablished = connectionState == com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
+                                    isConnectionEstablished = connectionState == ConnectionState.CONNECTED,
+                                    connectionPhase = connectionPhase
                                 )
                             } else {
                                 createInitialCoopState().copy(
-                                    isConnectionEstablished = connectionState == com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
+                                    isConnectionEstablished = connectionState == ConnectionState.CONNECTED,
+                                    connectionPhase = connectionPhase
                                 )
                             }
-                            Timber.d("collectCoopConnectionState: updatedCoopState.isHost = ${updatedCoopState.isHost}")
+                            Timber.d("collectCoopConnectionState: updatedCoopState.isHost = ${updatedCoopState.isHost}, connectionPhase = ${updatedCoopState.connectionPhase}")
                             currentState.copy(coopState = updatedCoopState)
                         }
                     }
