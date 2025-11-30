@@ -64,7 +64,7 @@ fun GameScreen(
     val gameState by viewModel.gameState.collectAsStateWithLifecycle()
 
     // Collect discovered endpoints from CoopUseCase
-    val discoveredEndpoints by viewModel.coopUseCasePublic.discoveredEndpoints.collectAsStateWithLifecycle(
+    val discoveredEndpoints by viewModel.discoveredEndpoints.collectAsStateWithLifecycle(
         initialValue = emptyList()
     )
 

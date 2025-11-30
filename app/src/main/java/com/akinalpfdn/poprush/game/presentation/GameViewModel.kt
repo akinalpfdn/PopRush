@@ -2,7 +2,6 @@ package com.akinalpfdn.poprush.game.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameDifficulty
 import com.akinalpfdn.poprush.core.domain.model.GameIntent
@@ -14,26 +13,16 @@ import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
 import com.akinalpfdn.poprush.core.domain.repository.AudioRepository
 import com.akinalpfdn.poprush.core.domain.repository.GameRepository
 import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
-import com.akinalpfdn.poprush.game.domain.usecase.GenerateLevelUseCase
-import com.akinalpfdn.poprush.game.domain.usecase.HandleBubblePressUseCase
-import com.akinalpfdn.poprush.game.domain.usecase.InitializeGameUseCase
-import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeUseCase
-import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerEvent
-import com.akinalpfdn.poprush.game.domain.usecase.SpeedModeTimerUseCase
-import com.akinalpfdn.poprush.game.domain.usecase.TimerUseCase
-import com.akinalpfdn.poprush.coop.domain.model.ConnectionState
-import com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase
-import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
+
+import com.akinalpfdn.poprush.game.presentation.handler.GameLogicHandler
+import com.akinalpfdn.poprush.game.presentation.handler.SpeedModeHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
-import kotlin.time.Duration
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -42,49 +31,24 @@ import javax.inject.Inject
 
 /**
  * ViewModel implementing MVI (Model-View-Intent) architecture for the PopRush game.
- * Manages game state, processes intents, and coordinates between different use cases.
+ * Manages game state, processes intents, and coordinates between different handlers.
  */
 @HiltViewModel
 class GameViewModel @Inject constructor(
     private val gameRepository: GameRepository,
     private val settingsRepository: SettingsRepository,
     private val audioRepository: AudioRepository,
-    private val initializeGameUseCase: InitializeGameUseCase,
-    private val generateLevelUseCase: GenerateLevelUseCase,
-    private val handleBubblePressUseCase: HandleBubblePressUseCase,
-    private val timerUseCase: TimerUseCase,
-    private val speedModeUseCase: SpeedModeUseCase,
-    private val speedModeTimerUseCase: SpeedModeTimerUseCase,
-    private val coopUseCase: CoopUseCase
+    val coopHandler: CoopHandler,
+    private val speedModeHandler: SpeedModeHandler,
+    private val gameLogicHandler: GameLogicHandler
 ) : ViewModel() {
-    private var speedModeCollectorJob: Job? = null
+
     // Private mutable state flow
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
 
-    // Expose CoopUseCase for GameScreen to access discovered endpoints
-    val coopUseCasePublic: com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase = coopUseCase
-
-    // Cache for initial coop state with saved profile
-    private var _cachedInitialCoopState: com.akinalpfdn.poprush.coop.domain.model.CoopGameState? = null
-
-    // Initialize the cached coop state with saved profile
-    init {
-        viewModelScope.launch {
-            try {
-                _cachedInitialCoopState = createInitialCoopState()
-                Timber.d("Cached initial coop state: name=${_cachedInitialCoopState?.localPlayerName}, color=${_cachedInitialCoopState?.localPlayerColor}")
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to initialize cached coop state")
-                _cachedInitialCoopState = com.akinalpfdn.poprush.coop.domain.model.CoopGameState(
-                    localPlayerId = "player_${System.currentTimeMillis()}",
-                    localPlayerName = "Player",
-                    localPlayerColor = com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
-                    bubbles = generateInitialCoopBubbles()
-                )
-            }
-        }
-    }
+    // Expose discoveredEndpoints for GameScreen
+    val discoveredEndpoints = coopHandler.discoveredEndpoints
 
     // Combined settings flow for reactive updates
     private val settingsFlow: Flow<SettingsBundle> = combine(
@@ -112,6 +76,11 @@ class GameViewModel @Inject constructor(
     }
 
     init {
+        // Initialize handlers
+        coopHandler.init(viewModelScope, _gameState)
+        speedModeHandler.init(viewModelScope, _gameState)
+        gameLogicHandler.init(viewModelScope, _gameState)
+
         // Initialize audio system
         viewModelScope.launch {
             audioRepository.initialize()
@@ -124,28 +93,6 @@ class GameViewModel @Inject constructor(
         settingsFlow
             .onEach { settings ->
                 updateGameStateFromSettings(settings)
-            }
-            .launchIn(viewModelScope)
-
-        // Observe high score changes
-        gameRepository.getHighScoreFlow()
-            .onEach { highScore ->
-                _gameState.update { currentState ->
-                    currentState.copy(highScore = highScore)
-                }
-            }
-            .launchIn(viewModelScope)
-
-        // Observe timer updates
-        timerUseCase.getTimerFlow()
-            .onEach { timeRemaining ->
-                _gameState.update { currentState ->
-                    currentState.copy(timeRemaining = timeRemaining)
-                }
-                // Check for game over
-                if (timeRemaining.inWholeSeconds <= 0 && _gameState.value.isPlaying) {
-                    processIntent(GameIntent.EndGame)
-                }
             }
             .launchIn(viewModelScope)
 
@@ -172,174 +119,109 @@ class GameViewModel @Inject constructor(
             is GameIntent.ToggleSettings -> handleToggleSettings()
             is GameIntent.ShowBackConfirmation -> handleShowBackConfirmation()
             is GameIntent.HideBackConfirmation -> handleHideBackConfirmation()
-            is GameIntent.UpdateHighScore -> handleUpdateHighScore(intent.newHighScore)
+            is GameIntent.UpdateHighScore -> gameLogicHandler.handleUpdateHighScore(intent.newHighScore)
             is GameIntent.ToggleSound -> handleToggleSound()
             is GameIntent.ToggleMusic -> handleToggleMusic()
             is GameIntent.UpdateSoundVolume -> handleUpdateSoundVolume(intent.volume)
             is GameIntent.UpdateMusicVolume -> handleUpdateMusicVolume(intent.volume)
             is GameIntent.ChangeDifficulty -> handleChangeDifficulty(intent.difficulty)
             is GameIntent.UpdateSelectedDuration -> handleUpdateSelectedDuration(intent.duration)
-            is GameIntent.UpdateTimer -> handleUpdateTimer(intent.timeRemaining)
-            is GameIntent.GenerateNewLevel -> handleGenerateNewLevel()
-            is GameIntent.ResetGame -> handleResetGame()
-            is GameIntent.LoadGameData -> handleLoadGameData()
-            is GameIntent.SaveGameData -> handleSaveGameData()
-            // Coop Mode Intents
-            is GameIntent.StartCoopAdvertising -> handleStartCoopAdvertising(intent.playerName, intent.selectedColor)
-            is GameIntent.StartCoopDiscovery -> handleStartCoopDiscovery(intent.playerName, intent.selectedColor)
-            is GameIntent.StopCoopConnection -> handleStopCoopConnection()
-            is GameIntent.CoopClaimBubble -> handleCoopClaimBubble(intent.bubbleId)
-            is GameIntent.CoopSyncBubbles -> handleCoopSyncBubbles(intent.bubbles)
-            is GameIntent.CoopSyncScores -> handleCoopSyncScores(intent.localScore, intent.opponentScore)
-            is GameIntent.CoopGameFinished -> handleCoopGameFinished(intent.winnerId)
-            is GameIntent.ShowCoopConnectionDialog -> handleShowCoopConnectionDialog()
-            is GameIntent.HideCoopConnectionDialog -> handleHideCoopConnectionDialog()
-            is GameIntent.ShowCoopError -> handleShowCoopError(intent.errorMessage)
-            is GameIntent.ClearCoopError -> handleClearCoopError()
-            is GameIntent.UpdateCoopPlayerName -> handleUpdateCoopPlayerName(intent.playerName)
-            is GameIntent.UpdateCoopPlayerColor -> handleUpdateCoopPlayerColor(intent.playerColor)
-            is GameIntent.StartCoopConnection -> handleStartCoopConnection()
-            is GameIntent.StartHosting -> handleStartHosting()
-            is GameIntent.StopHosting -> handleStopHosting()
-            is GameIntent.StartDiscovery -> handleStartDiscovery()
-            is GameIntent.StopDiscovery -> handleStopDiscovery()
-            is GameIntent.ConnectToEndpoint -> handleConnectToEndpoint(intent.endpointId)
-            is GameIntent.DisconnectCoop -> handleDisconnectCoop()
-            is GameIntent.StartCoopGame -> handleStartCoopGame()
-            is GameIntent.CloseCoopConnection -> handleCloseCoopConnection()
+            is GameIntent.UpdateTimer -> { /* Handled by GameLogicHandler observation */ }
+            is GameIntent.GenerateNewLevel -> gameLogicHandler.handleGenerateNewLevel()
+            is GameIntent.ResetGame -> gameLogicHandler.handleResetGame()
+            is GameIntent.LoadGameData -> gameLogicHandler.handleLoadGameData()
+            is GameIntent.SaveGameData -> gameLogicHandler.handleSaveGameData()
+            
+            // Coop Mode Intents - Delegated to CoopHandler
+            is GameIntent.StartCoopAdvertising -> coopHandler.handleStartCoopAdvertising(intent.playerName, intent.selectedColor)
+            is GameIntent.StartCoopDiscovery -> coopHandler.handleStartCoopDiscovery(intent.playerName, intent.selectedColor)
+            is GameIntent.StopCoopConnection -> coopHandler.handleStopCoopConnection()
+            is GameIntent.CoopClaimBubble -> coopHandler.handleCoopClaimBubble(intent.bubbleId)
+            is GameIntent.CoopSyncBubbles -> coopHandler.handleCoopSyncBubbles(intent.bubbles)
+            is GameIntent.CoopSyncScores -> coopHandler.handleCoopSyncScores(intent.localScore, intent.opponentScore)
+            is GameIntent.CoopGameFinished -> coopHandler.handleCoopGameFinished(intent.winnerId)
+            is GameIntent.ShowCoopConnectionDialog -> coopHandler.handleShowCoopConnectionDialog()
+            is GameIntent.HideCoopConnectionDialog -> coopHandler.handleHideCoopConnectionDialog()
+            is GameIntent.ShowCoopError -> coopHandler.handleShowCoopError(intent.errorMessage)
+            is GameIntent.ClearCoopError -> coopHandler.handleClearCoopError()
+            is GameIntent.UpdateCoopPlayerName -> coopHandler.handleUpdateCoopPlayerName(intent.playerName)
+            is GameIntent.UpdateCoopPlayerColor -> coopHandler.handleUpdateCoopPlayerColor(intent.playerColor)
+            is GameIntent.StartCoopConnection -> coopHandler.handleStartCoopConnection()
+            is GameIntent.StartHosting -> coopHandler.handleStartHosting()
+            is GameIntent.StopHosting -> coopHandler.handleStopHosting()
+            is GameIntent.StartDiscovery -> coopHandler.handleStartDiscovery()
+            is GameIntent.StopDiscovery -> coopHandler.handleStopDiscovery()
+            is GameIntent.ConnectToEndpoint -> coopHandler.handleConnectToEndpoint(intent.endpointId)
+            is GameIntent.DisconnectCoop -> coopHandler.handleDisconnectCoop()
+            is GameIntent.StartCoopGame -> coopHandler.handleStartCoopGame()
+            is GameIntent.CloseCoopConnection -> coopHandler.handleCloseCoopConnection()
+            
             is GameIntent.AudioIntent -> handleAudioIntent(intent)
+            
             // Game Mode Selection Intents
             is GameIntent.SelectGameMode -> handleSelectGameMode(intent.mode)
             is GameIntent.SelectGameMod -> handleSelectGameMod(intent.mod)
+            
             // UI Navigation Intents
             is GameIntent.NavigateToModPicker -> handleNavigateToModPicker()
             is GameIntent.NavigateToGameSetup -> handleNavigateToGameSetup()
-                        is GameIntent.NavigateBack -> handleNavigateBack()
-            // Speed Mode Intents
-            is GameIntent.ActivateRandomBubble -> handleActivateRandomBubble(intent.bubbleId)
-            is GameIntent.UpdateSpeedModeInterval -> handleUpdateSpeedModeInterval()
-            is GameIntent.StartSpeedModeTimer -> handleStartSpeedModeTimer()
-            is GameIntent.ResetSpeedModeState -> handleResetSpeedModeState()
+            is GameIntent.NavigateBack -> handleNavigateBack()
+            
+            // Speed Mode Intents - Delegated to SpeedModeHandler
+            is GameIntent.ActivateRandomBubble -> speedModeHandler.handleActivateRandomBubble(intent.bubbleId)
+            is GameIntent.UpdateSpeedModeInterval -> speedModeHandler.handleUpdateSpeedModeInterval()
+            is GameIntent.StartSpeedModeTimer -> speedModeHandler.handleStartSpeedModeTimer()
+            is GameIntent.ResetSpeedModeState -> speedModeHandler.handleResetSpeedModeState()
         }
     }
 
-    // Game Management Intents
+    // Game Management
     private fun handleStartGame() {
         viewModelScope.launch {
             try {
-                val currentState = _gameState.value
+                // Stop ALL timers
+                gameLogicHandler.stopTimer()
+                speedModeHandler.stopTimer()
+                speedModeHandler.handleResetSpeedModeState()
 
-                // CRITICAL: Stop ALL timers and jobs to prevent mode conflicts
-                timerUseCase.stopTimer()
-                speedModeTimerUseCase.stopTimer()
-                speedModeCollectorJob?.cancel()
-                speedModeCollectorJob = null
-                speedModeUseCase.resetSpeedMode()
-
-                // Clear any existing bubbles to ensure clean state
+                // Clear bubbles
                 _gameState.update { it.copy(bubbles = emptyList()) }
 
-                when (currentState.selectedMod) {
-                    GameMod.CLASSIC -> {
-                        // Classic mode: existing logic
-                        val newBubbles = initializeGameUseCase.execute()
-
-                        // Generate the first level immediately
-                        val difficulty = getCurrentSettings().difficulty
-                        val activeBubbles = generateLevelUseCase.execute(
-                            currentBubbles = newBubbles,
-                            difficulty = difficulty,
-                            currentLevel = 1
-                        )
-
-                        val selectedDuration = currentState.selectedDuration
-
-                        _gameState.update {
-                            it.copy(
-                                isPlaying = true,
-                                isGameOver = false,
-                                isPaused = false,
-                                score = 0,
-                                timeRemaining = selectedDuration,
-                                currentLevel = 1,
-                                bubbles = activeBubbles
-                            )
-                        }
-
-                        // Start the timer with selected duration
-                        timerUseCase.startTimer(selectedDuration)
-
-                        Timber.d("Classic mode game started with ${activeBubbles.count { it.isActive }} active bubbles")
-                    }
-
-                    GameMod.SPEED -> {
-                        // Speed mode: count up timer, no time limit
-                        _gameState.update {
-                            it.copy(
-                                isPlaying = true,
-                                isGameOver = false,
-                                isPaused = false,
-                                score = 0, // Will be updated with time survived
-                                timeRemaining = Duration.ZERO, // Counts up from 0
-                                currentLevel = 1
-                            )
-                        }
-
-                        // Start speed mode timer
-                        processIntent(GameIntent.StartSpeedModeTimer)
-
-                                            }
+                when (_gameState.value.selectedMod) {
+                    GameMod.CLASSIC -> gameLogicHandler.startClassicGame()
+                    GameMod.SPEED -> speedModeHandler.handleStartSpeedModeTimer()
                 }
 
                 // Start background music if enabled
                 if (audioRepository.isAudioSupported() && _gameState.value.musicEnabled) {
                     audioRepository.playMusic(com.akinalpfdn.poprush.core.domain.model.MusicTrack(id = "gameplay", title = "Gameplay Music"))
                 }
-
-                // Play start sound
-                audioRepository.playSound(SoundType.BUTTON_PRESS)
             } catch (e: Exception) {
                 Timber.e(e, "Error starting game")
             }
         }
     }
 
-    /**
-     * Handles back to menu navigation.
-     * Resets game state to return to the start screen.
-     */
     private fun handleBackToMenu() {
         viewModelScope.launch {
             try {
-                // Stop ALL running timers (both classic and speed mode)
-                timerUseCase.stopTimer()
-                speedModeTimerUseCase.stopTimer()
+                // Stop ALL timers
+                gameLogicHandler.stopTimer()
+                speedModeHandler.stopTimer()
 
-                // Stop speed mode collector job if running
-                speedModeCollectorJob?.cancel()
-                speedModeCollectorJob = null
-
-                // Stop background music
+                // Stop music
                 audioRepository.stopMusic()
 
-                // Reset speed mode state
-                speedModeUseCase.resetSpeedMode()
+                // Reset handlers
+                speedModeHandler.handleResetSpeedModeState()
+                gameLogicHandler.handleResetGame() // Resets state to initial
 
-                // Reset game state to initial state
+                // Ensure navigation state is correct (ResetGame sets some defaults, but let's be sure)
                 _gameState.update { currentState ->
                     currentState.copy(
-                        isPlaying = false,
-                        isGameOver = false,
-                        isPaused = false,
-                        score = 0,
-                        currentLevel = 1,
-                        timeRemaining = GameState.GAME_DURATION,
-                        showSettings = false,
-                        showBackConfirmation = false,
-                        bubbles = emptyList(),
-                        selectedMod = GameMod.CLASSIC, // Reset to default mode
-                        gameMode = GameMode.SINGLE, // Reset to default game mode
-                        selectedDuration = GameState.GAME_DURATION
+                        currentScreen = StartScreenFlow.MODE_SELECTION, // Or whatever default
+                        selectedMod = GameMod.CLASSIC,
+                        gameMode = GameMode.SINGLE
                     )
                 }
 
@@ -350,87 +232,24 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Shows the back confirmation dialog and pauses the game.
-     */
-    private fun handleShowBackConfirmation() {
-        viewModelScope.launch {
-            // Pause the timer when showing confirmation
-            timerUseCase.pauseTimer()
-
-            _gameState.update { it.copy(
-                showBackConfirmation = true,
-                isPaused = true
-            ) }
-        }
-    }
-
-    /**
-     * Hides the back confirmation dialog and resumes the game if it was playing.
-     */
-    private fun handleHideBackConfirmation() {
-        viewModelScope.launch {
-            val currentState = _gameState.value
-
-            // Only resume if the game was playing (not game over)
-            if (currentState.isPlaying && !currentState.isGameOver) {
-                timerUseCase.resumeTimer()
-            }
-
-            _gameState.update {
-                it.copy(
-                    showBackConfirmation = false,
-                    // Only unpause if we're still playing and not going back to menu
-                    isPaused = if (it.isPlaying && !it.isGameOver) false else it.isPaused
-                )
-            }
-        }
-    }
-
     private fun handleEndGame() {
         viewModelScope.launch {
-            try {
-                val currentState = _gameState.value
+            // Stop ALL timers
+            gameLogicHandler.stopTimer()
+            speedModeHandler.stopTimer()
+            
+            audioRepository.stopMusic()
 
-                // Stop ALL timers
-                timerUseCase.stopTimer()
-                speedModeTimerUseCase.stopTimer()
-
-                // Stop speed mode collector job if running
-                speedModeCollectorJob?.cancel()
-                speedModeCollectorJob = null
-
-                // Reset speed mode state if needed
-                if (currentState.selectedMod == GameMod.SPEED) {
-                    speedModeUseCase.resetSpeedMode()
-                }
-
-                // Stop music
-                audioRepository.stopMusic()
-
-                // Create game result for statistics
-                val gameResult = createGameResult(currentState)
-
-                // Save game result
-                gameRepository.saveGameResult(gameResult)
-
-                // Update high score if needed
-                if (currentState.score > currentState.highScore) {
-                    gameRepository.updateHighScore(currentState.score)
-                    audioRepository.playSound(SoundType.HIGH_SCORE)
-                } else {
-                    audioRepository.playSound(SoundType.GAME_OVER)
-                }
-
-                _gameState.update { it.copy(
-                    isPlaying = false,
-                    isGameOver = true,
-                    isPaused = false
-                )}
-
-                Timber.d("Game ended with score: ${currentState.score}")
-            } catch (e: Exception) {
-                Timber.e(e, "Error ending game")
+            // Delegate saving result based on mode (or handle both)
+            // Since we stopped timers, we can check which mode was active or just call handlers
+            // But handlers need to know if they should save result.
+            // GameLogicHandler.handleEndGame saves result.
+            // SpeedModeHandler.handleSpeedModeGameOver saves result.
+            
+            if (_gameState.value.selectedMod == GameMod.SPEED) {
+                speedModeHandler.handleSpeedModeGameOver()
+            } else {
+                gameLogicHandler.handleEndGame()
             }
         }
     }
@@ -440,13 +259,12 @@ class GameViewModel @Inject constructor(
             val newPausedState = !currentState.isPaused
             viewModelScope.launch {
                 if (newPausedState) {
-                    // Pause both timers
-                    timerUseCase.pauseTimer()
-                    speedModeTimerUseCase.pauseTimer()
+                    gameLogicHandler.pauseTimer()
+                    speedModeHandler.pauseTimer()
                     audioRepository.pauseMusic()
                 } else {
-                    timerUseCase.resumeTimer()
-                    speedModeTimerUseCase.resumeTimer()
+                    gameLogicHandler.resumeTimer()
+                    speedModeHandler.resumeTimer()
                     audioRepository.resumeMusic()
                 }
             }
@@ -456,153 +274,26 @@ class GameViewModel @Inject constructor(
 
     private fun handleRestartGame() {
         viewModelScope.launch {
-            // Save current game data first
-            handleSaveGameData()
-            // Start fresh game
+            gameLogicHandler.handleSaveGameData()
             handleStartGame()
         }
     }
 
-    private fun handleResetGame() {
-        viewModelScope.launch {
-            try {
-                // Stop timers
-                timerUseCase.stopTimer()
-                speedModeTimerUseCase.stopTimer()
-
-                // Reset speed mode state
-                speedModeUseCase.resetSpeedMode()
-
-                // Reset to initial state
-                _gameState.update { currentState ->
-                    currentState.copy(
-                        isPlaying = false,
-                        isGameOver = false,
-                        isPaused = false,
-                        score = 0,
-                        currentLevel = 1,
-                        bubbles = emptyList(),
-                        timeRemaining = GameState.GAME_DURATION,
-                        speedModeState = speedModeUseCase.speedModeState.value
-                    )
-                }
-
-                Timber.d("Game reset to initial state")
-            } catch (e: Exception) {
-                Timber.e(e, "Error resetting game")
-            }
-        }
-    }
-
-    // Bubble Interaction Intents
     private fun handleBubblePress(bubbleId: Int) {
-        viewModelScope.launch {
-            try {
-                val currentState = _gameState.value
-                if (!currentState.isPlaying || currentState.isPaused) return@launch
+        if (!_gameState.value.isPlaying || _gameState.value.isPaused) return
 
-                when (currentState.selectedMod) {
-                    GameMod.CLASSIC -> {
-                        // Classic mode: existing logic
-                        val result = handleBubblePressUseCase.execute(
-                            bubbles = currentState.bubbles,
-                            bubbleId = bubbleId
-                        )
-
-                        if (result.success) {
-                            // Update bubbles
-                            _gameState.update { it.copy(bubbles = result.updatedBubbles) }
-
-                            // Play sound with haptic feedback
-                            val settings = getCurrentSettings()
-                            audioRepository.playSoundWithHaptic(
-                                SoundType.BUBBLE_PRESS,
-                                settings.hapticFeedback
-                            )
-
-                            // Check if level is complete
-                            if (result.isLevelComplete) {
-                                _gameState.update { it.copy(score = it.score + 1) }
-                                audioRepository.playSound(SoundType.LEVEL_COMPLETE)
-
-                                // Generate new level after a short delay
-                                kotlinx.coroutines.delay(200)
-                                handleGenerateNewLevel()
-                            }
-                        }
-
-                        Timber.d("Classic mode bubble $bubbleId pressed: success=${result.success}")
-                    }
-
-                    GameMod.SPEED -> {
-                        // Speed mode: deactivate bubble logic
-                        val bubble = currentState.bubbles.find { it.id == bubbleId }
-
-                        if (bubble != null && bubble.isSpeedModeActive) {
-                            // Deactivate the bubble (make it transparent again)
-                            val updatedBubbles = speedModeUseCase.deactivateBubble(bubbleId, currentState.bubbles)
-                            val settings = getCurrentSettings()
-
-                            _gameState.update {
-                                it.copy(
-                                    bubbles = updatedBubbles,
-                                    score = currentState.score + 1 // Increment score for speed mode
-                                )
-                            }
-
-                            // Play sound with haptic feedback
-                            audioRepository.playSoundWithHaptic(
-                                SoundType.BUBBLE_PRESS,
-                                settings.hapticFeedback
-                            )
-
-                            Timber.d("Speed mode bubble $bubbleId deactivated")
-                        } else {
-                            Timber.d("Speed mode bubble $bubbleId not active for deactivation")
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Error handling bubble press for bubble $bubbleId")
-            }
+        when (_gameState.value.selectedMod) {
+            GameMod.CLASSIC -> gameLogicHandler.handleBubblePress(bubbleId)
+            GameMod.SPEED -> speedModeHandler.handleBubblePress(bubbleId)
         }
     }
 
-    private fun handleGenerateNewLevel() {
-        viewModelScope.launch {
-            try {
-                val currentState = _gameState.value
-                val difficulty = getCurrentSettings().difficulty
-
-                val newBubbles = generateLevelUseCase.execute(
-                    currentBubbles = currentState.bubbles,
-                    difficulty = difficulty,
-                    currentLevel = currentState.currentLevel
-                )
-
-                _gameState.update { it.copy(
-                    bubbles = newBubbles,
-                    currentLevel = it.currentLevel + 1
-                )}
-
-                Timber.d("Generated new level ${currentState.currentLevel + 1}")
-            } catch (e: Exception) {
-                Timber.e(e, "Error generating new level")
-            }
-        }
-    }
-
-    // Settings Intents
     private fun handleSelectShape(shape: BubbleShape) {
-        viewModelScope.launch {
-            settingsRepository.saveBubbleShape(shape)
-        }
+        viewModelScope.launch { settingsRepository.saveBubbleShape(shape) }
     }
 
     private fun handleUpdateZoom(zoomLevel: Float) {
-        viewModelScope.launch {
-            settingsRepository.setZoomLevel(zoomLevel)
-        }
+        viewModelScope.launch { settingsRepository.setZoomLevel(zoomLevel) }
     }
 
     private fun handleZoomIn() {
@@ -619,21 +310,15 @@ class GameViewModel @Inject constructor(
 
     private fun handleToggleSettings() {
         _gameState.update { it.copy(showSettings = !it.showSettings) }
-        viewModelScope.launch {
-            audioRepository.playSound(SoundType.BUTTON_PRESS)
-        }
+        viewModelScope.launch { audioRepository.playSound(SoundType.BUTTON_PRESS) }
     }
 
     private fun handleToggleSound() {
-        viewModelScope.launch {
-            settingsRepository.toggleSoundEnabled()
-        }
+        viewModelScope.launch { settingsRepository.toggleSoundEnabled() }
     }
 
     private fun handleToggleMusic() {
-        viewModelScope.launch {
-            settingsRepository.toggleMusicEnabled()
-        }
+        viewModelScope.launch { settingsRepository.toggleMusicEnabled() }
     }
 
     private fun handleUpdateSoundVolume(volume: Float) {
@@ -644,32 +329,19 @@ class GameViewModel @Inject constructor(
     }
 
     private fun handleUpdateMusicVolume(volume: Float) {
-        viewModelScope.launch {
-            settingsRepository.setMusicVolume(volume)
-        }
+        viewModelScope.launch { settingsRepository.setMusicVolume(volume) }
     }
 
     private fun handleChangeDifficulty(difficulty: GameDifficulty) {
-        viewModelScope.launch {
-            settingsRepository.setGameDifficulty(difficulty)
-        }
+        viewModelScope.launch { settingsRepository.setGameDifficulty(difficulty) }
     }
 
-    private fun handleUpdateTimer(timeRemaining: kotlin.time.Duration) {
-        _gameState.update { it.copy(timeRemaining = timeRemaining) }
-    }
-
-    /**
-     * Updates the selected game duration.
-     */
     private fun handleUpdateSelectedDuration(duration: kotlin.time.Duration) {
         _gameState.update { it.copy(selectedDuration = duration) }
     }
 
-    // Game Mode Selection Handlers
     private fun handleSelectGameMode(mode: GameMode) {
         if (mode == GameMode.COOP) {
-            // Navigate to connection screen for coop mode
             _gameState.update {
                 it.copy(
                     gameMode = mode,
@@ -678,7 +350,6 @@ class GameViewModel @Inject constructor(
                 )
             }
         } else {
-            // Navigate to mod picker for single player
             _gameState.update {
                 it.copy(
                     gameMode = mode,
@@ -698,7 +369,6 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    // UI Navigation Handlers
     private fun handleNavigateToModPicker() {
         _gameState.update { it.copy(currentScreen = StartScreenFlow.MOD_PICKER) }
     }
@@ -713,644 +383,52 @@ class GameViewModel @Inject constructor(
             StartScreenFlow.GAME_SETUP -> StartScreenFlow.MOD_PICKER
             StartScreenFlow.MOD_PICKER -> StartScreenFlow.MODE_SELECTION
             StartScreenFlow.COOP_CONNECTION -> StartScreenFlow.MODE_SELECTION
-            StartScreenFlow.MODE_SELECTION -> StartScreenFlow.MODE_SELECTION // Already at first screen, stay here
+            StartScreenFlow.MODE_SELECTION -> StartScreenFlow.MODE_SELECTION
         }
 
         _gameState.update { it.copy(currentScreen = newScreen) }
+        viewModelScope.launch { audioRepository.playSound(SoundType.BUTTON_PRESS) }
+    }
 
-        // Play back navigation sound
+    private fun handleShowBackConfirmation() {
         viewModelScope.launch {
-            audioRepository.playSound(SoundType.BUTTON_PRESS)
+            gameLogicHandler.pauseTimer()
+            speedModeHandler.pauseTimer()
+            _gameState.update { it.copy(showBackConfirmation = true, isPaused = true) }
         }
     }
 
-    // Speed Mode Handlers
-    private fun handleActivateRandomBubble(bubbleId: Int) {
+    private fun handleHideBackConfirmation() {
         viewModelScope.launch {
-            try {
-                val currentState = _gameState.value
-                val updatedBubbles = speedModeUseCase.activateBubble(bubbleId, currentState.bubbles)
-
-                val activeCount = updatedBubbles.count { it.isSpeedModeActive }
-                val transparentCount = updatedBubbles.count { it.transparency == 0.0f }
-
-                _gameState.update { it.copy(bubbles = updatedBubbles) }
-
-                // Check if speed mode is game over
-                if (speedModeUseCase.isGameOver(updatedBubbles)) {
-                    handleSpeedModeGameOver()
-                }
-
-                            } catch (e: Exception) {
-                Timber.e(e, "Error activating bubble in speed mode")
+            val currentState = _gameState.value
+            if (currentState.isPlaying && !currentState.isGameOver) {
+                gameLogicHandler.resumeTimer()
+                speedModeHandler.resumeTimer()
             }
-        }
-    }
-
-    private fun handleUpdateSpeedModeInterval() {
-        viewModelScope.launch {
-            try {
-                // This would typically be called by a timer tick
-                // For now, just log the current interval
-                val currentInterval = speedModeUseCase.speedModeState.value.currentInterval
-                            } catch (e: Exception) {
-                Timber.e(e, "Error updating speed mode interval")
-            }
-        }
-    }
-
-    private fun handleStartSpeedModeTimer() {
-        // FIX: Check if job is active to prevent multiple listeners (The Freeze Fix)
-        if (speedModeCollectorJob?.isActive == true) {
-                        return
-        }
-
-        viewModelScope.launch {
-            try {
-                // Speed mode loading state can be handled here if needed in the future
-
-                // Wait briefly for UI transition
-                kotlinx.coroutines.delay(500)
-
-                speedModeUseCase.initializeSpeedMode()
-
-                // Initialize bubbles invisible for speed mode
-                val initialBubbles = initializeGameUseCase.execute().map { bubble ->
-                    bubble.copy(
-                        transparency = 0.0f,
-                        isSpeedModeActive = false,
-                        isActive = false,
-                        isPressed = false
-                    )
-                }
-
-                _gameState.update {
-                    it.copy(
-                        bubbles = initialBubbles
-                    )
-                }
-
-                speedModeTimerUseCase.startTimer()
-
-                // FIX: Assign job to property so we can track it
-                speedModeCollectorJob = launch {
-                    speedModeTimerUseCase.timerEvents.collect { event ->
-                        when (event) {
-                            is SpeedModeTimerEvent.ActivateBubble -> {
-                                if (event.bubbleId == -1) {
-                                    // Random selection needed
-                                    val currentBubbles = _gameState.value.bubbles
-                                    val (bubbleId, _) = speedModeUseCase.selectRandomBubble(currentBubbles)
-
-                                    bubbleId?.let { id ->
-                                        processIntent(GameIntent.ActivateRandomBubble(id))
-                                    } ?: run {
-                                        handleSpeedModeGameOver()
-                                    }
-                                } else {
-                                    processIntent(GameIntent.ActivateRandomBubble(event.bubbleId))
-                                }
-                            }
-                            is SpeedModeTimerEvent.GameOver -> {
-                                handleSpeedModeGameOver()
-                            }
-                            is SpeedModeTimerEvent.Tick -> {
-                                // FIX: Only read total time. DO NOT call updateSpeedMode() here.
-                                val totalElapsedTime = speedModeTimerUseCase.getElapsedTime()
-
-                                _gameState.update { currentState ->
-                                    currentState.copy(
-                                        timeRemaining = totalElapsedTime,
-                                        score = (totalElapsedTime.inWholeSeconds).toInt(),
-                                        speedModeState = speedModeUseCase.speedModeState.value
-                                    )
-                                }
-                            }
-                            else -> { /* Ignore others */ }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Error starting speed mode timer")
-            }
-        }
-    }
-    private fun handleResetSpeedModeState() {
-        viewModelScope.launch {
-            try {
-                // Stop speed mode timer
-                speedModeTimerUseCase.stopTimer()
-
-                // Reset speed mode use case
-                speedModeUseCase.resetSpeedMode()
-
-                // Update game state
-                _gameState.update { currentState ->
-                    currentState.copy(
-                        speedModeState = speedModeUseCase.speedModeState.value,
-                        bubbles = currentState.bubbles.map { bubble ->
-                            bubble.copy(
-                                transparency = 1.0f,
-                                isSpeedModeActive = false,
-                                isActive = false,
-                                isPressed = false
-                            )
-                        }
-                    )
-                }
-
-                            } catch (e: Exception) {
-                Timber.e(e, "Error resetting speed mode state")
-            }
-        }
-    }
-
-    private fun handleSpeedModeGameOver() {
-        viewModelScope.launch {
-            try {
-                // Stop speed mode timer
-                speedModeTimerUseCase.stopTimer()
-
-                // Final score and mark game as over
-                _gameState.update { currentState ->
-                    currentState.copy(
-                        isGameOver = true,
-                        isPlaying = false,
-                        score = (currentState.timeRemaining.inWholeSeconds).toInt(), // Final score = seconds survived
-                        speedModeState = speedModeUseCase.speedModeState.value.copy(isGameOver = true)
-                    )
-                }
-
-                val finalScore = (_gameState.value.timeRemaining.inWholeSeconds).toInt()
-                            } catch (e: Exception) {
-                Timber.e(e, "Error handling speed mode game over")
-            }
-        }
-    }
-
-    private fun handleUpdateHighScore(newHighScore: Int) {
-        viewModelScope.launch {
-            gameRepository.updateHighScore(newHighScore)
-        }
-    }
-
-    // Data Management Intents
-    private fun handleLoadGameData() {
-        viewModelScope.launch {
-            try {
-                val highScore = gameRepository.getHighScore()
-                _gameState.update { it.copy(highScore = highScore) }
-                Timber.d("Game data loaded. High score: $highScore")
-            } catch (e: Exception) {
-                Timber.e(e, "Error loading game data")
-            }
-        }
-    }
-
-    private fun handleSaveGameData() {
-        // This would be called when the app is backgrounded or destroyed
-        // Most data is already saved automatically via repositories
-    }
-
-    // Coop Mode Intents (placeholders for Phase 2)
-    private fun handleStartCoopAdvertising(playerName: String, selectedColor: String) {
-        // TODO: Will be implemented in Phase 2
-        Timber.d("Coop advertising started for player: $playerName")
-    }
-
-    private fun handleStartCoopDiscovery(playerName: String, selectedColor: String) {
-        // TODO: Will be implemented in Phase 2
-        Timber.d("Coop discovery started for player: $playerName")
-    }
-
-    private fun handleStopCoopConnection() {
-        // TODO: Will be implemented in Phase 2
-        Timber.d("Coop connection stopped")
-    }
-
-    private fun handleCoopClaimBubble(bubbleId: Int) {
-        // TODO: Will be implemented in Phase 2
-        Timber.d("Coop bubble claimed: $bubbleId")
-    }
-
-    private fun handleCoopSyncBubbles(bubbles: List<com.akinalpfdn.poprush.coop.domain.model.CoopBubble>) {
-        // TODO: Will be implemented in Phase 2
-        Timber.d("Coop bubbles synced: ${bubbles.size}")
-    }
-
-    private fun handleCoopSyncScores(localScore: Int, opponentScore: Int) {
-        // TODO: Will be implemented in Phase 2
-        Timber.d("Coop scores synced: local=$localScore, opponent=$opponentScore")
-    }
-
-    private fun handleCoopGameFinished(winnerId: String?) {
-        // TODO: Will be implemented in Phase 2
-        Timber.d("Coop game finished. Winner: $winnerId")
-    }
-
-    private fun handleShowCoopConnectionDialog() {
-        _gameState.update { it.copy(showCoopConnectionDialog = true) }
-    }
-
-    private fun handleHideCoopConnectionDialog() {
-        _gameState.update { it.copy(showCoopConnectionDialog = false) }
-    }
-
-    private fun handleShowCoopError(errorMessage: String) {
-        _gameState.update { it.copy(coopErrorMessage = errorMessage) }
-    }
-
-    private fun handleClearCoopError() {
-        _gameState.update { it.copy(coopErrorMessage = null) }
-    }
-
-    /**
-     * Handles updating the coop player name.
-     */
-    private fun handleUpdateCoopPlayerName(playerName: String) {
-        viewModelScope.launch {
-            try {
-                // Save the player name to persistent storage
-                settingsRepository.savePlayerName(playerName)
-
-                // Update the coop state with the new player name
-                _gameState.update { currentState ->
-                    val updatedCoopState = currentState.coopState?.copy(
-                        localPlayerName = playerName
-                    ) ?: getCachedInitialCoopState().copy(localPlayerName = playerName)
-                    currentState.copy(coopState = updatedCoopState)
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to update coop player name")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to update player name: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles updating the coop player color.
-     */
-    private fun handleUpdateCoopPlayerColor(playerColor: com.akinalpfdn.poprush.core.domain.model.BubbleColor) {
-        viewModelScope.launch {
-            try {
-                // Save the player color to persistent storage
-                settingsRepository.savePlayerColor(playerColor)
-
-                // Update the coop state with the new player color
-                _gameState.update { currentState ->
-                    val updatedCoopState = currentState.coopState?.copy(
-                        localPlayerColor = playerColor
-                    ) ?: getCachedInitialCoopState().copy(localPlayerColor = playerColor)
-                    currentState.copy(coopState = updatedCoopState)
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to update coop player color")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to update player color: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles starting the coop connection process.
-     */
-    private fun handleStartCoopConnection() {
-        viewModelScope.launch {
-            try {
-                // Show the connection dialog
-                _gameState.update { it.copy(showCoopConnectionDialog = true) }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to start coop connection")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to start connection: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles starting to host a coop game.
-     */
-    private fun handleStartHosting() {
-        Timber.tag("COOP_CONNECTION").d("🏠 HANDLE_START_HOSTING: called")
-        viewModelScope.launch {
-            try {
-                // Update the gameState to reflect that this player is hosting
-                _gameState.update { currentState ->
-                    currentState.copy(coopState = (currentState.coopState ?: getCachedInitialCoopState()).copy(isHost = true))
-                }
-                val coopState = _gameState.value.coopState!!
-                Timber.tag("COOP_CONNECTION").d("🏠 HOST_STATE: isHost=${coopState.isHost}, name=${coopState.localPlayerName}, color=${coopState.localPlayerColor}")
-                coopUseCase.startHosting(coopState.localPlayerName, coopState.localPlayerColor)
-                    .collect { result ->
-                        result.onSuccess {
-                            // Update state based on connection status
-                            collectCoopConnectionState()
-                        }.onFailure { exception ->
-                            _gameState.update {
-                                it.copy(coopErrorMessage = "Hosting failed: ${exception.message}")
-                            }
-                        }
-                    }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to start hosting")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to start hosting: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles stopping hosting a coop game.
-     */
-    private fun handleStopHosting() {
-        viewModelScope.launch {
-            try {
-                coopUseCase.stopHosting()
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to stop hosting")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to stop hosting: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles starting discovery for coop games.
-     */
-    private fun handleStartDiscovery() {
-        viewModelScope.launch {
-            try {
-                // Update the gameState to reflect that this player is joining
-                _gameState.update { currentState ->
-                    currentState.copy(coopState = (currentState.coopState ?: getCachedInitialCoopState()).copy(isHost = false))
-                }
-                val coopState = _gameState.value.coopState!!
-                coopUseCase.startDiscovering()
-                    .collect { result ->
-                        result.onSuccess {
-                            // Update state based on discovery status
-                            collectCoopConnectionState()
-                        }.onFailure { exception ->
-                            _gameState.update {
-                                it.copy(coopErrorMessage = "Discovery failed: ${exception.message}")
-                            }
-                        }
-                    }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to start discovery")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to start discovery: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles stopping discovery for coop games.
-     */
-    private fun handleStopDiscovery() {
-        viewModelScope.launch {
-            try {
-                coopUseCase.stopDiscovering()
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to stop discovery")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to stop discovery: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles connecting to a specific endpoint.
-     */
-    private fun handleConnectToEndpoint(endpointId: String) {
-        viewModelScope.launch {
-            try {
-                val coopState = _gameState.value.coopState
-                if (coopState != null) {
-                    val localEndpointName = "${coopState.localPlayerName}:${coopState.localPlayerColor.name}"
-                    coopUseCase.requestConnection(endpointId, localEndpointName)
-                        .collect { result ->
-                        result.onSuccess {
-                            // Update state based on connection status
-                            collectCoopConnectionState()
-                        }.onFailure { exception ->
-                            _gameState.update {
-                                it.copy(coopErrorMessage = "Connection failed: ${exception.message}")
-                            }
-                        }
-                    }
-                } else {
-                    _gameState.update {
-                        it.copy(coopErrorMessage = "Cannot connect: Coop state not initialized")
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to connect to endpoint")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to connect: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles starting the coop game after connection is established.
-     */
-    private fun handleStartCoopGame() {
-        Timber.tag("COOP_CONNECTION").d("🎮 HANDLE_START_COOP_GAME: Starting coop game!")
-        viewModelScope.launch {
-            try {
-                // Update the coop state to start the game
-                _gameState.update { currentState ->
-                    currentState.coopState?.let { coopState ->
-                        val updatedCoopState = coopState.copy(
-                            gamePhase = com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase.PLAYING,
-                            gameStartTime = System.currentTimeMillis()
-                        )
-                        currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
-                    } ?: currentState
-                }
-                Timber.tag("COOP_CONNECTION").d("🎮 COOP_GAME_STARTED: Game is now in progress")
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to start coop game")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to start game: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles disconnecting from coop game.
-     */
-    private fun handleDisconnectCoop() {
-        viewModelScope.launch {
-            try {
-                coopUseCase.disconnect()
-                // Reset coop state
-                _gameState.update { currentState ->
-                    currentState.copy(
-                        coopState = getCachedInitialCoopState(),
-                        showCoopConnectionDialog = false
-                    )
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to disconnect")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Failed to disconnect: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles closing the coop connection dialog.
-     */
-    private fun handleCloseCoopConnection() {
-        _gameState.update {
-            it.copy(
-                showCoopConnectionDialog = false,
-                coopErrorMessage = null
-            )
-        }
-    }
-
-    /**
-     * Creates an initial coop state with saved or default values.
-     */
-    private suspend fun createInitialCoopState() = com.akinalpfdn.poprush.coop.domain.model.CoopGameState(
-        localPlayerId = "player_${System.currentTimeMillis()}",
-        localPlayerName = settingsRepository.getPlayerName(),
-        localPlayerColor = settingsRepository.getPlayerColor(),
-        bubbles = generateInitialCoopBubbles()
-    )
-
-    /**
-     * Gets the cached initial coop state or creates a default one if not available.
-     */
-    private fun getCachedInitialCoopState(): com.akinalpfdn.poprush.coop.domain.model.CoopGameState {
-        return _cachedInitialCoopState ?: com.akinalpfdn.poprush.coop.domain.model.CoopGameState(
-            localPlayerId = "player_${System.currentTimeMillis()}",
-            localPlayerName = "Player",
-            localPlayerColor = com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
-            bubbles = generateInitialCoopBubbles()
-        )
-    }
-
-    /**
-     * Generates initial coop bubbles with proper grid layout.
-     */
-    private fun generateInitialCoopBubbles(): List<com.akinalpfdn.poprush.coop.domain.model.CoopBubble> {
-        val rowSizes = listOf(5, 6, 7, 8, 7, 6, 5)
-        var bubbleId = 0
-        val bubbles = mutableListOf<com.akinalpfdn.poprush.coop.domain.model.CoopBubble>()
-
-        for ((rowIndex, size) in rowSizes.withIndex()) {
-            for (colIndex in 0 until size) {
-                bubbles.add(
-                    com.akinalpfdn.poprush.coop.domain.model.CoopBubble(
-                        id = bubbleId,
-                        position = bubbleId,
-                        row = rowIndex,
-                        col = colIndex
-                    )
+            _gameState.update {
+                it.copy(
+                    showBackConfirmation = false,
+                    isPaused = if (it.isPlaying && !it.isGameOver) false else it.isPaused
                 )
-                bubbleId++
-            }
-        }
-
-        return bubbles
-    }
-
-    /**
-     * Collects coop connection state updates.
-     */
-    private fun collectCoopConnectionState() {
-        viewModelScope.launch {
-            try {
-                // Collect connection state updates
-                coopUseCase.connectionState
-                    .collect { connectionState ->
-                        _gameState.update { currentState ->
-                            val currentCoopState = currentState.coopState
-                            Timber.d("collectCoopConnectionState: currentCoopState.isHost = ${currentCoopState?.isHost}, connectionState = $connectionState")
-
-                            // Map ConnectionState to CoopConnectionPhase
-                            val connectionPhase = when (connectionState) {
-                                ConnectionState.DISCONNECTED -> CoopConnectionPhase.DISCONNECTED
-                                ConnectionState.ADVERTISING -> CoopConnectionPhase.ADVERTISING
-                                ConnectionState.DISCOVERING -> CoopConnectionPhase.DISCOVERING
-                                ConnectionState.CONNECTING -> CoopConnectionPhase.CONNECTING
-                                ConnectionState.CONNECTED -> CoopConnectionPhase.CONNECTED
-                            }
-
-                            val updatedCoopState = if (currentCoopState != null) {
-                                currentCoopState.copy(
-                                    isConnectionEstablished = connectionState == ConnectionState.CONNECTED,
-                                    connectionPhase = connectionPhase
-                                )
-                            } else {
-                                getCachedInitialCoopState().copy(
-                                    isConnectionEstablished = connectionState == ConnectionState.CONNECTED,
-                                    connectionPhase = connectionPhase
-                                )
-                            }
-                            Timber.d("collectCoopConnectionState: updatedCoopState.isHost = ${updatedCoopState.isHost}, connectionPhase = ${updatedCoopState.connectionPhase}")
-                            currentState.copy(coopState = updatedCoopState)
-                        }
-                    }
-
-                // Note: discoveredEndpoints are handled directly in GameScreen from CoopUseCase
-
-                // Collect error messages
-                coopUseCase.errorMessages
-                    .collect { errorMessage ->
-                        _gameState.update {
-                            it.copy(coopErrorMessage = errorMessage)
-                        }
-                    }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to collect coop connection state")
-                _gameState.update {
-                    it.copy(coopErrorMessage = "Connection error: ${e.message}")
-                }
             }
         }
     }
 
-    // Audio Intents
     private fun handleAudioIntent(intent: GameIntent.AudioIntent) {
         viewModelScope.launch {
             when (intent) {
-                is GameIntent.AudioIntent.PlaySound -> {
-                    audioRepository.playSound(intent.soundType)
-                }
-                is GameIntent.AudioIntent.PlayMusic -> {
-                    audioRepository.playMusic(intent.musicTrack)
-                }
+                is GameIntent.AudioIntent.PlaySound -> audioRepository.playSound(intent.soundType)
+                is GameIntent.AudioIntent.PlayMusic -> audioRepository.playMusic(intent.musicTrack)
                 is GameIntent.AudioIntent.StopAllAudio -> {
                     audioRepository.stopAllSounds()
                     audioRepository.stopMusic()
                 }
-                is GameIntent.AudioIntent.PauseAudio -> {
-                    audioRepository.pauseMusic()
-                }
-                is GameIntent.AudioIntent.ResumeAudio -> {
-                    audioRepository.resumeMusic()
-                }
+                is GameIntent.AudioIntent.PauseAudio -> audioRepository.pauseMusic()
+                is GameIntent.AudioIntent.ResumeAudio -> audioRepository.resumeMusic()
             }
         }
     }
 
-    // Helper Methods
     private fun updateGameStateFromSettings(settings: SettingsBundle) {
         _gameState.update { currentState ->
             currentState.copy(
@@ -1364,56 +442,14 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    private fun getCurrentSettings(): SettingsBundle {
-        // This would ideally come from a flow, but for simplicity we get current values
-        return SettingsBundle(
-            bubbleShape = _gameState.value.selectedShape,
-            soundEnabled = _gameState.value.soundEnabled,
-            musicEnabled = _gameState.value.musicEnabled,
-            soundVolume = _gameState.value.soundVolume,
-            musicVolume = _gameState.value.musicVolume,
-            zoomLevel = _gameState.value.zoomLevel,
-            hapticFeedback = true, // Would get from settings
-            difficulty = GameDifficulty.NORMAL // Start with normal difficulty like React version
-        )
-    }
-
-    private fun createGameResult(gameState: GameState) = com.akinalpfdn.poprush.core.domain.model.GameResult(
-        finalScore = gameState.score,
-        levelsCompleted = gameState.currentLevel - 1,
-        totalBubblesPressed = gameState.pressedBubbleCount,
-        accuracyPercentage = if (gameState.pressedBubbleCount > 0) 100f else 0f, // Simplified
-        averageTimePerLevel = if (gameState.currentLevel > 1) {
-            (GameState.GAME_DURATION - gameState.timeRemaining) / (gameState.currentLevel - 1)
-        } else GameState.GAME_DURATION,
-        gameDuration = GameState.GAME_DURATION - gameState.timeRemaining,
-        isHighScore = gameState.score > gameState.highScore
+    private data class SettingsBundle(
+        val bubbleShape: BubbleShape,
+        val soundEnabled: Boolean,
+        val musicEnabled: Boolean,
+        val soundVolume: Float,
+        val musicVolume: Float,
+        val zoomLevel: Float,
+        val hapticFeedback: Boolean,
+        val difficulty: GameDifficulty
     )
-
-    override fun onCleared() {
-        super.onCleared()
-        viewModelScope.launch {
-            // Stop ALL timers and cleanup resources
-            timerUseCase.stopTimer()
-            speedModeTimerUseCase.stopTimer()
-            speedModeCollectorJob?.cancel()
-            speedModeTimerUseCase.cleanup()
-            speedModeUseCase.resetSpeedMode()
-            audioRepository.release()
-        }
-    }
 }
-
-/**
- * Data class bundling current settings for easier handling.
- */
-private data class SettingsBundle(
-    val bubbleShape: BubbleShape,
-    val soundEnabled: Boolean,
-    val musicEnabled: Boolean,
-    val soundVolume: Float,
-    val musicVolume: Float,
-    val zoomLevel: Float,
-    val hapticFeedback: Boolean,
-    val difficulty: GameDifficulty
-)
