@@ -168,10 +168,19 @@ class CoopUseCase @Inject constructor(
     /**
      * Send game start message
      */
-    fun sendGameStart(): Flow<Result<Unit>> {
-        val coopMessage = CoopMessage(
-            type = CoopMessageType.GAME_START
+    fun sendGameStart(playerName: String? = null, playerColor: String? = null): Flow<Result<Unit>> {
+        val coopMessage = CoopMessage.gameStart(
+            playerName = playerName,
+            playerColor = playerColor
         )
+        return sendMessage(coopMessage)
+    }
+
+    /**
+     * Send player profile message
+     */
+    fun sendPlayerProfile(playerName: String, playerColor: String): Flow<Result<Unit>> {
+        val coopMessage = CoopMessage.playerProfile(playerName, playerColor)
         return sendMessage(coopMessage)
     }
 

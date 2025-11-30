@@ -378,12 +378,18 @@ class CoopHandler @Inject constructor(
                         currentState.copy(coopState = updatedCoopState)
                     } ?: currentState
                 }
+
+                // Get current coopState for sending player info
+                val currentCoopState = gameStateFlow.value.coopState
                 Timber.tag("COOP_CONNECTION").d("🎮 COOP_GAME_STARTED: Game is now in progress (Host)")
 
                 // Start timer loop
                 startCoopTimer()
 
-                coopUseCase.sendGameStart().collect { result ->
+                coopUseCase.sendGameStart(
+                    playerName = currentCoopState?.localPlayerName,
+                    playerColor = currentCoopState?.localPlayerColor?.name
+                ).collect { result ->
                     result.onSuccess {
                         Timber.tag("COOP_CONNECTION").d("✅ GAME_START message sent successfully")
                     }.onFailure { e ->
@@ -469,13 +475,42 @@ class CoopHandler @Inject constructor(
                             } ?: currentState
                         }
                     }
+                    com.akinalpfdn.poprush.coop.data.model.CoopMessageType.PLAYER_PROFILE -> {
+                        Timber.tag("COOP_MESSAGES").d("👤 Received PLAYER_PROFILE message!")
+                        Timber.tag("COOP_MESSAGES").d("👤 Opponent info: name=${message.playerName}, color=${message.playerColor}")
+                        gameStateFlow.update { currentState ->
+                            currentState.coopState?.let { coopState ->
+                                // Update opponent info if provided
+                                val updatedCoopState = coopState.copy(
+                                    opponentPlayerName = message.playerName ?: coopState.opponentPlayerName,
+                                    opponentPlayerColor = message.playerColor?.let { colorName ->
+                                        try {
+                                            com.akinalpfdn.poprush.core.domain.model.BubbleColor.valueOf(colorName)
+                                        } catch (e: IllegalArgumentException) {
+                                            coopState.opponentPlayerColor
+                                        }
+                                    } ?: coopState.opponentPlayerColor
+                                )
+                                currentState.copy(coopState = updatedCoopState)
+                            } ?: currentState
+                        }
+                    }
                     com.akinalpfdn.poprush.coop.data.model.CoopMessageType.GAME_START -> {
                         Timber.tag("COOP_MESSAGES").d("🎮 Received GAME_START message! Starting game...")
                         gameStateFlow.update { currentState ->
                             currentState.coopState?.let { coopState ->
+                                // Update opponent info if provided (for game start)
                                 val updatedCoopState = coopState.copy(
                                     gamePhase = CoopGamePhase.PLAYING,
-                                    gameStartTime = System.currentTimeMillis()
+                                    gameStartTime = System.currentTimeMillis(),
+                                    opponentPlayerName = message.playerName ?: coopState.opponentPlayerName,
+                                    opponentPlayerColor = message.playerColor?.let { colorName ->
+                                        try {
+                                            com.akinalpfdn.poprush.core.domain.model.BubbleColor.valueOf(colorName)
+                                        } catch (e: IllegalArgumentException) {
+                                            com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE
+                                        }
+                                    } ?: com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE
                                 )
                                 currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
                             } ?: currentState
@@ -596,6 +631,27 @@ class CoopHandler @Inject constructor(
                                     connectionPhase = connectionPhase
                                 )
                             }
+
+                            // When connection is established, send client profile to host if this is a client
+                            if (connectionState == ConnectionState.CONNECTED && !updatedCoopState.isHost) {
+                                val clientProfile = updatedCoopState
+                                Timber.tag("COOP_CONNECTION").d("👤 CLIENT_CONNECTED: Sending profile to host - name=${clientProfile.localPlayerName}, color=${clientProfile.localPlayerColor.name}")
+
+                                // Send client profile to host
+                                scope.launch {
+                                    coopUseCase.sendPlayerProfile(
+                                        playerName = clientProfile.localPlayerName,
+                                        playerColor = clientProfile.localPlayerColor.name
+                                    ).collect { result ->
+                                        result.onSuccess {
+                                            Timber.tag("COOP_CONNECTION").d("✅ CLIENT_PROFILE_SENT: Profile sent to host")
+                                        }.onFailure { e ->
+                                            Timber.tag("COOP_CONNECTION").e(e, "❌ CLIENT_PROFILE_FAILED: Failed to send profile to host")
+                                        }
+                                    }
+                                }
+                            }
+
                             currentState.copy(coopState = updatedCoopState)
                         }
 

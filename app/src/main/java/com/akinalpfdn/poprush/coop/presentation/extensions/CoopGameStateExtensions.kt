@@ -45,7 +45,14 @@ val CoopGameState.timeRemaining: Long
     get() {
         if (gameStartTime <= 0) return gameDuration // Return full duration if not started
         val elapsed = System.currentTimeMillis() - gameStartTime
-        return (gameDuration - elapsed).coerceAtLeast(0L)
+        val remaining = (gameDuration - elapsed).coerceAtLeast(0L)
+
+        // Debug logging
+        if (currentPhase == CoopGamePhase.PLAYING) {
+            //Timber.tag("COOP_TIMER").v("Timer: duration=$gameDuration, elapsed=$elapsed, remaining=$remaining, phase=$currentPhase")
+        }
+
+        return remaining
     }
 
 /**

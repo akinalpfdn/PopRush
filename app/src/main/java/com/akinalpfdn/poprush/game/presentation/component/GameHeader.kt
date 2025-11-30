@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import timber.log.Timber
 
 /**
  * Game header showing score, timer, and high score.
@@ -26,6 +27,13 @@ fun GameHeader(
     gameState: GameState,
     modifier: Modifier = Modifier
 ) {
+    // Debug logging for timer in coop mode
+    LaunchedEffect(gameState.timeDisplay, gameState.isCoopMode) {
+        if (gameState.isCoopMode) {
+            Timber.tag("GAME_HEADER").v("Timer display: timeDisplay=${gameState.timeDisplay}, timeRemaining=${gameState.timeRemaining}, isCoopMode=${gameState.isCoopMode}")
+        }
+    }
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,

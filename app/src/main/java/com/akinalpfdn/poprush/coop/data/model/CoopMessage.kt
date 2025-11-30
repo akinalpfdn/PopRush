@@ -31,7 +31,10 @@ enum class CoopMessageType {
     READY_STATE,
 
     @SerializedName("heartbeat")
-    HEARTBEAT
+    HEARTBEAT,
+
+    @SerializedName("player_profile")
+    PLAYER_PROFILE
 }
 
 /**
@@ -50,6 +53,9 @@ data class CoopMessage(
 
     @SerializedName("playerColor")
     val playerColor: String? = null,
+
+    @SerializedName("playerName")
+    val playerName: String? = null,
 
     @SerializedName("localScore")
     val localScore: Int? = null,
@@ -92,8 +98,12 @@ data class CoopMessage(
         /**
          * Create a game start message
          */
-        fun gameStart(): CoopMessage {
-            return CoopMessage(type = CoopMessageType.GAME_START)
+        fun gameStart(playerName: String? = null, playerColor: String? = null): CoopMessage {
+            return CoopMessage(
+                type = CoopMessageType.GAME_START,
+                playerName = playerName,
+                playerColor = playerColor
+            )
         }
 
         /**
@@ -143,6 +153,17 @@ data class CoopMessage(
          */
         fun heartbeat(): CoopMessage {
             return CoopMessage(type = CoopMessageType.HEARTBEAT)
+        }
+
+        /**
+         * Create a player profile message
+         */
+        fun playerProfile(playerName: String, playerColor: String): CoopMessage {
+            return CoopMessage(
+                type = CoopMessageType.PLAYER_PROFILE,
+                playerName = playerName,
+                playerColor = playerColor
+            )
         }
     }
 }
