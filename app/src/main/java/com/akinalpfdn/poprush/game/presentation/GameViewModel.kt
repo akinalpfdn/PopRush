@@ -281,6 +281,11 @@ class GameViewModel @Inject constructor(
     private fun handleBubblePress(bubbleId: Int) {
         if (!_gameState.value.isPlaying || _gameState.value.isPaused) return
 
+        if (_gameState.value.isCoopMode) {
+            coopHandler.handleCoopClaimBubble(bubbleId)
+            return
+        }
+
         when (_gameState.value.selectedMod) {
             GameMod.CLASSIC -> gameLogicHandler.handleBubblePress(bubbleId)
             GameMod.SPEED -> speedModeHandler.handleBubblePress(bubbleId)

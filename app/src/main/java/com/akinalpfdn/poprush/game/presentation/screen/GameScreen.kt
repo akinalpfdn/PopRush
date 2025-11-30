@@ -132,7 +132,14 @@ fun GameScreen(
         GameContent(
             gameState = gameState,
             onStartGame = { viewModel.processIntent(GameIntent.StartGame) },
-            onBubblePress = { bubbleId -> viewModel.processIntent(GameIntent.PressBubble(bubbleId)) },
+            onBubblePress = { bubbleId ->
+                // Use coop-specific intent when in coop mode
+                if (gameState.isCoopMode) {
+                    viewModel.processIntent(GameIntent.CoopClaimBubble(bubbleId))
+                } else {
+                    viewModel.processIntent(GameIntent.PressBubble(bubbleId))
+                }
+            },
             onToggleSettings = { viewModel.processIntent(GameIntent.ToggleSettings) },
             onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
             onTogglePause = { viewModel.processIntent(GameIntent.TogglePause) },

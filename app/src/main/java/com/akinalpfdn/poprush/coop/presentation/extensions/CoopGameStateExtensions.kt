@@ -42,13 +42,11 @@ val CoopGameState.remotePlayerScore: Int
     get() = opponentScore
 
 val CoopGameState.timeRemaining: Long
-    get() = {
-        // For now, use a 60 second game duration
-        // In Phase 4, this will be based on actual game timing
-        val gameDuration = 60_000L // 60 seconds in milliseconds
-        val elapsed = elapsedTime.inWholeMilliseconds
-        (gameDuration - elapsed).coerceAtLeast(0L)
-    }()
+    get() {
+        if (gameStartTime <= 0) return gameDuration // Return full duration if not started
+        val elapsed = System.currentTimeMillis() - gameStartTime
+        return (gameDuration - elapsed).coerceAtLeast(0L)
+    }
 
 /**
  * Converts CoopGameState to GameState for compatibility with existing UI components
@@ -66,12 +64,12 @@ fun CoopGameState.toGameState(): GameState {
                 when (ownerId) {
                     localPlayerId -> localPlayerColor
                     opponentPlayerId -> opponentPlayerColor
-                    else -> com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE
+                    else -> com.akinalpfdn.poprush.core.domain.model.BubbleColor.GRAY
                 }
-            } ?: com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
+            } ?: com.akinalpfdn.poprush.core.domain.model.BubbleColor.GRAY,
             isActive = currentPhase == CoopGamePhase.PLAYING,
             isPressed = false, // In coop mode, bubbles are never "pressed" like in single player
-            transparency = if (coopBubble.owner == null) 0.3f else 1.0f, // Unowned bubbles are semi-transparent
+            transparency = 1.0f, // Always opaque, unowned are gray
             isSpeedModeActive = currentPhase == CoopGamePhase.PLAYING
         )
     }
@@ -89,7 +87,7 @@ fun CoopGameState.toGameState(): GameState {
         zoomLevel = 1.0f,
         showSettings = false,
         showBackConfirmation = false,
-        selectedDuration = 30_000.milliseconds,
+        selectedDuration = gameDuration.milliseconds,
         soundEnabled = true,
         musicEnabled = true,
         soundVolume = 1.0f,

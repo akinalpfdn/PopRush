@@ -64,7 +64,8 @@ enum class BubbleColor {
     SKY,
     EMERALD,
     AMBER,
-    VIOLET;
+    VIOLET,
+    GRAY;
 
     /**
      * Gets the Compose Color for this bubble color.

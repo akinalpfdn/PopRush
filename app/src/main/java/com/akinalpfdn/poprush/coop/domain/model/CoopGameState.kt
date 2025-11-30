@@ -68,6 +68,7 @@ data class CoopBubble(
  * @param gamePhase Current phase of the game
  * @param connectionStartTime Timestamp when connection was established
  * @param gameStartTime Timestamp when the game started
+ * @param gameDuration Duration of the game in milliseconds
  * @param errorMessage Error message if connection failed
  */
 data class CoopGameState(
@@ -86,6 +87,7 @@ data class CoopGameState(
     val gamePhase: CoopGamePhase = CoopGamePhase.WAITING,
     val connectionStartTime: Long = 0L,
     val gameStartTime: Long = 0L,
+    val gameDuration: Long = 60_000L, // Default 60 seconds
     val errorMessage: String? = null
 ) {
     /**

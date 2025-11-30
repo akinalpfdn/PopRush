@@ -15,6 +15,7 @@ object PastelColors {
     private val emeraldBase = Color(0xFF86EFAC) // Light green
     private val amberBase = Color(0xFFFCD34D) // Light yellow
     private val violetBase = Color(0xFFC4B5FD) // Light purple
+    private val grayBase = Color(0xFFE5E7EB) // Light gray (Gray-200)
 
     // Pressed/darker variants
     private val rosePressed = Color(0xFFF87171) // Darker red/pink
@@ -22,6 +23,7 @@ object PastelColors {
     private val emeraldPressed = Color(0xFF34D399) // Darker green
     private val amberPressed = Color(0xFFFBBF24) // Darker yellow
     private val violetPressed = Color(0xFFA78BFA) // Darker purple
+    private val grayPressed = Color(0xFF9CA3AF) // Darker gray (Gray-400)
 
     // Glow/highlight colors
     private val roseGlow = Color(0xFFFFD4D4) // Very light pink
@@ -29,6 +31,7 @@ object PastelColors {
     private val emeraldGlow = Color(0xFFBBF7D0) // Very light green
     private val amberGlow = Color(0xFFFDE68A) // Very light yellow
     private val violetGlow = Color(0xFFDDD6FE) // Very light purple
+    private val grayGlow = Color(0xFFF3F4F6) // Very light gray (Gray-100)
 
     /**
      * Gets the base color for a bubble color.
@@ -43,6 +46,7 @@ object PastelColors {
             BubbleColor.EMERALD -> emeraldBase
             BubbleColor.AMBER -> amberBase
             BubbleColor.VIOLET -> violetBase
+            BubbleColor.GRAY -> grayBase
         }
     }
 
@@ -59,6 +63,7 @@ object PastelColors {
             BubbleColor.EMERALD -> emeraldPressed
             BubbleColor.AMBER -> amberPressed
             BubbleColor.VIOLET -> violetPressed
+            BubbleColor.GRAY -> grayPressed
         }
     }
 
@@ -75,6 +80,7 @@ object PastelColors {
             BubbleColor.EMERALD -> emeraldGlow
             BubbleColor.AMBER -> amberGlow
             BubbleColor.VIOLET -> violetGlow
+            BubbleColor.GRAY -> grayGlow
         }
     }
 
@@ -84,7 +90,7 @@ object PastelColors {
      * @return Array of all base bubble colors
      */
     fun getAllBaseColors(): Array<Color> {
-        return arrayOf(roseBase, skyBase, emeraldBase, amberBase, violetBase)
+        return arrayOf(roseBase, skyBase, emeraldBase, amberBase, violetBase, grayBase)
     }
 
     /**
@@ -93,7 +99,7 @@ object PastelColors {
      * @return Array of all pressed bubble colors
      */
     fun getAllPressedColors(): Array<Color> {
-        return arrayOf(rosePressed, skyPressed, emeraldPressed, amberPressed, violetPressed)
+        return arrayOf(rosePressed, skyPressed, emeraldPressed, amberPressed, violetPressed, grayPressed)
     }
 
     /**
@@ -102,7 +108,7 @@ object PastelColors {
      * @return Array of all glow bubble colors
      */
     fun getAllGlowColors(): Array<Color> {
-        return arrayOf(roseGlow, skyGlow, emeraldGlow, amberGlow, violetGlow)
+        return arrayOf(roseGlow, skyGlow, emeraldGlow, amberGlow, violetGlow, grayGlow)
     }
 
     /**
@@ -154,6 +160,12 @@ object PastelColors {
                 pressed = violetPressed,
                 glow = violetGlow,
                 name = "Violet"
+            )
+            BubbleColor.GRAY -> BubbleColorSet(
+                base = grayBase,
+                pressed = grayPressed,
+                glow = grayGlow,
+                name = "Gray"
             )
         }
     }

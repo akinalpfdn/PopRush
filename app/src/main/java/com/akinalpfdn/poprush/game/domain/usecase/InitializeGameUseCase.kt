@@ -58,14 +58,11 @@ class InitializeGameUseCase @Inject constructor() {
      * @return The BubbleColor for this bubble
      */
     private fun determineBubbleColor(bubbleId: Int): BubbleColor {
-        val colors = BubbleColor.values()
+        val colors = BubbleColor.values().filter { it != BubbleColor.GRAY }
         return colors[bubbleId % colors.size]
     }
 
     /**
-     * Calculates the grid position for a bubble based on its row and column.
-     * This can be used for positioning bubbles in the UI.
-     *
      * @param row The row index (0-6)
      * @param col The column index within the row
      * @return Pair of x, y coordinates for the bubble center

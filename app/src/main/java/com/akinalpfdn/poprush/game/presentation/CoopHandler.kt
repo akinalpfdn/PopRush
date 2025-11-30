@@ -57,7 +57,37 @@ class CoopHandler @Inject constructor(
     }
 
     fun handleCoopClaimBubble(bubbleId: Int) {
-        Timber.d("Coop bubble claimed: $bubbleId")
+        scope.launch {
+            val currentState = gameStateFlow.value
+            val coopState = currentState.coopState ?: return@launch
+
+            // Only allow claiming if game is playing
+            if (coopState.gamePhase != CoopGamePhase.PLAYING) return@launch
+
+            // Update local state immediately
+            val updatedBubbles = coopState.bubbles.map { bubble ->
+                if (bubble.id == bubbleId) {
+                    bubble.copy(owner = coopState.localPlayerId)
+                } else {
+                    bubble
+                }
+            }
+
+            val updatedCoopState = coopState.copy(
+                bubbles = updatedBubbles,
+                localScore = updatedBubbles.count { it.owner == coopState.localPlayerId },
+                opponentScore = updatedBubbles.count { it.owner == coopState.opponentPlayerId }
+            )
+
+            gameStateFlow.update { it.copy(coopState = updatedCoopState) }
+
+            // Send claim message
+            coopUseCase.sendBubbleClaim(bubbleId, coopState.localPlayerColor).collect { result ->
+                result.onFailure { e ->
+                    Timber.e(e, "Failed to send bubble claim")
+                }
+            }
+        }
     }
 
     fun handleCoopSyncBubbles(bubbles: List<com.akinalpfdn.poprush.coop.domain.model.CoopBubble>) {
@@ -69,7 +99,46 @@ class CoopHandler @Inject constructor(
     }
 
     fun handleCoopGameFinished(winnerId: String?) {
-        Timber.d("Coop game finished. Winner: $winnerId")
+        scope.launch {
+            val currentState = gameStateFlow.value
+            val coopState = currentState.coopState ?: return@launch
+
+            // Calculate final scores if not already done
+            val localScore = coopState.bubbles.count { it.owner == coopState.localPlayerId }
+            val opponentScore = coopState.bubbles.count { it.owner == coopState.opponentPlayerId }
+
+            // Determine winner if not provided (Host logic)
+            val finalWinnerId = winnerId ?: if (localScore > opponentScore) {
+                coopState.localPlayerId
+            } else if (opponentScore > localScore) {
+                coopState.opponentPlayerId
+            } else {
+                null // Draw
+            }
+
+            Timber.d("Coop game finished. Winner: $finalWinnerId")
+
+            // Update state
+            gameStateFlow.update { state ->
+                state.coopState?.let { currentCoopState ->
+                    val updatedCoopState = currentCoopState.copy(
+                        gamePhase = CoopGamePhase.FINISHED,
+                        localScore = localScore,
+                        opponentScore = opponentScore
+                    )
+                    state.copy(coopState = updatedCoopState)
+                } ?: state
+            }
+
+            // Host sends game end message
+            if (coopState.isHost) {
+                coopUseCase.sendGameEnd(localScore, opponentScore).collect { result ->
+                    result.onFailure { e ->
+                        Timber.e(e, "Failed to send game end message")
+                    }
+                }
+            }
+        }
     }
 
     fun handleShowCoopConnectionDialog() {
@@ -303,12 +372,16 @@ class CoopHandler @Inject constructor(
                     currentState.coopState?.let { coopState ->
                         val updatedCoopState = coopState.copy(
                             gamePhase = CoopGamePhase.PLAYING,
-                            gameStartTime = System.currentTimeMillis()
+                            gameStartTime = System.currentTimeMillis(),
+                            gameDuration = currentState.selectedDuration.inWholeMilliseconds
                         )
                         currentState.copy(coopState = updatedCoopState)
                     } ?: currentState
                 }
                 Timber.tag("COOP_CONNECTION").d("🎮 COOP_GAME_STARTED: Game is now in progress (Host)")
+
+                // Start timer loop
+                startCoopTimer()
 
                 coopUseCase.sendGameStart().collect { result ->
                     result.onSuccess {
@@ -322,6 +395,32 @@ class CoopHandler @Inject constructor(
                 gameStateFlow.update {
                     it.copy(coopErrorMessage = "Failed to start game: ${e.message}")
                 }
+            }
+        }
+    }
+
+    private fun startCoopTimer() {
+        scope.launch {
+            while (true) {
+                val currentState = gameStateFlow.value
+                val coopState = currentState.coopState ?: break
+                
+                if (coopState.gamePhase != CoopGamePhase.PLAYING) break
+
+                // Force state update to trigger UI recomposition for timer
+                gameStateFlow.update { it.copy(coopState = coopState.copy()) }
+
+                // Check for game end
+                // Only check if gameStartTime is valid (non-zero)
+                if (coopState.gameStartTime > 0) {
+                    val elapsed = System.currentTimeMillis() - coopState.gameStartTime
+                    if (elapsed >= coopState.gameDuration) {
+                        handleCoopGameFinished(null)
+                        break
+                    }
+                }
+
+                kotlinx.coroutines.delay(1000) // Update every second
             }
         }
     }
@@ -381,9 +480,49 @@ class CoopHandler @Inject constructor(
                                 currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
                             } ?: currentState
                         }
+                        startCoopTimer()
+                    }
+                    com.akinalpfdn.poprush.coop.data.model.CoopMessageType.BUBBLE_CLAIM -> {
+                        val bubbleId = message.bubbleId
+                        if (bubbleId != null) {
+                            gameStateFlow.update { currentState ->
+                                currentState.coopState?.let { coopState ->
+                                    val updatedBubbles = coopState.bubbles.map { bubble ->
+                                        if (bubble.id == bubbleId) {
+                                            bubble.copy(owner = coopState.opponentPlayerId)
+                                        } else {
+                                            bubble
+                                        }
+                                    }
+                                    val updatedCoopState = coopState.copy(
+                                        bubbles = updatedBubbles,
+                                        localScore = updatedBubbles.count { it.owner == coopState.localPlayerId },
+                                        opponentScore = updatedBubbles.count { it.owner == coopState.opponentPlayerId }
+                                    )
+                                    currentState.copy(coopState = updatedCoopState)
+                                } ?: currentState
+                            }
+                        }
                     }
                     com.akinalpfdn.poprush.coop.data.model.CoopMessageType.GAME_END -> {
                         Timber.tag("COOP_MESSAGES").d("🏁 Received GAME_END message")
+                        val localScore = message.remoteScore ?: 0 // Opponent's local score is our remote score
+                        val opponentScore = message.localScore ?: 0 // Opponent's remote score is our local score
+                        
+                        // Wait, the message contains scores from the sender's perspective
+                        // Sender's localScore = Our opponentScore
+                        // Sender's remoteScore = Our localScore
+                        
+                        gameStateFlow.update { currentState ->
+                            currentState.coopState?.let { coopState ->
+                                val updatedCoopState = coopState.copy(
+                                    gamePhase = CoopGamePhase.FINISHED,
+                                    localScore = localScore,
+                                    opponentScore = opponentScore
+                                )
+                                currentState.copy(coopState = updatedCoopState)
+                            } ?: currentState
+                        }
                     }
                     else -> {
                         // Handle other messages

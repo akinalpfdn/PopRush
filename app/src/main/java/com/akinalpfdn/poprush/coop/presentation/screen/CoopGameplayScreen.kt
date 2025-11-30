@@ -51,6 +51,18 @@ fun CoopGameplayScreen(
     onDurationChange: (kotlin.time.Duration) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Handle back press
+    androidx.activity.compose.BackHandler {
+        if (coopGameState.currentPhase == CoopGamePhase.PLAYING || 
+            coopGameState.currentPhase == CoopGamePhase.PAUSED ||
+            coopGameState.currentPhase == CoopGamePhase.WAITING ||
+            coopGameState.currentPhase == CoopGamePhase.SETUP) {
+            onDisconnect()
+        } else if (coopGameState.currentPhase == CoopGamePhase.FINISHED) {
+            onDisconnect() // Or navigate back to menu
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -128,117 +140,9 @@ fun CoopGameplayScreen(
 
 
 
-@Composable
-private fun PlayerScoreCard(
-    playerName: String,
-    playerColor: BubbleColor,
-    score: Int,
-    isActive: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val scale by animateFloatAsState(
-        targetValue = if (isActive) 1.05f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ), label = "scale"
-    )
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = PastelColors.getColor(playerColor).copy(alpha = 0.1f)
-        ),
-        modifier = modifier.scale(scale)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            // Player color indicator
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .background(
-                        color = PastelColors.getColor(playerColor),
-                        shape = CircleShape
-                    )
-            )
 
-            // Player name
-            Text(
-                text = playerName.ifEmpty { "Player" },
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                fontFamily = FontFamily.Default
-            )
 
-            // Score
-            Text(
-                text = score.toString(),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = PastelColors.getColor(playerColor),
-                fontFamily = FontFamily.Default
-            )
-        }
-    }
-}
-
-@Composable
-private fun TimerDisplay(
-    timeRemaining: Long,
-    isCritical: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val seconds = (timeRemaining / 1000L).coerceAtLeast(0)
-    val displayText = String.format("%02d:%02d", seconds / 60, seconds % 60)
-
-    val color by animateColorAsState(
-        targetValue = if (isCritical) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-        animationSpec = tween(300), label = "color"
-    )
-
-    val scale by animateFloatAsState(
-        targetValue = if (isCritical) 1.1f else 1f,
-        animationSpec = tween(300), label = "scale"
-    )
-
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCritical)
-                MaterialTheme.colorScheme.errorContainer else
-                MaterialTheme.colorScheme.surfaceVariant
-        ),
-        modifier = modifier.scale(scale)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Timer,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = displayText,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = color,
-                fontFamily = FontFamily.Default
-            )
-        }
-    }
-}
 
 @Composable
 private fun WaitingPhaseContent(
@@ -314,15 +218,21 @@ private fun PlayingPhaseContent(
     onBubbleClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier) {
-        BubbleGrid(
-            gameState = coopGameState.toGameState(), // Convert to regular GameState for the grid
-            selectedShape = BubbleShape.CIRCLE,
-            zoomLevel = 1.0f,
-            onBubblePress = onBubbleClick,
-            enabled = coopGameState.currentPhase == CoopGamePhase.PLAYING,
-            modifier = Modifier.fillMaxSize()
-        )
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            BubbleGrid(
+                gameState = coopGameState.toGameState(), // Convert to regular GameState for the grid
+                selectedShape = BubbleShape.CIRCLE,
+                zoomLevel = 1.0f,
+                onBubblePress = onBubbleClick,
+                enabled = coopGameState.currentPhase == CoopGamePhase.PLAYING,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 
