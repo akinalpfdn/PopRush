@@ -61,12 +61,8 @@ fun CoopGameplayScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // Top section with scores and controls
-            CoopGameHeader(
-                coopGameState = coopGameState,
-                onPause = onPause,
-                onDisconnect = onDisconnect,
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Top section with scores and controls
+            // CoopGameHeader removed as per user request
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -85,12 +81,14 @@ fun CoopGameplayScreen(
                                 selectedDuration = selectedDuration,
                                 onStartMatch = onStartMatch,
                                 onDurationChange = onDurationChange,
+                                onDisconnect = onDisconnect,
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {
                             WaitingPhaseContent(
                                 coopGameState = coopGameState,
                                 message = "Host is setting up the game...",
+                                onDisconnect = onDisconnect,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -98,6 +96,7 @@ fun CoopGameplayScreen(
                     CoopGamePhase.WAITING -> {
                         WaitingPhaseContent(
                             coopGameState = coopGameState,
+                            onDisconnect = onDisconnect,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -127,127 +126,7 @@ fun CoopGameplayScreen(
     }
 }
 
-@Composable
-private fun CoopGameHeader(
-    coopGameState: CoopGameState,
-    onPause: () -> Unit,
-    onDisconnect: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.padding(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Top row with player scores
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Local player score
-                PlayerScoreCard(
-                    playerName = coopGameState.localPlayerName,
-                    playerColor = coopGameState.localPlayerColor,
-                    score = coopGameState.localPlayerScore,
-                    isActive = true,
-                    modifier = Modifier.weight(1f)
-                )
 
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // VS indicator
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "VS",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        fontFamily = FontFamily.Default
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Remote player score
-                PlayerScoreCard(
-                    playerName = coopGameState.remotePlayerName,
-                    playerColor = coopGameState.remotePlayerColor,
-                    score = coopGameState.remotePlayerScore,
-                    isActive = true,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Bottom row with timer and controls
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Timer
-                TimerDisplay(
-                    timeRemaining = coopGameState.timeRemaining,
-                    isCritical = coopGameState.timeRemaining <= 10_000L, // 10 seconds in milliseconds
-                    modifier = Modifier.weight(1f)
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Control buttons
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    IconButton(
-                        onClick = onPause,
-                        modifier = Modifier
-                            .background(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = CircleShape
-                            )
-                            .size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Pause,
-                            contentDescription = "Pause",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onDisconnect,
-                        modifier = Modifier
-                            .background(
-                                color = MaterialTheme.colorScheme.errorContainer,
-                                shape = CircleShape
-                            )
-                            .size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Disconnect",
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun PlayerScoreCard(
@@ -365,6 +244,7 @@ private fun TimerDisplay(
 private fun WaitingPhaseContent(
     coopGameState: CoopGameState,
     message: String = "Waiting for Players",
+    onDisconnect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -411,6 +291,17 @@ private fun WaitingPhaseContent(
                     playerName = coopGameState.remotePlayerName,
                     playerColor = coopGameState.remotePlayerColor,
                     isConnected = coopGameState.remotePlayerName.isNotEmpty()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Disconnect button
+            TextButton(onClick = onDisconnect) {
+                Text(
+                    text = "Disconnect",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelLarge
                 )
             }
         }

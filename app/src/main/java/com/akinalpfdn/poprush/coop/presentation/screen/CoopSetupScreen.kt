@@ -36,12 +36,13 @@ fun CoopSetupScreen(
     selectedDuration: Duration,
     onStartMatch: () -> Unit,
     onDurationChange: (Duration) -> Unit,
+    onDisconnect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White.copy(alpha = 0.9f)),
+            .background(Color.White.copy(alpha = 0.6f)),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -59,33 +60,14 @@ fun CoopSetupScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Players
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${coopGameState.localPlayerName} (You)",
-                    color = Color(0xFF6B7280),
-                    fontSize = 18.sp,
-                    fontFamily = roundedFont,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "VS",
-                    color = Color(0xFFEF4444),
-                    fontSize = 18.sp,
-                    fontFamily = roundedFont,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = coopGameState.opponentPlayerName.ifEmpty { "Opponent" },
-                    color = Color(0xFF6B7280),
-                    fontSize = 18.sp,
-                    fontFamily = roundedFont,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+            // Subtitle (Players)
+            Text(
+                text = "${coopGameState.localPlayerName} vs ${coopGameState.opponentPlayerName.ifEmpty { "Opponent" }}",
+                color = Color(0xFF6B7280),
+                fontSize = 20.sp,
+                fontFamily = roundedFont,
+                fontWeight = FontWeight.Medium
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -105,6 +87,19 @@ fun CoopSetupScreen(
                     .defaultMinSize(minWidth = 160.dp)
                     .height(56.dp)
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Disconnect button
+            TextButton(onClick = onDisconnect) {
+                Text(
+                    text = "Disconnect",
+                    color = Color(0xFFEF4444), // red-500
+                    fontSize = 16.sp,
+                    fontFamily = roundedFont,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

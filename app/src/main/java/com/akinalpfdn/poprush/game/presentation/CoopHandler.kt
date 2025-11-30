@@ -183,16 +183,31 @@ class CoopHandler @Inject constructor(
     fun handleStartDiscovery() {
         scope.launch {
             try {
-                gameStateFlow.update { currentState ->
-                    currentState.copy(coopState = (currentState.coopState ?: getCachedInitialCoopState()).copy(isHost = false))
+                val currentState = gameStateFlow.value
+                val connectionPhase = currentState.coopState?.connectionPhase
+                
+                if (connectionPhase == CoopConnectionPhase.DISCOVERING || 
+                    connectionPhase == CoopConnectionPhase.CONNECTED ||
+                    connectionPhase == CoopConnectionPhase.CONNECTING) {
+                    Timber.w("Ignoring startDiscovery: Already in phase $connectionPhase")
+                    return@launch
+                }
+
+                gameStateFlow.update { state ->
+                    state.copy(coopState = (state.coopState ?: getCachedInitialCoopState()).copy(isHost = false))
                 }
                 coopUseCase.startDiscovering()
                     .collect { result ->
                         result.onSuccess {
                             collectCoopConnectionState()
                         }.onFailure { exception ->
-                            gameStateFlow.update {
-                                it.copy(coopErrorMessage = "Discovery failed: ${exception.message}")
+                            // Ignore 8002 error if we are actually discovering/connected
+                            if (exception.message?.contains("8002") == true) {
+                                Timber.w("Ignored STATUS_ALREADY_DISCOVERING error")
+                            } else {
+                                gameStateFlow.update {
+                                    it.copy(coopErrorMessage = "Discovery failed: ${exception.message}")
+                                }
                             }
                         }
                     }
@@ -252,6 +267,7 @@ class CoopHandler @Inject constructor(
         Timber.tag("COOP_CONNECTION").d("🎮 HANDLE_START_COOP_GAME: Entering setup phase")
         scope.launch {
             try {
+                // Update state immediately to show setup screen
                 gameStateFlow.update { currentState ->
                     currentState.coopState?.let { coopState ->
                         val updatedCoopState = coopState.copy(
@@ -259,6 +275,15 @@ class CoopHandler @Inject constructor(
                         )
                         currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
                     } ?: currentState
+                }
+
+                // Send setup message to client
+                coopUseCase.sendGameSetup().collect { result ->
+                    result.onSuccess {
+                        Timber.tag("COOP_CONNECTION").d("✅ GAME_SETUP message sent successfully")
+                    }.onFailure { e ->
+                        Timber.tag("COOP_CONNECTION").e(e, "❌ Failed to send GAME_SETUP message")
+                    }
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to enter coop setup")
@@ -333,6 +358,17 @@ class CoopHandler @Inject constructor(
             coopUseCase.coopMessages.collect { message ->
                 Timber.tag("COOP_MESSAGES").d("📩 Received message: type=${message.type}, content=${message.content}")
                 when (message.type) {
+                    com.akinalpfdn.poprush.coop.data.model.CoopMessageType.GAME_SETUP -> {
+                        Timber.tag("COOP_MESSAGES").d("🎮 Received GAME_SETUP message! Waiting for host...")
+                        gameStateFlow.update { currentState ->
+                            currentState.coopState?.let { coopState ->
+                                val updatedCoopState = coopState.copy(
+                                    gamePhase = CoopGamePhase.SETUP
+                                )
+                                currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
+                            } ?: currentState
+                        }
+                    }
                     com.akinalpfdn.poprush.coop.data.model.CoopMessageType.GAME_START -> {
                         Timber.tag("COOP_MESSAGES").d("🎮 Received GAME_START message! Starting game...")
                         gameStateFlow.update { currentState ->
@@ -421,6 +457,26 @@ class CoopHandler @Inject constructor(
                                 )
                             }
                             currentState.copy(coopState = updatedCoopState)
+                        }
+
+                        // Auto-start setup if host connected
+                        val currentState = gameStateFlow.value
+                        val isHost = currentState.coopState?.isHost == true
+                        val gamePhase = currentState.coopState?.gamePhase
+                        
+                        Timber.tag("COOP_CONNECTION").d("🔄 AUTO_START_CHECK: State=$connectionState, isHost=$isHost, Phase=$gamePhase")
+
+                        if (connectionState == ConnectionState.CONNECTED &&
+                            isHost &&
+                            gamePhase == CoopGamePhase.WAITING
+                        ) {
+                            Timber.tag("COOP_CONNECTION").d("🚀 AUTO_START_TRIGGERED: Starting game setup automatically")
+                            handleStartCoopGame()
+                        }
+
+                        // Start collecting messages if connected
+                        if (connectionState == ConnectionState.CONNECTED) {
+                             collectCoopMessages()
                         }
                     }
 

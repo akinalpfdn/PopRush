@@ -12,6 +12,9 @@ enum class CoopMessageType {
     @SerializedName("bubble_claim")
     BUBBLE_CLAIM,
 
+    @SerializedName("game_setup")
+    GAME_SETUP,
+
     @SerializedName("game_start")
     GAME_START,
 
@@ -77,6 +80,13 @@ data class CoopMessage(
                 bubbleId = bubbleId,
                 playerColor = playerColor
             )
+        }
+
+        /**
+         * Create a game setup message
+         */
+        fun gameSetup(): CoopMessage {
+            return CoopMessage(type = CoopMessageType.GAME_SETUP)
         }
 
         /**

@@ -156,6 +156,16 @@ class CoopUseCase @Inject constructor(
     }
 
     /**
+     * Send game setup message
+     */
+    fun sendGameSetup(): Flow<Result<Unit>> {
+        val coopMessage = CoopMessage(
+            type = CoopMessageType.GAME_SETUP
+        )
+        return sendMessage(coopMessage)
+    }
+
+    /**
      * Send game start message
      */
     fun sendGameStart(): Flow<Result<Unit>> {
