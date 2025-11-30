@@ -57,25 +57,47 @@ class NearbyConnectionsManagerImpl @Inject constructor(
                 isIncomingConnection = info.isIncomingConnection,
                 rawAuthenticationToken = info.rawAuthenticationToken
             )
-            Timber.d("Connection initiated: $endpointId")
+            Timber.tag("COOP_CONNECTION").d("🔗 INITIATED: $endpointId, name=${info.endpointName}, isIncoming=${info.isIncomingConnection}, token=${info.authenticationToken}")
             _connectionInfo.value = connectionInfo
             _connectionState.value = ConnectionState.CONNECTING
+
+            // Automatically accept incoming connections for coop gameplay
+            if (info.isIncomingConnection) {
+                Timber.tag("COOP_CONNECTION").d("🤝 AUTO_ACCEPT: $endpointId, payloadCallback=$payloadCallback")
+                try {
+                    connectionsClient.acceptConnection(endpointId, payloadCallback)
+                        .addOnSuccessListener {
+                            Timber.tag("COOP_CONNECTION").d("✅ ACCEPTED: $endpointId")
+                        }
+                        .addOnFailureListener { exception ->
+                            Timber.tag("COOP_CONNECTION").e("❌ ACCEPT_FAILED: $endpointId - ${exception.message}")
+                            _errorChannel.trySend("Failed to accept connection: ${exception.message}")
+                        }
+                } catch (e: Exception) {
+                    Timber.tag("COOP_CONNECTION").e("❌ ACCEPT_EXCEPTION: $endpointId - ${e.message}")
+                }
+            } else {
+                Timber.tag("COOP_CONNECTION").d("📤 OUTGOING: $endpointId")
+            }
         }
 
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
-            Timber.d("Connection result: $endpointId, status: ${result.status}")
-            if (result.status.isSuccess) {
+            val status = result.status
+            Timber.tag("COOP_CONNECTION").d("🎯 RESULT: $endpointId - statusCode=${status.statusCode}, statusMessage=${status.statusMessage?:"N/A"}, isSuccess=${status.isSuccess}")
+
+            if (status.isSuccess) {
                 _connectionState.value = ConnectionState.CONNECTED
-                Timber.d("Successfully connected to $endpointId")
+                Timber.tag("COOP_CONNECTION").d("✅ CONNECTED: $endpointId!")
             } else {
                 _connectionState.value = ConnectionState.DISCONNECTED
-                _errorChannel.trySend("Connection failed: ${result.status}")
-                Timber.e("Failed to connect to $endpointId: ${result.status}")
+                val errorMessage = "Connection failed to $endpointId: ${status.statusCode} - ${status.statusMessage ?: "Unknown error"}"
+                _errorChannel.trySend(errorMessage)
+                Timber.tag("COOP_CONNECTION").e("❌ FAILED: $errorMessage")
             }
         }
 
         override fun onDisconnected(endpointId: String) {
-            Timber.d("Disconnected from $endpointId")
+            Timber.tag("COOP_CONNECTION").d("🔌 DISCONNECTED: $endpointId")
             _connectionState.value = ConnectionState.DISCONNECTED
             _connectionInfo.value = null
         }
@@ -123,12 +145,13 @@ class NearbyConnectionsManagerImpl @Inject constructor(
 
     override fun startAdvertising(playerName: String, playerColor: BubbleColor): Flow<Result<Unit>> = callbackFlow {
         try {
+            val localEndpointName = "$playerName:${playerColor.name}"
+            Timber.tag("COOP_CONNECTION").d("📢 START_ADVERTISING: $localEndpointName, currentState=${_connectionState.value}")
+
             // Check if already advertising to prevent "Status already advertising" error
             if (_connectionState.value == ConnectionState.ADVERTISING) {
-                Timber.d("Already advertising, skipping duplicate advertising request")
+                Timber.tag("COOP_CONNECTION").d("📢 ALREADY_ADVERTISING: $localEndpointName")
                 trySend(Result.success(Unit))
-                // REMOVED: return@callbackFlow
-                // We must let execution fall through to awaitClose to keep the flow alive.
             } else {
                 val advertisingOptions = AdvertisingOptions.Builder()
                     .setStrategy(Strategy.P2P_STAR)
@@ -143,7 +166,7 @@ class NearbyConnectionsManagerImpl @Inject constructor(
                     advertisingOptions
                 ).addOnSuccessListener {
                     _connectionState.value = ConnectionState.ADVERTISING
-                    Timber.d("Started advertising as $localEndpointName")
+                    Timber.tag("COOP_CONNECTION").d("📢 ADVERTISING_STARTED: $localEndpointName")
                     trySend(Result.success(Unit))
                 }.addOnFailureListener { exception ->
                     // FIX: Handle 8001 STATUS_ALREADY_ADVERTISING
@@ -223,20 +246,39 @@ class NearbyConnectionsManagerImpl @Inject constructor(
         }
     }
 
-    override fun requestConnection(endpointId: String): Flow<Result<Unit>> = callbackFlow {
+    override fun requestConnection(endpointId: String, localEndpointName: String): Flow<Result<Unit>> = callbackFlow {
         try {
+            // Check current connection state to avoid duplicates
+            val currentState = _connectionState.value
+            val currentConnectionId = _connectionInfo.value?.endpointId
+
+            Timber.tag("COOP_CONNECTION").d("📞 REQUESTING: $endpointId with local name: $localEndpointName")
+            Timber.tag("COOP_CONNECTION").d("📊 CURRENT_STATE: $currentState, currentConnectionId: $currentConnectionId")
+
+            // If we're already connected to this endpoint, just return success
+            if (currentState == ConnectionState.CONNECTED && currentConnectionId == endpointId) {
+                Timber.tag("COOP_CONNECTION").d("✅ ALREADY_CONNECTED: $endpointId")
+                trySend(Result.success(Unit))
+                return@callbackFlow
+            }
+
+            // Set state to connecting before making the request
+            _connectionState.value = ConnectionState.CONNECTING
+
             connectionsClient.requestConnection(
-                "Player", // Local endpoint name
+                localEndpointName,
                 endpointId,
                 connectionLifecycleCallback
             ).addOnSuccessListener {
-                Timber.d("Connection requested to $endpointId")
+                Timber.tag("COOP_CONNECTION").d("✅ REQUEST_SENT: $endpointId")
                 trySend(Result.success(Unit))
             }.addOnFailureListener { exception ->
+                Timber.tag("COOP_CONNECTION").e("❌ REQUEST_FAILED: $endpointId - ${exception.message}")
                 _errorChannel.trySend("Failed to request connection: ${exception.message}")
                 trySend(Result.failure(exception))
             }
         } catch (e: Exception) {
+            Timber.tag("COOP_CONNECTION").e("❌ REQUEST_EXCEPTION: ${e.message}")
             trySend(Result.failure(e))
         }
 
@@ -308,15 +350,36 @@ class NearbyConnectionsManagerImpl @Inject constructor(
 
     override fun disconnect() {
         try {
-            _connectionInfo.value?.endpointId?.let { endpointId ->
-                connectionsClient.disconnectFromEndpoint(endpointId)
+            val endpointId = _connectionInfo.value?.endpointId
+            Timber.tag("COOP_CONNECTION").d("🔌 DISCONNECT_ALL: endpointId=$endpointId")
+
+            // Stop advertising and discovery first
+            try {
+                stopAdvertising()
+            } catch (e: Exception) {
+                Timber.tag("COOP_CONNECTION").w("⚠️ STOP_ADVERTISING_FAILED: ${e.message}")
             }
+
+            try {
+                stopDiscovery()
+            } catch (e: Exception) {
+                Timber.tag("COOP_CONNECTION").w("⚠️ STOP_DISCOVERY_FAILED: ${e.message}")
+            }
+
+            // Disconnect from endpoint
+            endpointId?.let { id ->
+                connectionsClient.disconnectFromEndpoint(id)
+                Timber.tag("COOP_CONNECTION").d("🔌 DISCONNECTED_FROM: $id")
+            }
+
+            // Reset all states
             _connectionState.value = ConnectionState.DISCONNECTED
             _connectionInfo.value = null
             _discoveredEndpoints.value = emptyList()
-            Timber.d("Disconnected")
+
+            Timber.tag("COOP_CONNECTION").d("✅ DISCONNECT_COMPLETE")
         } catch (e: Exception) {
-            Timber.e(e, "Error disconnecting")
+            Timber.tag("COOP_CONNECTION").e("❌ DISCONNECT_ERROR: ${e.message}")
         }
     }
 

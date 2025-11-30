@@ -151,7 +151,7 @@ interface NearbyConnectionsManager {
     /**
      * Request connection to a discovered endpoint
      */
-    fun requestConnection(endpointId: String): Flow<Result<Unit>>
+    fun requestConnection(endpointId: String, localEndpointName: String): Flow<Result<Unit>>
 
     /**
      * Accept an incoming connection request

@@ -36,6 +36,8 @@ class GamePreferences @Inject constructor(
         private val FIRST_LAUNCH_KEY = booleanPreferencesKey("first_launch")
         private val HIGH_SCORE_KEY = intPreferencesKey("high_score")
         private val TOTAL_GAMES_PLAYED_KEY = intPreferencesKey("total_games_played")
+        private val PLAYER_NAME_KEY = stringPreferencesKey("player_name")
+        private val PLAYER_COLOR_KEY = stringPreferencesKey("player_color")
     }
 
     // Bubble Shape
@@ -196,6 +198,36 @@ class GamePreferences @Inject constructor(
         }
     }
 
+    // User Profile Settings
+    suspend fun savePlayerName(playerName: String) {
+        dataStore.edit { preferences ->
+            preferences[PLAYER_NAME_KEY] = playerName
+        }
+    }
+
+    fun getPlayerName(): Flow<String> {
+        return dataStore.data.map { preferences ->
+            preferences[PLAYER_NAME_KEY] ?: "Player"
+        }
+    }
+
+    suspend fun savePlayerColor(playerColor: com.akinalpfdn.poprush.core.domain.model.BubbleColor) {
+        dataStore.edit { preferences ->
+            preferences[PLAYER_COLOR_KEY] = playerColor.name
+        }
+    }
+
+    fun getPlayerColor(): Flow<com.akinalpfdn.poprush.core.domain.model.BubbleColor> {
+        return dataStore.data.map { preferences ->
+            val colorName = preferences[PLAYER_COLOR_KEY] ?: "ROSE"
+            try {
+                com.akinalpfdn.poprush.core.domain.model.BubbleColor.valueOf(colorName)
+            } catch (e: IllegalArgumentException) {
+                com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE
+            }
+        }
+    }
+
     /**
      * Exports all preferences to a map for backup purposes.
      */
@@ -211,7 +243,9 @@ class GamePreferences @Inject constructor(
             "haptic_feedback" to (preferences[HAPTIC_FEEDBACK_KEY] ?: true),
             "game_difficulty" to (preferences[GAME_DIFFICULTY_KEY] ?: GameDifficulty.NORMAL.name),
             "high_score" to (preferences[HIGH_SCORE_KEY] ?: 0),
-            "total_games_played" to (preferences[TOTAL_GAMES_PLAYED_KEY] ?: 0)
+            "total_games_played" to (preferences[TOTAL_GAMES_PLAYED_KEY] ?: 0),
+            "player_name" to (preferences[PLAYER_NAME_KEY] ?: "Player"),
+            "player_color" to (preferences[PLAYER_COLOR_KEY] ?: "ROSE")
         )
     }
 }

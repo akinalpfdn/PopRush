@@ -1,5 +1,6 @@
 package com.akinalpfdn.poprush.core.domain.repository
 
+import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameDifficulty
 import kotlinx.coroutines.flow.Flow
@@ -208,4 +209,33 @@ interface SettingsRepository {
      * Marks that the first launch has been completed.
      */
     suspend fun markFirstLaunchCompleted()
+
+    // User Profile Settings
+    /**
+     * Saves the player's name for coop mode.
+     *
+     * @param playerName The player name to save
+     */
+    suspend fun savePlayerName(playerName: String)
+
+    /**
+     * Gets the saved player name.
+     *
+     * @return The saved player name, defaults to "Player"
+     */
+    suspend fun getPlayerName(): String
+
+    /**
+     * Saves the player's preferred color for coop mode.
+     *
+     * @param playerColor The player color to save
+     */
+    suspend fun savePlayerColor(playerColor: BubbleColor)
+
+    /**
+     * Gets the saved player color.
+     *
+     * @return The saved player color, defaults to ROSE
+     */
+    suspend fun getPlayerColor(): BubbleColor
 }

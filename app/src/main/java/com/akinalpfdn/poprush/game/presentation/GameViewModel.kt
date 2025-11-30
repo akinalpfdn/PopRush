@@ -65,6 +65,27 @@ class GameViewModel @Inject constructor(
     // Expose CoopUseCase for GameScreen to access discovered endpoints
     val coopUseCasePublic: com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase = coopUseCase
 
+    // Cache for initial coop state with saved profile
+    private var _cachedInitialCoopState: com.akinalpfdn.poprush.coop.domain.model.CoopGameState? = null
+
+    // Initialize the cached coop state with saved profile
+    init {
+        viewModelScope.launch {
+            try {
+                _cachedInitialCoopState = createInitialCoopState()
+                Timber.d("Cached initial coop state: name=${_cachedInitialCoopState?.localPlayerName}, color=${_cachedInitialCoopState?.localPlayerColor}")
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to initialize cached coop state")
+                _cachedInitialCoopState = com.akinalpfdn.poprush.coop.domain.model.CoopGameState(
+                    localPlayerId = "player_${System.currentTimeMillis()}",
+                    localPlayerName = "Player",
+                    localPlayerColor = com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
+                    bubbles = generateInitialCoopBubbles()
+                )
+            }
+        }
+    }
+
     // Combined settings flow for reactive updates
     private val settingsFlow: Flow<SettingsBundle> = combine(
         listOf(
@@ -948,11 +969,14 @@ class GameViewModel @Inject constructor(
     private fun handleUpdateCoopPlayerName(playerName: String) {
         viewModelScope.launch {
             try {
+                // Save the player name to persistent storage
+                settingsRepository.savePlayerName(playerName)
+
                 // Update the coop state with the new player name
                 _gameState.update { currentState ->
                     val updatedCoopState = currentState.coopState?.copy(
                         localPlayerName = playerName
-                    ) ?: createInitialCoopState().copy(localPlayerName = playerName)
+                    ) ?: getCachedInitialCoopState().copy(localPlayerName = playerName)
                     currentState.copy(coopState = updatedCoopState)
                 }
             } catch (e: Exception) {
@@ -970,11 +994,14 @@ class GameViewModel @Inject constructor(
     private fun handleUpdateCoopPlayerColor(playerColor: com.akinalpfdn.poprush.core.domain.model.BubbleColor) {
         viewModelScope.launch {
             try {
+                // Save the player color to persistent storage
+                settingsRepository.savePlayerColor(playerColor)
+
                 // Update the coop state with the new player color
                 _gameState.update { currentState ->
                     val updatedCoopState = currentState.coopState?.copy(
                         localPlayerColor = playerColor
-                    ) ?: createInitialCoopState().copy(localPlayerColor = playerColor)
+                    ) ?: getCachedInitialCoopState().copy(localPlayerColor = playerColor)
                     currentState.copy(coopState = updatedCoopState)
                 }
             } catch (e: Exception) {
@@ -1012,7 +1039,7 @@ class GameViewModel @Inject constructor(
             try {
                 // Update the gameState to reflect that this player is hosting
                 _gameState.update { currentState ->
-                    currentState.copy(coopState = (currentState.coopState ?: createInitialCoopState()).copy(isHost = true))
+                    currentState.copy(coopState = (currentState.coopState ?: getCachedInitialCoopState()).copy(isHost = true))
                 }
                 val coopState = _gameState.value.coopState!!
                 Timber.d("After update, coopState.isHost = ${coopState.isHost}")
@@ -1060,7 +1087,7 @@ class GameViewModel @Inject constructor(
             try {
                 // Update the gameState to reflect that this player is joining
                 _gameState.update { currentState ->
-                    currentState.copy(coopState = (currentState.coopState ?: createInitialCoopState()).copy(isHost = false))
+                    currentState.copy(coopState = (currentState.coopState ?: getCachedInitialCoopState()).copy(isHost = false))
                 }
                 val coopState = _gameState.value.coopState!!
                 coopUseCase.startDiscovering()
@@ -1105,8 +1132,11 @@ class GameViewModel @Inject constructor(
     private fun handleConnectToEndpoint(endpointId: String) {
         viewModelScope.launch {
             try {
-                coopUseCase.requestConnection(endpointId)
-                    .collect { result ->
+                val coopState = _gameState.value.coopState
+                if (coopState != null) {
+                    val localEndpointName = "${coopState.localPlayerName}:${coopState.localPlayerColor.name}"
+                    coopUseCase.requestConnection(endpointId, localEndpointName)
+                        .collect { result ->
                         result.onSuccess {
                             // Update state based on connection status
                             collectCoopConnectionState()
@@ -1116,6 +1146,11 @@ class GameViewModel @Inject constructor(
                             }
                         }
                     }
+                } else {
+                    _gameState.update {
+                        it.copy(coopErrorMessage = "Cannot connect: Coop state not initialized")
+                    }
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to connect to endpoint")
                 _gameState.update {
@@ -1135,7 +1170,7 @@ class GameViewModel @Inject constructor(
                 // Reset coop state
                 _gameState.update { currentState ->
                     currentState.copy(
-                        coopState = createInitialCoopState(),
+                        coopState = getCachedInitialCoopState(),
                         showCoopConnectionDialog = false
                     )
                 }
@@ -1161,14 +1196,26 @@ class GameViewModel @Inject constructor(
     }
 
     /**
-     * Creates an initial coop state with default values.
+     * Creates an initial coop state with saved or default values.
      */
-    private fun createInitialCoopState() = com.akinalpfdn.poprush.coop.domain.model.CoopGameState(
+    private suspend fun createInitialCoopState() = com.akinalpfdn.poprush.coop.domain.model.CoopGameState(
         localPlayerId = "player_${System.currentTimeMillis()}",
-        localPlayerName = "Player",
-        localPlayerColor = com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
+        localPlayerName = settingsRepository.getPlayerName(),
+        localPlayerColor = settingsRepository.getPlayerColor(),
         bubbles = generateInitialCoopBubbles()
     )
+
+    /**
+     * Gets the cached initial coop state or creates a default one if not available.
+     */
+    private fun getCachedInitialCoopState(): com.akinalpfdn.poprush.coop.domain.model.CoopGameState {
+        return _cachedInitialCoopState ?: com.akinalpfdn.poprush.coop.domain.model.CoopGameState(
+            localPlayerId = "player_${System.currentTimeMillis()}",
+            localPlayerName = "Player",
+            localPlayerColor = com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
+            bubbles = generateInitialCoopBubbles()
+        )
+    }
 
     /**
      * Generates initial coop bubbles with proper grid layout.
@@ -1223,7 +1270,7 @@ class GameViewModel @Inject constructor(
                                     connectionPhase = connectionPhase
                                 )
                             } else {
-                                createInitialCoopState().copy(
+                                getCachedInitialCoopState().copy(
                                     isConnectionEstablished = connectionState == ConnectionState.CONNECTED,
                                     connectionPhase = connectionPhase
                                 )

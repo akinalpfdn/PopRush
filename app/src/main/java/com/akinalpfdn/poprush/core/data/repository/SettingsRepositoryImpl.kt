@@ -1,6 +1,7 @@
 package com.akinalpfdn.poprush.core.data.repository
 
 import com.akinalpfdn.poprush.core.data.local.GamePreferences
+import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameDifficulty
 import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
@@ -219,5 +220,30 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun markFirstLaunchCompleted() {
         gamePreferences.markFirstLaunchCompleted()
+    }
+
+    // User Profile Settings
+    override suspend fun savePlayerName(playerName: String) {
+        gamePreferences.savePlayerName(playerName)
+    }
+
+    override suspend fun getPlayerName(): String {
+        return try {
+            gamePreferences.getPlayerName().first()
+        } catch (e: Exception) {
+            "Player"
+        }
+    }
+
+    override suspend fun savePlayerColor(playerColor: BubbleColor) {
+        gamePreferences.savePlayerColor(playerColor)
+    }
+
+    override suspend fun getPlayerColor(): BubbleColor {
+        return try {
+            gamePreferences.getPlayerColor().first()
+        } catch (e: Exception) {
+            BubbleColor.ROSE
+        }
     }
 }

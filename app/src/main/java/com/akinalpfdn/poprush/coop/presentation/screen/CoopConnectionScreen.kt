@@ -346,11 +346,19 @@ private fun PlayerBadge(name: String, color: BubbleColor) {
 
 @Composable
 private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
+    // Debug: Log when endpoint item is clicked
+    LaunchedEffect(Unit) {
+        Timber.d("EndpointItem created for: ${endpoint.name} (${endpoint.id})")
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(LightGray, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .clickable(onClick = {
+                Timber.d("Endpoint clicked: ${endpoint.name} (${endpoint.id})")
+                onClick()
+            })
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

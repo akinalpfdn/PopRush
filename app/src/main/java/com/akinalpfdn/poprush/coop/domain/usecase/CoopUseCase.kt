@@ -99,8 +99,8 @@ class CoopUseCase @Inject constructor(
     /**
      * Request connection to a specific host
      */
-    fun requestConnection(endpointId: String): Flow<Result<Unit>> {
-        return nearbyConnectionsManager.requestConnection(endpointId)
+    fun requestConnection(endpointId: String, localEndpointName: String): Flow<Result<Unit>> {
+        return nearbyConnectionsManager.requestConnection(endpointId, localEndpointName)
     }
 
     /**
