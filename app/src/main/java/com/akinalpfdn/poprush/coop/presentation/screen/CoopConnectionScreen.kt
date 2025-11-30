@@ -3,8 +3,6 @@ package com.akinalpfdn.poprush.coop.presentation.screen
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -96,7 +94,7 @@ fun CoopConnectionScreen(
                 PlayerBadge(playerName, playerColor)
             }
 
-             
+            Spacer(modifier = Modifier.height(32.dp))
 
             // -- Dynamic Content --
             Box(
@@ -105,12 +103,10 @@ fun CoopConnectionScreen(
             ) {
                 when (connectionState) {
                     ConnectionState.DISCONNECTED -> {
-                        // Show choice view for users to host or join
-                        DisconnectedView(
-                            isHost = isHost,
-                            onStartHosting = onStartHosting,
-                            onStartDiscovery = onStartDiscovery
-                        )
+                        // FIX: Directly show loading.
+                        // This prevents the "middle part" (buttons) from ever appearing.
+                        // It also fixes the glitch because this view is neutral.
+                        ConnectingView(message = "Initializing...")
                     }
                     ConnectionState.ADVERTISING -> {
                         AdvertisingView(
@@ -125,7 +121,7 @@ fun CoopConnectionScreen(
                         )
                     }
                     ConnectionState.CONNECTING -> {
-                        ConnectingView()
+                        ConnectingView(message = "Connecting...")
                     }
                     ConnectionState.CONNECTED -> {
                         ConnectedView(
@@ -162,99 +158,6 @@ fun CoopConnectionScreen(
 // -------------------------------------------------------------------------
 // Sub-Views
 // -------------------------------------------------------------------------
-
-@Composable
-private fun DisconnectedView(
-    isHost: Boolean,
-    onStartHosting: () -> Unit,
-    onStartDiscovery: () -> Unit
-) {
-    Timber.d("DisconnectedView: isHost = $isHost")
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = if (isHost) "HOSTING GAME" else "JOINING GAME",
-            color = DarkGray,
-            fontSize = 32.sp,
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = if (isHost) "Creating your game room..." else "Searching for nearby games...",
-            color = Color.Gray,
-            fontSize = 16.sp,
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Show appropriate action card based on role
-        if (isHost) {
-            CoopActionCard(
-                title = "Start Hosting",
-                subtitle = "Create a room for others to join",
-                icon = Icons.Default.WifiTethering,
-                onClick = onStartHosting
-            )
-        } else {
-            CoopActionCard(
-                title = "Search for Games",
-                subtitle = "Find nearby game rooms",
-                icon = Icons.Default.Search,
-                onClick = onStartDiscovery
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Show the other option as secondary
-        if (isHost) {
-            OutlinedButton(
-                onClick = onStartDiscovery,
-                modifier = Modifier.fillMaxWidth(),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    width = 1.dp
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Switch to Joining",
-                    fontFamily = FontFamily.Default
-                )
-            }
-        } else {
-            OutlinedButton(
-                onClick = onStartHosting,
-                modifier = Modifier.fillMaxWidth(),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    width = 1.dp
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.WifiTethering,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Switch to Hosting",
-                    fontFamily = FontFamily.Default
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun AdvertisingView(onStopHosting: () -> Unit) {
@@ -364,7 +267,7 @@ private fun DiscoveryView(
 }
 
 @Composable
-private fun ConnectingView() {
+private fun ConnectingView(message: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(
             modifier = Modifier.size(60.dp),
@@ -373,7 +276,7 @@ private fun ConnectingView() {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Connecting...",
+            text = message,
             color = DarkGray,
             fontSize = 20.sp,
             fontFamily = FontFamily.Default,
@@ -438,60 +341,6 @@ private fun PlayerBadge(name: String, color: BubbleColor) {
             color = DarkGray,
             fontSize = 14.sp
         )
-    }
-}
-
-@Composable
-private fun CoopActionCard(
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "scale")
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-            .scale(scale)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkGray),
-        elevation = CardDefaults.cardElevation(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontFamily = FontFamily.Default,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
-                Text(
-                    text = subtitle,
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontFamily = FontFamily.Default,
-                    fontSize = 14.sp
-                )
-            }
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                    .padding(8.dp)
-            )
-        }
     }
 }
 
