@@ -91,53 +91,7 @@ fun CoopConnectionScreen(
                 PlayerBadge(playerName, playerColor)
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // -- Role Indicator --
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isHost) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    }
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = if (isHost) Icons.Default.Add else Icons.Default.Search,
-                        contentDescription = null,
-                        tint = if (isHost) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        },
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = if (isHost) "Hosting Game" else "Joining Game",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isHost) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        },
-                        fontFamily = FontFamily.Default
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
+             
 
             // -- Dynamic Content --
             Box(

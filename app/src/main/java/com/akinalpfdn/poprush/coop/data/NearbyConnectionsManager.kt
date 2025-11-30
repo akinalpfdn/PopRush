@@ -6,6 +6,7 @@ import com.akinalpfdn.poprush.coop.domain.model.ConnectionState
 import com.akinalpfdn.poprush.coop.domain.model.EndpointInfo
 import com.akinalpfdn.poprush.coop.domain.model.NearbyConnectionsManager
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.google.gson.Gson
@@ -122,24 +123,39 @@ class NearbyConnectionsManagerImpl @Inject constructor(
 
     override fun startAdvertising(playerName: String, playerColor: BubbleColor): Flow<Result<Unit>> = callbackFlow {
         try {
-            val advertisingOptions = AdvertisingOptions.Builder()
-                .setStrategy(Strategy.P2P_STAR)
-                .build()
-
-            val localEndpointName = "$playerName:${playerColor.name}"
-
-            connectionsClient.startAdvertising(
-                localEndpointName,
-                SERVICE_ID,
-                connectionLifecycleCallback,
-                advertisingOptions
-            ).addOnSuccessListener {
-                _connectionState.value = ConnectionState.ADVERTISING
-                Timber.d("Started advertising as $localEndpointName")
+            // Check if already advertising to prevent "Status already advertising" error
+            if (_connectionState.value == ConnectionState.ADVERTISING) {
+                Timber.d("Already advertising, skipping duplicate advertising request")
                 trySend(Result.success(Unit))
-            }.addOnFailureListener { exception ->
-                _errorChannel.trySend("Failed to start advertising: ${exception.message}")
-                trySend(Result.failure(exception))
+                // REMOVED: return@callbackFlow
+                // We must let execution fall through to awaitClose to keep the flow alive.
+            } else {
+                val advertisingOptions = AdvertisingOptions.Builder()
+                    .setStrategy(Strategy.P2P_STAR)
+                    .build()
+
+                val localEndpointName = "$playerName:${playerColor.name}"
+
+                connectionsClient.startAdvertising(
+                    localEndpointName,
+                    SERVICE_ID,
+                    connectionLifecycleCallback,
+                    advertisingOptions
+                ).addOnSuccessListener {
+                    _connectionState.value = ConnectionState.ADVERTISING
+                    Timber.d("Started advertising as $localEndpointName")
+                    trySend(Result.success(Unit))
+                }.addOnFailureListener { exception ->
+                    // FIX: Handle 8001 STATUS_ALREADY_ADVERTISING
+                    if (exception is ApiException && exception.statusCode == 8001) {
+                        Timber.w("SDK reports already advertising. Recovering state to ADVERTISING.")
+                        _connectionState.value = ConnectionState.ADVERTISING
+                        trySend(Result.success(Unit))
+                    } else {
+                        _errorChannel.trySend("Failed to start advertising: ${exception.message}")
+                        trySend(Result.failure(exception))
+                    }
+                }
             }
         } catch (e: Exception) {
             trySend(Result.failure(e))
@@ -157,11 +173,24 @@ class NearbyConnectionsManagerImpl @Inject constructor(
             Timber.d("Stopped advertising")
         } catch (e: Exception) {
             Timber.e(e, "Error stopping advertising")
+            // Ensure state is consistent even if stopAdvertising fails
+            if (_connectionState.value == ConnectionState.ADVERTISING) {
+                _connectionState.value = ConnectionState.DISCONNECTED
+            }
         }
     }
 
     override fun startDiscovery(): Flow<Result<Unit>> = callbackFlow {
         try {
+            // Check if already discovering to prevent duplicate discovery requests
+            if (_discoveredEndpoints.value.isNotEmpty()) {
+                Timber.d("Already discovering, skipping duplicate discovery request")
+                trySend(Result.success(Unit))
+                // Note: If you want to keep the flow alive here like in advertising, remove return@callbackFlow
+                // But for now, we keep original behavior unless it causes issues.
+                return@callbackFlow
+            }
+
             val discoveryOptions = DiscoveryOptions.Builder()
                 .setStrategy(Strategy.P2P_STAR)
                 .build()
