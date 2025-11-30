@@ -185,26 +185,27 @@ class NearbyConnectionsManagerImpl @Inject constructor(
             // Check if already discovering to prevent duplicate discovery requests
             if (_discoveredEndpoints.value.isNotEmpty()) {
                 Timber.d("Already discovering, skipping duplicate discovery request")
+                _connectionState.value = ConnectionState.DISCOVERING
                 trySend(Result.success(Unit))
-                // Note: If you want to keep the flow alive here like in advertising, remove return@callbackFlow
-                // But for now, we keep original behavior unless it causes issues.
-                return@callbackFlow
-            }
+                // REMOVED: return@callbackFlow
+                // Execution must fall through to awaitClose to avoid the crash.
+            } else {
+                val discoveryOptions = DiscoveryOptions.Builder()
+                    .setStrategy(Strategy.P2P_STAR)
+                    .build()
 
-            val discoveryOptions = DiscoveryOptions.Builder()
-                .setStrategy(Strategy.P2P_STAR)
-                .build()
-
-            connectionsClient.startDiscovery(
-                SERVICE_ID,
-                endpointDiscoveryCallback,
-                discoveryOptions
-            ).addOnSuccessListener {
-                Timber.d("Started discovery")
-                trySend(Result.success(Unit))
-            }.addOnFailureListener { exception ->
-                _errorChannel.trySend("Failed to start discovery: ${exception.message}")
-                trySend(Result.failure(exception))
+                connectionsClient.startDiscovery(
+                    SERVICE_ID,
+                    endpointDiscoveryCallback,
+                    discoveryOptions
+                ).addOnSuccessListener {
+                    _connectionState.value = ConnectionState.DISCOVERING
+                    Timber.d("Started discovery")
+                    trySend(Result.success(Unit))
+                }.addOnFailureListener { exception ->
+                    _errorChannel.trySend("Failed to start discovery: ${exception.message}")
+                    trySend(Result.failure(exception))
+                }
             }
         } catch (e: Exception) {
             trySend(Result.failure(e))
@@ -212,7 +213,6 @@ class NearbyConnectionsManagerImpl @Inject constructor(
 
         awaitClose { stopDiscovery() }
     }
-
     override fun stopDiscovery() {
         try {
             connectionsClient.stopDiscovery()

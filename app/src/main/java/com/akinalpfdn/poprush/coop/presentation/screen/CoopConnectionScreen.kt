@@ -53,6 +53,11 @@ fun CoopConnectionScreen(
     onBackToMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Debug: Log connection state and discovered endpoints
+    LaunchedEffect(connectionState, discoveredEndpoints) {
+        Timber.d("CoopConnectionScreen: connectionState = $connectionState, isHost = $isHost")
+        Timber.d("CoopConnectionScreen: discoveredEndpoints.size = ${discoveredEndpoints.size}")
+    }
     // Debug: Log when CoopConnectionScreen is rendered
     LaunchedEffect(Unit) {
         Timber.d("CoopConnectionScreen: isHost = $isHost, connectionState = $connectionState")
@@ -298,6 +303,11 @@ private fun DiscoveryView(
     onConnect: (String) -> Unit,
     onStopDiscovery: () -> Unit
 ) {
+    // Debug: Log when DiscoveryView receives endpoints
+    LaunchedEffect(endpoints) {
+        Timber.d("DiscoveryView: endpoints.size = ${endpoints.size}, endpoints = $endpoints")
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = "NEARBY GAMES",

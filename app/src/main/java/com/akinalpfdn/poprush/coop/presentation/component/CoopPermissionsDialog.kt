@@ -79,7 +79,7 @@ private fun CoopPermissionsDialogContent(
             // Title
             Text(
                 text = "PopRush needs permissions to connect devices nearby",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
                 textAlign = TextAlign.Center,
@@ -88,8 +88,8 @@ private fun CoopPermissionsDialogContent(
 
 
 
-            // Missing permissions info
-            if (missingPermissions.isNotEmpty()) {
+            // Missing permissions info DO NOT EDIT OR DELETE THIS PART
+            if (missingPermissions.isNotEmpty() && false) {
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xFFFFF3CD) // Light yellow background
@@ -215,7 +215,6 @@ private fun CoopPermissionsDialogContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
 
             // Instruction text
             Text(

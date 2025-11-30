@@ -63,6 +63,16 @@ fun GameScreen(
 ) {
     val gameState by viewModel.gameState.collectAsStateWithLifecycle()
 
+    // Collect discovered endpoints from CoopUseCase
+    val discoveredEndpoints by viewModel.coopUseCasePublic.discoveredEndpoints.collectAsStateWithLifecycle(
+        initialValue = emptyList()
+    )
+
+    // Debug: Log discovered endpoints changes
+    LaunchedEffect(discoveredEndpoints) {
+        Timber.d("GameScreen: discoveredEndpoints.size = ${discoveredEndpoints.size}, endpoints = $discoveredEndpoints")
+    }
+
     // Get the current context for permission management
     val context = LocalContext.current
 
@@ -240,7 +250,7 @@ fun GameScreen(
                     com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.ERROR -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED // Map ERROR to DISCONNECTED
                 }
             } ?: com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED,
-            discoveredEndpoints = emptyList(), // Will be handled by coop state
+            discoveredEndpoints = discoveredEndpoints,
             errorMessage = gameState.coopErrorMessage,
             isHost = gameState.coopState?.isHost ?: false,
             onPlayerNameChange = { viewModel.processIntent(GameIntent.UpdateCoopPlayerName(it)) },

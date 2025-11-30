@@ -62,6 +62,9 @@ class GameViewModel @Inject constructor(
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
 
+    // Expose CoopUseCase for GameScreen to access discovered endpoints
+    val coopUseCasePublic: com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase = coopUseCase
+
     // Combined settings flow for reactive updates
     private val settingsFlow: Flow<SettingsBundle> = combine(
         listOf(
@@ -1229,6 +1232,8 @@ class GameViewModel @Inject constructor(
                             currentState.copy(coopState = updatedCoopState)
                         }
                     }
+
+                // Note: discoveredEndpoints are handled directly in GameScreen from CoopUseCase
 
                 // Collect error messages
                 coopUseCase.errorMessages

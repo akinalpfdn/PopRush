@@ -155,6 +155,7 @@ private fun CoopConnectionDialogContent(
                             onStartHosting()
                         },
                         onJoinSelected = {
+                            Timber.d("HostJoinSelectionStep: Join clicked - starting discovery")
                             currentStep = CoopConnectionStep.CONNECTION
                             onStartDiscovery()
                         },
