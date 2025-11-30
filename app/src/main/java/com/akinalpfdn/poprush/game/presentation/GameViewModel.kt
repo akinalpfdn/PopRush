@@ -1034,7 +1034,7 @@ class GameViewModel @Inject constructor(
      * Handles starting to host a coop game.
      */
     private fun handleStartHosting() {
-        Timber.d("handleStartHosting() called - setting isHost to true")
+        Timber.tag("COOP_CONNECTION").d("🏠 HANDLE_START_HOSTING: called")
         viewModelScope.launch {
             try {
                 // Update the gameState to reflect that this player is hosting
@@ -1042,7 +1042,7 @@ class GameViewModel @Inject constructor(
                     currentState.copy(coopState = (currentState.coopState ?: getCachedInitialCoopState()).copy(isHost = true))
                 }
                 val coopState = _gameState.value.coopState!!
-                Timber.d("After update, coopState.isHost = ${coopState.isHost}")
+                Timber.tag("COOP_CONNECTION").d("🏠 HOST_STATE: isHost=${coopState.isHost}, name=${coopState.localPlayerName}, color=${coopState.localPlayerColor}")
                 coopUseCase.startHosting(coopState.localPlayerName, coopState.localPlayerColor)
                     .collect { result ->
                         result.onSuccess {

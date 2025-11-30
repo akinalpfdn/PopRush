@@ -72,6 +72,7 @@ class CoopUseCase @Inject constructor(
      * Start advertising this device as host
      */
     fun startHosting(playerName: String, playerColor: BubbleColor): Flow<Result<Unit>> {
+        Timber.tag("COOP_CONNECTION").d("🏠 USECASE_START_HOSTING: $playerName, $playerColor")
         return nearbyConnectionsManager.startAdvertising(playerName, playerColor)
     }
 
