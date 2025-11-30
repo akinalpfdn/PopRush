@@ -61,23 +61,19 @@ class NearbyConnectionsManagerImpl @Inject constructor(
             _connectionInfo.value = connectionInfo
             _connectionState.value = ConnectionState.CONNECTING
 
-            // Automatically accept incoming connections for coop gameplay
-            if (info.isIncomingConnection) {
-                Timber.tag("COOP_CONNECTION").d("🤝 AUTO_ACCEPT: $endpointId, payloadCallback=$payloadCallback")
-                try {
-                    connectionsClient.acceptConnection(endpointId, payloadCallback)
-                        .addOnSuccessListener {
-                            Timber.tag("COOP_CONNECTION").d("✅ ACCEPTED: $endpointId")
-                        }
-                        .addOnFailureListener { exception ->
-                            Timber.tag("COOP_CONNECTION").e("❌ ACCEPT_FAILED: $endpointId - ${exception.message}")
-                            _errorChannel.trySend("Failed to accept connection: ${exception.message}")
-                        }
-                } catch (e: Exception) {
-                    Timber.tag("COOP_CONNECTION").e("❌ ACCEPT_EXCEPTION: $endpointId - ${e.message}")
-                }
-            } else {
-                Timber.tag("COOP_CONNECTION").d("📤 OUTGOING: $endpointId")
+            // Both incoming and outgoing connections need to be accepted for the connection to complete
+            Timber.tag("COOP_CONNECTION").d("🤝 CONNECTION_READY: $endpointId, isIncoming=${info.isIncomingConnection}")
+            try {
+                connectionsClient.acceptConnection(endpointId, payloadCallback)
+                    .addOnSuccessListener {
+                        Timber.tag("COOP_CONNECTION").d("✅ ACCEPTED: $endpointId (${if (info.isIncomingConnection) "incoming" else "outgoing"})")
+                    }
+                    .addOnFailureListener { exception ->
+                        Timber.tag("COOP_CONNECTION").e("❌ ACCEPT_FAILED: $endpointId (${if (info.isIncomingConnection) "incoming" else "outgoing"}) - ${exception.message}")
+                        _errorChannel.trySend("Failed to accept connection: ${exception.message}")
+                    }
+            } catch (e: Exception) {
+                Timber.tag("COOP_CONNECTION").e("❌ ACCEPT_EXCEPTION: $endpointId - ${e.message}")
             }
         }
 
