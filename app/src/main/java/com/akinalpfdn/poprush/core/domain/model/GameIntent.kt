@@ -289,6 +289,11 @@ sealed interface GameIntent {
     data object StopHosting : GameIntent
 
     /**
+     * Starts the coop game after players are connected.
+     */
+    data object StartCoopGame : GameIntent
+
+    /**
      * Starts discovering coop games.
      */
     data object StartDiscovery : GameIntent

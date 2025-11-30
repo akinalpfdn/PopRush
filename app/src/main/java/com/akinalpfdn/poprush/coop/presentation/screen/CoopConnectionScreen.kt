@@ -49,6 +49,7 @@ fun CoopConnectionScreen(
     onConnectToEndpoint: (String) -> Unit,
     onDisconnect: () -> Unit,
     onBackToMenu: () -> Unit,
+    onStartGame: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Debug: Log connection state and discovered endpoints
@@ -125,7 +126,9 @@ fun CoopConnectionScreen(
                     }
                     ConnectionState.CONNECTED -> {
                         ConnectedView(
-                            onDisconnect = onDisconnect
+                            isHost = isHost,
+                            onDisconnect = onDisconnect,
+                            onStartGame = onStartGame
                         )
                     }
                 }
@@ -286,7 +289,12 @@ private fun ConnectingView(message: String) {
 }
 
 @Composable
-private fun ConnectedView(onDisconnect: () -> Unit) {
+private fun ConnectedView(isHost: Boolean, onDisconnect: () -> Unit, onStartGame: () -> Unit) {
+    // Debug: Log isHost value when ConnectedView is rendered
+    LaunchedEffect(isHost) {
+        Timber.tag("COOP_CONNECTION").d("🏠 CONNECTED_VIEW: isHost = $isHost")
+    }
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
             imageVector = Icons.Default.CheckCircle,
@@ -305,6 +313,27 @@ private fun ConnectedView(onDisconnect: () -> Unit) {
 
         Spacer(modifier = Modifier.height(48.dp))
 
+        // Start Game Button (Host only)
+        Timber.tag("COOP_CONNECTION").d("🏠 BUTTON_VISIBILITY: isHost = $isHost, shouldShowStartButton = ${isHost}")
+        if (isHost) {
+            Button(
+                onClick = {
+                    Timber.tag("COOP_CONNECTION").d("🎮 START_GAME_CLICKED: Host clicked Start Game button")
+                    onStartGame()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = DarkGray),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) {
+                Text("Start Game", fontFamily = FontFamily.Default, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        } else {
+            Timber.tag("COOP_CONNECTION").d("🏠 NO_START_BUTTON: Client device, isHost = $isHost")
+        }
+
+        // Disconnect Button (both players can disconnect)
         Button(
             onClick = onDisconnect,
             colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),

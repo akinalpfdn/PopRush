@@ -262,6 +262,7 @@ fun GameScreen(
             onStopDiscovery = { viewModel.processIntent(GameIntent.StopDiscovery) },
             onConnectToEndpoint = { viewModel.processIntent(GameIntent.ConnectToEndpoint(it)) },
             onDisconnect = { viewModel.processIntent(GameIntent.DisconnectCoop) },
+            onStartGame = { viewModel.processIntent(GameIntent.StartCoopGame) },
             onClose = { viewModel.processIntent(GameIntent.CloseCoopConnection) },
             modifier = Modifier.fillMaxSize()
         )

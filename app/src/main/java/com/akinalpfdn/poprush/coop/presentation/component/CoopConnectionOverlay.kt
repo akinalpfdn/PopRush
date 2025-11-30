@@ -59,6 +59,7 @@ fun CoopConnectionOverlay(
     onStopDiscovery: () -> Unit,
     onConnectToEndpoint: (String) -> Unit,
     onDisconnect: () -> Unit,
+    onStartGame: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -151,6 +152,7 @@ fun CoopConnectionOverlay(
                         onStartDiscovery = onStartDiscovery,
                         onConnectToEndpoint = onConnectToEndpoint,
                         onDisconnect = onDisconnect,
+                        onStartGame = onStartGame,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -177,6 +179,7 @@ private fun CoopConnectionDialogContent(
     onStartDiscovery: () -> Unit,
     onConnectToEndpoint: (String) -> Unit,
     onDisconnect: () -> Unit,
+    onStartGame: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
@@ -225,6 +228,7 @@ private fun CoopConnectionDialogContent(
                     CoopConnectionScreen(
                         playerName = playerName,
                         playerColor = playerColor,
+                        isHost = isHost,
                         connectionState = connectionState,
                         discoveredEndpoints = discoveredEndpoints,
                         errorMessage = errorMessage,
@@ -236,6 +240,7 @@ private fun CoopConnectionDialogContent(
                         onStopDiscovery = { onBack() },
                         onConnectToEndpoint = onConnectToEndpoint,
                         onDisconnect = onDisconnect,
+                        onStartGame = onStartGame,
                         onBackToMenu = onBack,
                         modifier = Modifier.fillMaxSize()
                     )

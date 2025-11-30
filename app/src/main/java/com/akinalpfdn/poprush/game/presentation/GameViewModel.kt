@@ -205,6 +205,7 @@ class GameViewModel @Inject constructor(
             is GameIntent.StopDiscovery -> handleStopDiscovery()
             is GameIntent.ConnectToEndpoint -> handleConnectToEndpoint(intent.endpointId)
             is GameIntent.DisconnectCoop -> handleDisconnectCoop()
+            is GameIntent.StartCoopGame -> handleStartCoopGame()
             is GameIntent.CloseCoopConnection -> handleCloseCoopConnection()
             is GameIntent.AudioIntent -> handleAudioIntent(intent)
             // Game Mode Selection Intents
@@ -1155,6 +1156,33 @@ class GameViewModel @Inject constructor(
                 Timber.e(e, "Failed to connect to endpoint")
                 _gameState.update {
                     it.copy(coopErrorMessage = "Failed to connect: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Handles starting the coop game after connection is established.
+     */
+    private fun handleStartCoopGame() {
+        Timber.tag("COOP_CONNECTION").d("🎮 HANDLE_START_COOP_GAME: Starting coop game!")
+        viewModelScope.launch {
+            try {
+                // Update the coop state to start the game
+                _gameState.update { currentState ->
+                    currentState.coopState?.let { coopState ->
+                        val updatedCoopState = coopState.copy(
+                            gamePhase = com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase.PLAYING,
+                            gameStartTime = System.currentTimeMillis()
+                        )
+                        currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
+                    } ?: currentState
+                }
+                Timber.tag("COOP_CONNECTION").d("🎮 COOP_GAME_STARTED: Game is now in progress")
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to start coop game")
+                _gameState.update {
+                    it.copy(coopErrorMessage = "Failed to start game: ${e.message}")
                 }
             }
         }
