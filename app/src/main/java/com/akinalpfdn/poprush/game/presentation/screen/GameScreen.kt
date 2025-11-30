@@ -141,6 +141,7 @@ fun GameScreen(
             onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
             onDisconnectCoop = { viewModel.processIntent(GameIntent.DisconnectCoop) },
             onStartCoopConnection = { viewModel.processIntent(GameIntent.StartCoopConnection) },
+            onStartMatch = { viewModel.processIntent(GameIntent.StartCoopMatch) },
             permissionManager = permissionManager,
             showPermissionsDialog = showPermissionsDialog,
             onShowPermissionsDialog = { showPermissionsDialog = true },
@@ -286,6 +287,7 @@ private fun GameContent(
     onGameModSelected: (com.akinalpfdn.poprush.core.domain.model.GameMod) -> Unit,
     onDisconnectCoop: () -> Unit,
     onStartCoopConnection: () -> Unit,
+    onStartMatch: () -> Unit,
     permissionManager: com.akinalpfdn.poprush.coop.presentation.permission.CoopPermissionManager,
     showPermissionsDialog: Boolean,
     onShowPermissionsDialog: () -> Unit,
@@ -317,7 +319,7 @@ private fun GameContent(
         ) {
             // Always show the appropriate main content with smooth transitions
             when {
-                !gameState.isPlaying && !gameState.isGameOver -> {
+                !gameState.isPlaying && !gameState.isGameOver && (!gameState.isCoopMode || gameState.coopState == null || gameState.coopState.gamePhase == com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase.WAITING) -> {
                     AnimatedContent(
                         targetState = gameState.currentScreen,
                         transitionSpec = {
@@ -377,9 +379,12 @@ private fun GameContent(
                         // Coop gameplay
                         CoopGameplayScreen(
                             coopGameState = gameState.coopState,
+                            selectedDuration = gameState.selectedDuration,
                             onBubbleClick = onBubblePress,
                             onPause = onTogglePause,
                             onDisconnect = onDisconnectCoop,
+                            onStartMatch = onStartMatch,
+                            onDurationChange = onDurationChange,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {

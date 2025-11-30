@@ -282,21 +282,10 @@ sealed interface GameIntent {
      * Starts hosting a coop game.
      */
     data object StartHosting : GameIntent
-
     /**
      * Stops hosting a coop game.
      */
     data object StopHosting : GameIntent
-
-    /**
-     * Starts the coop game after players are connected.
-     */
-    data object StartCoopGame : GameIntent
-
-    /**
-     * Starts discovering coop games.
-     */
-    data object StartDiscovery : GameIntent
 
     /**
      * Stops discovering coop games.
@@ -304,10 +293,25 @@ sealed interface GameIntent {
     data object StopDiscovery : GameIntent
 
     /**
+     * Starts discovering coop games.
+     */
+    data object StartDiscovery : GameIntent
+
+    /**
      * Connects to a specific endpoint.
      * @param endpointId The ID of the endpoint to connect to
      */
     data class ConnectToEndpoint(val endpointId: String) : GameIntent
+
+    /**
+     * Starts the coop game setup phase (after connection).
+     */
+    data object StartCoopGame : GameIntent
+
+    /**
+     * Starts the actual coop match (after setup).
+     */
+    data object StartCoopMatch : GameIntent
 
     /**
      * Disconnects from coop game.

@@ -154,11 +154,10 @@ class GameViewModel @Inject constructor(
             is GameIntent.ConnectToEndpoint -> coopHandler.handleConnectToEndpoint(intent.endpointId)
             is GameIntent.DisconnectCoop -> coopHandler.handleDisconnectCoop()
             is GameIntent.StartCoopGame -> coopHandler.handleStartCoopGame()
+            is GameIntent.StartCoopMatch -> coopHandler.handleStartCoopMatch()
             is GameIntent.CloseCoopConnection -> coopHandler.handleCloseCoopConnection()
-            
+
             is GameIntent.AudioIntent -> handleAudioIntent(intent)
-            
-            // Game Mode Selection Intents
             is GameIntent.SelectGameMode -> handleSelectGameMode(intent.mode)
             is GameIntent.SelectGameMod -> handleSelectGameMod(intent.mod)
             

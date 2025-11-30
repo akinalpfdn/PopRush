@@ -249,7 +249,28 @@ class CoopHandler @Inject constructor(
     }
 
     fun handleStartCoopGame() {
-        Timber.tag("COOP_CONNECTION").d("🎮 HANDLE_START_COOP_GAME: Starting coop game!")
+        Timber.tag("COOP_CONNECTION").d("🎮 HANDLE_START_COOP_GAME: Entering setup phase")
+        scope.launch {
+            try {
+                gameStateFlow.update { currentState ->
+                    currentState.coopState?.let { coopState ->
+                        val updatedCoopState = coopState.copy(
+                            gamePhase = CoopGamePhase.SETUP
+                        )
+                        currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
+                    } ?: currentState
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to enter coop setup")
+                gameStateFlow.update {
+                    it.copy(coopErrorMessage = "Failed to enter setup: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun handleStartCoopMatch() {
+        Timber.tag("COOP_CONNECTION").d("🎮 HANDLE_START_COOP_MATCH: Starting coop match!")
         scope.launch {
             try {
                 coopUseCase.sendGameStart().collect { result ->
@@ -266,7 +287,7 @@ class CoopHandler @Inject constructor(
                             gamePhase = CoopGamePhase.PLAYING,
                             gameStartTime = System.currentTimeMillis()
                         )
-                        currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
+                        currentState.copy(coopState = updatedCoopState)
                     } ?: currentState
                 }
                 Timber.tag("COOP_CONNECTION").d("🎮 COOP_GAME_STARTED: Game is now in progress")

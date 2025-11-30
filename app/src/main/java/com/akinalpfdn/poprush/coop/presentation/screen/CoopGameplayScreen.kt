@@ -43,9 +43,12 @@ import com.akinalpfdn.poprush.core.ui.theme.PastelColors
 @Composable
 fun CoopGameplayScreen(
     coopGameState: CoopGameState,
+    selectedDuration: kotlin.time.Duration,
     onBubbleClick: (Int) -> Unit,
     onPause: () -> Unit,
     onDisconnect: () -> Unit,
+    onStartMatch: () -> Unit,
+    onDurationChange: (kotlin.time.Duration) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -76,10 +79,21 @@ fun CoopGameplayScreen(
             ) {
                 when (coopGameState.currentPhase) {
                     CoopGamePhase.SETUP -> {
-                        WaitingPhaseContent(
-                            coopGameState = coopGameState,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        if (coopGameState.isHost) {
+                            CoopSetupScreen(
+                                coopGameState = coopGameState,
+                                selectedDuration = selectedDuration,
+                                onStartMatch = onStartMatch,
+                                onDurationChange = onDurationChange,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            WaitingPhaseContent(
+                                coopGameState = coopGameState,
+                                message = "Host is setting up the game...",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                     CoopGamePhase.WAITING -> {
                         WaitingPhaseContent(
@@ -350,6 +364,7 @@ private fun TimerDisplay(
 @Composable
 private fun WaitingPhaseContent(
     coopGameState: CoopGameState,
+    message: String = "Waiting for Players",
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -367,7 +382,7 @@ private fun WaitingPhaseContent(
             )
 
             Text(
-                text = "Waiting for Players",
+                text = message,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
