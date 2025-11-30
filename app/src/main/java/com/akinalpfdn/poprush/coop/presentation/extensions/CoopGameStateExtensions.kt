@@ -9,6 +9,7 @@ import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.model.GameMode
 import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
+import timber.log.Timber
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -49,7 +50,7 @@ val CoopGameState.timeRemaining: Long
 
         // Debug logging
         if (currentPhase == CoopGamePhase.PLAYING) {
-            //Timber.tag("COOP_TIMER").v("Timer: duration=$gameDuration, elapsed=$elapsed, remaining=$remaining, phase=$currentPhase")
+            Timber.tag("COOP_TIMER").v("Timer: duration=$gameDuration, elapsed=$elapsed, remaining=$remaining, phase=$currentPhase")
         }
 
         return remaining
@@ -60,6 +61,9 @@ val CoopGameState.timeRemaining: Long
  */
 fun CoopGameState.toGameState(): GameState {
     val timeRemainingDuration = timeRemaining.milliseconds
+
+    // Debug logging
+    Timber.tag("COOP_TIMER").d("toGameState: phase=$currentPhase, timeRemaining=$timeRemaining, duration=${timeRemainingDuration}, gameStartTime=$gameStartTime, gameDuration=$gameDuration")
     val convertedBubbles = bubbles.map { coopBubble ->
         com.akinalpfdn.poprush.core.domain.model.Bubble(
             id = coopBubble.id,

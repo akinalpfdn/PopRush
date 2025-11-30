@@ -310,11 +310,16 @@ private fun GameContent(
             .padding(horizontal = 8.dp, vertical = 32.dp), // Much less horizontal padding
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Game header with score, timer, and high score
-        GameHeader(
-            gameState = gameState,
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (gameState.isCoopMode && gameState.coopState != null) {
+        }
+        else{
+            // Game header with score, timer, and high score
+            GameHeader(
+                gameState = gameState,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -392,6 +397,12 @@ private fun GameContent(
                             onDisconnect = onDisconnectCoop,
                             onStartMatch = onStartMatch,
                             onDurationChange = onDurationChange,
+                            onPlayAgain = {
+                                // Reset coop game and start over
+                                Timber.tag("GAME_SCREEN").d("🔄 PLAY_AGAIN_CLICKED: Resetting coop game")
+                                onDisconnectCoop()  // Disconnect current game
+                                onStartCoopConnection()  // Start new connection
+                            },
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
