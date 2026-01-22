@@ -75,8 +75,9 @@ class SpeedModeTimerUseCase @Inject constructor(
 
     /**
      * Starts the speed mode timer.
+     * @param resetElapsed If true, resets elapsed time to zero (default: true for fresh starts)
      */
-    fun startTimer() {
+    fun startTimer(resetElapsed: Boolean = true) {
         if (isTimerRunning.compareAndSet(false, true)) {
             // Cancel any existing timer job first
             timerJob?.cancel()
@@ -84,14 +85,29 @@ class SpeedModeTimerUseCase @Inject constructor(
 
             _timerState.value = SpeedModeTimerState.RUNNING
             lastUpdateTime = System.currentTimeMillis()
-            elapsedTime = Duration.ZERO
-            lastActivationTime = System.currentTimeMillis() + INITIAL_DELAY_MS
+
+            // Only reset elapsed time if this is a fresh start (not a resume)
+            if (resetElapsed) {
+                elapsedTime = Duration.ZERO
+                lastActivationTime = System.currentTimeMillis() + INITIAL_DELAY_MS
+            } else {
+                // When resuming, set lastActivationTime to trigger soon
+                lastActivationTime = System.currentTimeMillis()
+            }
 
             timerJob = timerScope.launch {
-                // Initial delay before first activation
-                delay(INITIAL_DELAY_MS)
-                if (isActive) {
-                    triggerBubbleActivation()
+                // If resuming, trigger immediately
+                if (!resetElapsed && isActive) {
+                    delay(100)
+                    if (isActive) {
+                        triggerBubbleActivation()
+                    }
+                } else {
+                    // Initial delay before first activation
+                    delay(INITIAL_DELAY_MS)
+                    if (isActive) {
+                        triggerBubbleActivation()
+                    }
                 }
 
                 // Main timer loop
@@ -141,6 +157,7 @@ class SpeedModeTimerUseCase @Inject constructor(
      */
     fun pauseTimer() {
         if (isTimerRunning.get()) {
+            isTimerRunning.set(false)  // Important: reset the flag so startTimer() can work again
             timerJob?.cancel()
             timerJob = null
             _timerState.value = SpeedModeTimerState.PAUSED
@@ -152,7 +169,7 @@ class SpeedModeTimerUseCase @Inject constructor(
      */
     fun resumeTimer() {
         if (_timerState.value == SpeedModeTimerState.PAUSED) {
-            startTimer()
+            startTimer(resetElapsed = false)  // Preserve elapsed time when resuming
         }
     }
 

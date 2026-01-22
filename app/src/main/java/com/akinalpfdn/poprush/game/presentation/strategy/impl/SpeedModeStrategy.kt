@@ -40,10 +40,11 @@ class SpeedModeStrategy(
     }
 
     override suspend fun startGame() {
-        // Check if job is active to prevent multiple listeners
-        if (speedModeCollectorJob?.isActive == true) {
-            return
-        }
+        // Clean up any existing state before starting fresh
+        speedModeCollectorJob?.cancel()
+        speedModeCollectorJob = null
+        dependencies.speedModeTimerUseCase.stopTimer()
+        dependencies.speedModeUseCase.resetSpeedMode()
 
         // Wait briefly for UI transition
         kotlinx.coroutines.delay(500)

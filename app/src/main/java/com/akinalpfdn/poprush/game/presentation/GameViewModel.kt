@@ -450,22 +450,17 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    private fun switchStrategy(mod: GameMod) {
-        // Clean up current strategy if different
-        if (activeStrategy?.modeId != mod.name.lowercase() && activeStrategy !is CoopModeStrategy) {
-            activeStrategy?.cleanup()
-        }
+    private suspend fun switchStrategy(mod: GameMod) {
+        // Clean up current strategy
+        activeStrategy?.cleanup()
 
-        // Get new strategy from factory
-        val newStrategy = strategyFactory.getStrategy(mod)
+        // Create fresh strategy from factory
+        val newStrategy = strategyFactory.createStrategy(mod)
 
-        // Initialize if not already initialized
-        if (newStrategy != activeStrategy) {
-            viewModelScope.launch {
-                newStrategy.initialize(viewModelScope, _gameState)
-            }
-            activeStrategy = newStrategy
-        }
+        // Initialize immediately (synchronous within this suspend function)
+        newStrategy.initialize(viewModelScope, _gameState)
+
+        activeStrategy = newStrategy
 
         Timber.d("Switched to strategy: ${newStrategy.modeId}")
     }

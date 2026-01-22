@@ -10,29 +10,18 @@ import javax.inject.Singleton
 
 /**
  * Factory for creating game mode strategy instances.
- * Uses a registry pattern to support easy addition of new game modes.
+ * Creates fresh instances each time to avoid state pollution between mode switches.
  */
 @Singleton
 class GameModeStrategyFactory @Inject constructor(
     val dependencies: GameModeDependencies
 ) {
-    private val strategies = mutableMapOf<GameMod, GameModeStrategy>()
-
-    /**
-     * Get or create a strategy for the given game mode.
-     * Strategies are cached for reuse.
-     */
-    fun getStrategy(mod: GameMod): GameModeStrategy {
-        return strategies.getOrPut(mod) {
-            createStrategy(mod)
-        }
-    }
-
     /**
      * Create a new strategy instance for the given game mode.
+     * Always creates a fresh instance to ensure clean state.
      */
-    private fun createStrategy(mod: GameMod): GameModeStrategy {
-        Timber.d("Creating strategy for mode: $mod")
+    fun createStrategy(mod: GameMod): GameModeStrategy {
+        Timber.d("Creating fresh strategy for mode: $mod")
         return when (mod) {
             GameMod.CLASSIC -> ClassicModeStrategy(dependencies)
             GameMod.SPEED -> SpeedModeStrategy(dependencies)
@@ -58,13 +47,5 @@ class GameModeStrategyFactory @Inject constructor(
      */
     fun getAvailableModes(): List<GameMod> {
         return GameMod.entries
-    }
-
-    /**
-     * Clear cached strategies (useful for testing or memory management).
-     */
-    fun clearCache() {
-        strategies.forEach { (_, strategy) -> strategy.cleanup() }
-        strategies.clear()
     }
 }
