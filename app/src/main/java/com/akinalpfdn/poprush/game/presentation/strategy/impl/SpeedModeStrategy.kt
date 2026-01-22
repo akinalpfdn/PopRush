@@ -40,11 +40,11 @@ class SpeedModeStrategy(
     }
 
     override suspend fun startGame() {
-        // Clean up any existing state before starting fresh
+        // Stop any existing timer before starting fresh
+        // Stop any existing timer before starting fresh
+        dependencies.speedModeTimerUseCase.stopTimer()
         speedModeCollectorJob?.cancel()
         speedModeCollectorJob = null
-        dependencies.speedModeTimerUseCase.stopTimer()
-        dependencies.speedModeUseCase.resetSpeedMode()
 
         // Wait briefly for UI transition
         kotlinx.coroutines.delay(500)
@@ -183,7 +183,10 @@ class SpeedModeStrategy(
     }
 
     private suspend fun handleSpeedModeGameOver() {
-        stopTimerInternal()
+        // Stop any existing timer before starting fresh
+        dependencies.speedModeTimerUseCase.stopTimer()
+        speedModeCollectorJob?.cancel()
+        speedModeCollectorJob = null
 
         val currentState = stateFlow.value
 
@@ -219,7 +222,10 @@ class SpeedModeStrategy(
     }
 
     override suspend fun resetGame() {
-        stopTimerInternal()
+        // Stop any existing timer before starting fresh
+        dependencies.speedModeTimerUseCase.stopTimer()
+        speedModeCollectorJob?.cancel()
+        speedModeCollectorJob = null
         dependencies.speedModeUseCase.resetSpeedMode()
 
         stateFlow.update { currentState ->
@@ -238,26 +244,14 @@ class SpeedModeStrategy(
     }
 
     override fun cleanup() {
-        if (this::scope.isInitialized) {
-            scope.launch {
-                stopTimerInternal()
-            }
-        }
-        dependencies.speedModeTimerUseCase.cleanup()
-        dependencies.speedModeUseCase.resetSpeedMode()
-    }
-
-    override fun getConfig(): GameModeConfig = config
-
-    private fun stopTimer() {
-        if (this::scope.isInitialized) {
-            scope.launch { stopTimerInternal() }
-        }
-    }
-
-    private suspend fun stopTimerInternal() {
+        // Stop timer and collector job only - do NOT call cleanup() on the UseCase
+        // as that would destroy the coroutine scope permanently
         dependencies.speedModeTimerUseCase.stopTimer()
         speedModeCollectorJob?.cancel()
         speedModeCollectorJob = null
+        // Do NOT call dependencies.speedModeTimerUseCase.cleanup() here
+        // Do NOT call resetSpeedMode() here - that resets game state
     }
+
+    override fun getConfig(): GameModeConfig = config
 }

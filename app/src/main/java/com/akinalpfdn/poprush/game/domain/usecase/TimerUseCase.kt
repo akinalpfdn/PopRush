@@ -109,7 +109,7 @@ class TimerUseCase @Inject constructor() {
     /**
      * Stops the timer completely.
      */
-    suspend fun stopTimer() {
+    fun stopTimer() {
         try {
             timerJob?.cancel()
             timerJob = null

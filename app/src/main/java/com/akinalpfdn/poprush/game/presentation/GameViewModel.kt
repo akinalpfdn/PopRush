@@ -93,6 +93,9 @@ class GameViewModel @Inject constructor(
         // Load initial game data
         processIntent(GameIntent.LoadGameData)
 
+        // Initialize strategies once (like the original handlers)
+        initializeStrategies()
+
         // Initialize coop handler (still used for connection management)
         coopHandler.init(viewModelScope, _gameState)
 
@@ -104,6 +107,22 @@ class GameViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         Timber.d("GameViewModel initialized with strategy pattern")
+    }
+
+    /**
+     * Initialize all strategies once with the scope and state flow.
+     * This matches the original handler behavior where handlers were initialized once.
+     */
+    private fun initializeStrategies() {
+        val classicStrategy = strategyFactory.getStrategy(GameMod.CLASSIC)
+        val speedStrategy = strategyFactory.getStrategy(GameMod.SPEED)
+
+        viewModelScope.launch {
+            classicStrategy.initialize(viewModelScope, _gameState)
+            speedStrategy.initialize(viewModelScope, _gameState)
+        }
+
+        Timber.d("All strategies initialized")
     }
 
     /**
@@ -438,8 +457,9 @@ class GameViewModel @Inject constructor(
 
     private fun handleSelectGameMod(mod: GameMod) {
         viewModelScope.launch {
-            // Switch strategy based on selected mod
-            switchStrategy(mod)
+            // Just switch to the already-initialized strategy
+            val strategy = strategyFactory.getStrategy(mod)
+            activeStrategy = strategy
 
             _gameState.update {
                 it.copy(
@@ -447,23 +467,12 @@ class GameViewModel @Inject constructor(
                     currentScreen = StartScreenFlow.GAME_SETUP
                 )
             }
+
+            Timber.d("Switched to strategy: ${strategy.modeId}")
         }
     }
 
-    private suspend fun switchStrategy(mod: GameMod) {
-        // Clean up current strategy
-        activeStrategy?.cleanup()
-
-        // Create fresh strategy from factory
-        val newStrategy = strategyFactory.createStrategy(mod)
-
-        // Initialize immediately (synchronous within this suspend function)
-        newStrategy.initialize(viewModelScope, _gameState)
-
-        activeStrategy = newStrategy
-
-        Timber.d("Switched to strategy: ${newStrategy.modeId}")
-    }
+    // Removed switchStrategy - no longer needed since strategies are pre-initialized
 
     // ============ Navigation ============
 

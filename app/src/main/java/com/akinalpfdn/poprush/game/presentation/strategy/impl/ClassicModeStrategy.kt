@@ -34,6 +34,9 @@ class ClassicModeStrategy(
     }
 
     override suspend fun startGame() {
+        // Stop any existing timer before starting fresh
+        dependencies.timerUseCase.stopTimer()
+
         val currentState = stateFlow.value
         val newBubbles = dependencies.initializeGameUseCase.execute()
 
@@ -196,9 +199,9 @@ class ClassicModeStrategy(
     }
 
     override fun cleanup() {
-        // Launch in a scope if available, otherwise create a new one
+        // Synchronous cleanup - stopTimer() is now non-suspend
         if (this::scope.isInitialized) {
-            scope.launch { dependencies.timerUseCase.stopTimer() }
+            dependencies.timerUseCase.stopTimer()
         }
     }
 
