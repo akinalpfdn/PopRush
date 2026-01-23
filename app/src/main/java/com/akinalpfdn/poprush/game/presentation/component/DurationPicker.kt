@@ -1,5 +1,7 @@
 package com.akinalpfdn.poprush.game.presentation.component
 
+import androidx.compose.ui.platform.LocalDensity
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
@@ -49,18 +51,27 @@ fun DurationPicker(
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
 
-    LaunchedEffect(listState.isScrollInProgress) {
-        if (!listState.isScrollInProgress) {
+    val centeredIndex by remember {
+        derivedStateOf {
             val layoutInfo = listState.layoutInfo
             val centerOffset = layoutInfo.viewportEndOffset / 2
-            val centeredItem = layoutInfo.visibleItemsInfo.minByOrNull {
+            
+            // Find item that physically occupies the center pixel
+            val item = layoutInfo.visibleItemsInfo.find { 
+                centerOffset >= it.offset && centerOffset <= (it.offset + it.size)
+            } ?: layoutInfo.visibleItemsInfo.minByOrNull {
                 abs((it.offset + it.size / 2) - centerOffset)
             }
+            item?.index
+        }
+    }
 
-            centeredItem?.let {
-                val index = it.index.coerceIn(0, secondsList.size - 1)
-                if (secondsList[index].seconds != selectedDuration) {
-                    onDurationChange(secondsList[index].seconds)
+    LaunchedEffect(listState.isScrollInProgress, centeredIndex) {
+        if (!listState.isScrollInProgress) {
+            centeredIndex?.let { index ->
+                val safeIndex = index.coerceIn(0, secondsList.size - 1)
+                if (secondsList[safeIndex].seconds != selectedDuration) {
+                    onDurationChange(secondsList[safeIndex].seconds)
                 }
             }
         }
@@ -122,6 +133,8 @@ fun DurationPicker(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 itemsIndexed(secondsList) { index, second ->
+                    val density = LocalDensity.current
+                    val itemHeightPx = with(density) { itemHeight.toPx() }
 
                     val scale by remember {
                         derivedStateOf {
@@ -132,7 +145,7 @@ fun DurationPicker(
                             if (itemInfo != null) {
                                 val itemCenter = itemInfo.offset + itemInfo.size / 2
                                 val distance = abs(centerOffset - itemCenter)
-                                val maxDistance = itemHeight.value * 2
+                                val maxDistance = itemHeightPx * 2
                                 (1.2f - (distance / maxDistance) * 0.4f).coerceIn(0.8f, 1.2f)
                             } else {
                                 0.8f
@@ -149,13 +162,15 @@ fun DurationPicker(
                             if (itemInfo != null) {
                                 val itemCenter = itemInfo.offset + itemInfo.size / 2
                                 val distance = abs(centerOffset - itemCenter)
-                                val maxDistance = itemHeight.value * 2
+                                val maxDistance = itemHeightPx * 2
                                 (1f - (distance / maxDistance) * 0.8f).coerceIn(0.2f, 1f)
                             } else {
                                 0.2f
                             }
                         }
                     }
+
+                    val isSelected = index == centeredIndex
 
                     Box(
                         modifier = Modifier
@@ -166,9 +181,9 @@ fun DurationPicker(
                     ) {
                         Text(
                             text = "${second}s",
-                            color = if (scale > 1.1f) AppColors.DarkGray else AppColors.Text.Label,
+                            color = if (isSelected) AppColors.DarkGray else AppColors.Text.Label,
                             fontSize = 20.sp,
-                            fontWeight = if (scale > 1.1f) FontWeight.Black else FontWeight.Medium,
+                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium,
                             textAlign = TextAlign.Center
                         )
                     }
