@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameMod
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 
 private val DarkGray = Color(0xFF1C1917)
 private val ClassicGreen = Color(0xFF4ADE80)
@@ -58,7 +59,7 @@ fun ModPickerScreen(
                         text = "Game Modes",
                         color = DarkGray,
                         fontSize = 32.sp,
-                        fontFamily = roundedFont,
+                        fontFamily = NunitoFontFamily,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 1.sp
                     )
@@ -67,7 +68,7 @@ fun ModPickerScreen(
                         text = "Select your challenge",
                         color = Color.Gray,
                         fontSize = 16.sp,
-                        fontFamily = roundedFont,
+                        fontFamily = NunitoFontFamily,
                         fontWeight = FontWeight.Medium
                     )
 
@@ -159,7 +160,7 @@ private fun ModCard(
                 Text(
                     text = title,
                     color = Color.White,
-                    fontFamily = roundedFont,
+                    fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
@@ -169,7 +170,7 @@ private fun ModCard(
                 Text(
                     text = description,
                     color = Color.White.copy(alpha = 0.6f),
-                    fontFamily = roundedFont,
+                    fontFamily = NunitoFontFamily,
                     fontSize = 13.sp,
                     lineHeight = 18.sp
                 )

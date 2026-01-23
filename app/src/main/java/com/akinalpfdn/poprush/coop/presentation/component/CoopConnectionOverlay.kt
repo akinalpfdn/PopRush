@@ -27,6 +27,7 @@ import com.akinalpfdn.poprush.coop.domain.model.ConnectionState
 import com.akinalpfdn.poprush.coop.presentation.screen.CoopConnectionScreen
 import com.akinalpfdn.poprush.coop.presentation.screen.CoopPlayerSetupScreen
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 import timber.log.Timber
 
 // Theme Colors
@@ -296,7 +297,7 @@ private fun HostJoinSelectionStep(
             text = "MULTIPLAYER",
             style = MaterialTheme.typography.headlineMedium,
             color = DarkGray,
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp
         )
@@ -357,7 +358,7 @@ private fun ProfileSummaryPill(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = name.ifEmpty { "Player" },
-                fontFamily = FontFamily.Default,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold,
                 color = DarkGray,
                 fontSize = 14.sp
@@ -409,14 +410,14 @@ private fun CoopActionCard(
                 Text(
                     text = title,
                     color = Color.White,
-                    fontFamily = FontFamily.Default,
+                    fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
                 Text(
                     text = subtitle,
                     color = Color.White.copy(alpha = 0.6f),
-                    fontFamily = FontFamily.Default,
+                    fontFamily = NunitoFontFamily,
                     fontSize = 14.sp
                 )
             }

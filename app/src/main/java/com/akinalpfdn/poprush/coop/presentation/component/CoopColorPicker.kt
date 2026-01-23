@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.R
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
+
 /**
  * Color picker component for coop mode player color selection.
  *
@@ -51,7 +53,7 @@ fun CoopColorPicker(
         Text(
             text = title,
             style = MaterialTheme.typography.headlineSmall,
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
@@ -108,7 +110,7 @@ fun CoopColorPicker(
                 text = "You",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -135,14 +137,14 @@ fun CoopColorPicker(
                     text = "Opponent",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = FontFamily.Default
+                    fontFamily = NunitoFontFamily
                 )
             } else {
                 Text(
                     text = "Opponent",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    fontFamily = FontFamily.Default
+                    fontFamily = NunitoFontFamily
                 )
             }
         }
@@ -255,7 +257,7 @@ fun CoopColorPickerDialog(
                     stringResource(R.string.coop_color_picker_title)
                 },
                 style = MaterialTheme.typography.headlineSmall,
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
         },
         text = {
@@ -272,7 +274,7 @@ fun CoopColorPickerDialog(
             ) {
                 Text(
                     text = stringResource(R.string.coop_color_picker_confirm),
-                    fontFamily = FontFamily.Default
+                    fontFamily = NunitoFontFamily
                 )
             }
         },
@@ -282,7 +284,7 @@ fun CoopColorPickerDialog(
             ) {
                 Text(
                     text = stringResource(R.string.coop_color_picker_cancel),
-                    fontFamily = FontFamily.Default
+                    fontFamily = NunitoFontFamily
                 )
             }
         },

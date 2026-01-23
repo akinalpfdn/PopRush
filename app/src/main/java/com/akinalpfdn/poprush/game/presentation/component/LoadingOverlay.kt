@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 
 /**
  * Loading overlay component shown during speed mode initialization.
@@ -54,7 +55,7 @@ fun LoadingOverlay(
                     text = message,
                     color = Color.White,
                     fontSize = 16.sp,
-                    fontFamily = FontFamily.Default,
+                    fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Medium
                 )
             }

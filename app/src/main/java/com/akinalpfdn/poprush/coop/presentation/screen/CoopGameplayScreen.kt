@@ -26,6 +26,7 @@ import com.akinalpfdn.poprush.core.ui.component.BubbleGrid
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 
 // Theme Colors
 private val DarkGray = Color(0xFF1C1917)
@@ -216,7 +217,7 @@ private fun WaitingPhaseContent(
                 style = MaterialTheme.typography.headlineSmall,
                 color = DarkGray,
                 fontWeight = FontWeight.ExtraBold,
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
 
             Text(
@@ -224,7 +225,7 @@ private fun WaitingPhaseContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
-                fontFamily = FontFamily.Default,
+                fontFamily = NunitoFontFamily,
                 modifier = Modifier.padding(top = 8.dp)
             )
 
@@ -250,7 +251,7 @@ private fun WaitingPhaseContent(
             Spacer(modifier = Modifier.height(48.dp))
 
             TextButton(onClick = onDisconnect) {
-                Text("Cancel", color = Color.Gray, fontFamily = FontFamily.Default)
+                Text("Cancel", color = Color.Gray, fontFamily = NunitoFontFamily)
             }
         }
     }
@@ -292,7 +293,7 @@ private fun PausedPhaseContent(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Black,
                     color = DarkGray,
-                    fontFamily = FontFamily.Default
+                    fontFamily = NunitoFontFamily
                 )
 
                 Button(
@@ -307,7 +308,7 @@ private fun PausedPhaseContent(
                         "Resume",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Default
+                        fontFamily = NunitoFontFamily
                     )
                 }
 
@@ -315,7 +316,7 @@ private fun PausedPhaseContent(
                     Text(
                         "Quit Game",
                         color = Color.Red.copy(alpha = 0.8f),
-                        fontFamily = FontFamily.Default
+                        fontFamily = NunitoFontFamily
                     )
                 }
             }
@@ -357,7 +358,7 @@ private fun FinishedPhaseContent(
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Black,
                     color = DarkGray,
-                    fontFamily = FontFamily.Default,
+                    fontFamily = NunitoFontFamily,
                     letterSpacing = 2.sp
                 )
             }
@@ -380,7 +381,7 @@ private fun FinishedPhaseContent(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Gray,
-                    fontFamily = FontFamily.Default
+                    fontFamily = NunitoFontFamily
                 )
 
                 ScoreResultItem(
@@ -407,7 +408,7 @@ private fun FinishedPhaseContent(
                         "Play Again",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Default
+                        fontFamily = NunitoFontFamily
                     )
                 }
 
@@ -424,7 +425,7 @@ private fun FinishedPhaseContent(
                         "Exit to Menu",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Default
+                        fontFamily = NunitoFontFamily
                     )
                 }
             }
@@ -469,7 +470,7 @@ private fun CompactGameHUD(
                 fontWeight = FontWeight.Black,
                 fontSize = 20.sp,
                 color = DarkGray,
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
         }
 
@@ -506,7 +507,7 @@ private fun CompactScorePill(
                 fontWeight = FontWeight.Bold,
                 color = Color.Gray,
                 lineHeight = 10.sp,
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
             Text(
                 text = "$score",
@@ -514,7 +515,7 @@ private fun CompactScorePill(
                 fontWeight = FontWeight.ExtraBold,
                 color = DarkGray,
                 lineHeight = 16.sp,
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
         }
     }
@@ -556,7 +557,7 @@ private fun PlayerStatusPill(name: String, color: BubbleColor, isReady: Boolean)
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = DarkGray,
-            fontFamily = FontFamily.Default
+            fontFamily = NunitoFontFamily
         )
     }
 }
@@ -579,7 +580,7 @@ private fun ScoreResultItem(name: String, score: Int, color: BubbleColor, isWinn
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -588,7 +589,7 @@ private fun ScoreResultItem(name: String, score: Int, color: BubbleColor, isWinn
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = DarkGray,
-            fontFamily = FontFamily.Default
+            fontFamily = NunitoFontFamily
         )
         if (isWinner) {
             Text(
@@ -596,7 +597,7 @@ private fun ScoreResultItem(name: String, score: Int, color: BubbleColor, isWinn
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Black,
                 color = PastelColors.getColor(color),
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
         }
     }

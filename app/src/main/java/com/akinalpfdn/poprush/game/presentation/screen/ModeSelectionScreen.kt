@@ -53,7 +53,7 @@ fun ModeSelectionScreen(
                     text = "POP RUSH",
                     color = DarkGray,
                     fontSize = 42.sp,
-                    fontFamily = roundedFont,
+                    fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 2.sp
                 )
@@ -64,7 +64,7 @@ fun ModeSelectionScreen(
                     text = "Select Mode",
                     color = Color.Gray,
                     fontSize = 16.sp,
-                    fontFamily = roundedFont,
+                    fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -137,14 +137,14 @@ private fun GameModeCard(
                 Text(
                     text = title,
                     color = Color.White,
-                    fontFamily = roundedFont,
+                    fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
                 Text(
                     text = subtitle,
                     color = Color.White.copy(alpha = 0.6f),
-                    fontFamily = roundedFont,
+                    fontFamily = NunitoFontFamily,
                     fontSize = 14.sp
                 )
             }

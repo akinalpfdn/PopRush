@@ -15,9 +15,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 
 // This grabs the built-in Android "sans-serif-rounded" font
-val roundedFont = FontFamily(
+val NunitoFontFamily = FontFamily(
     androidx.compose.ui.text.font.Typeface(
         Typeface.create("sans-serif-rounded", Typeface.BOLD)
     )
@@ -84,7 +85,7 @@ fun ToastSnackbar(
                             text = "Coming Soon!",
                             color = Color.White,
                             fontSize = 16.sp,
-                            fontFamily = roundedFont,
+                            fontFamily = NunitoFontFamily,
                             fontWeight = FontWeight.Bold
                         )
 
@@ -92,7 +93,7 @@ fun ToastSnackbar(
                             text = "Co-op mode will be available in a future update",
                             color = Color(0xFFD1D5DB), // gray-300
                             fontSize = 14.sp,
-                            fontFamily = FontFamily.Default
+                            fontFamily = NunitoFontFamily
                         )
                     }
                 }

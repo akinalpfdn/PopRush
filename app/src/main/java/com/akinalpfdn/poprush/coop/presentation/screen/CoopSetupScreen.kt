@@ -24,7 +24,7 @@ import kotlin.time.Duration
  * Setup screen for Coop Mode, shown to the host before starting the match.
  * Allows selecting game duration.
  */
-val roundedFont = FontFamily(
+val NunitoFontFamily = FontFamily(
     androidx.compose.ui.text.font.Typeface(
         Typeface.create("sans-serif-rounded", Typeface.BOLD)
     )
@@ -54,7 +54,7 @@ fun CoopSetupScreen(
                 text = "COOP SETUP",
                 color = Color(0xFF44403C),
                 fontSize = 36.sp,
-                fontFamily = roundedFont,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold
             )
 
@@ -65,7 +65,7 @@ fun CoopSetupScreen(
                 text = "${coopGameState.localPlayerName} vs ${coopGameState.opponentPlayerName.ifEmpty { "Opponent" }}",
                 color = Color(0xFF6B7280),
                 fontSize = 20.sp,
-                fontFamily = roundedFont,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Medium
             )
 
@@ -96,7 +96,7 @@ fun CoopSetupScreen(
                     text = "Disconnect",
                     color = Color(0xFFEF4444), // red-500
                     fontSize = 16.sp,
-                    fontFamily = roundedFont,
+                    fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Medium
                 )
             }

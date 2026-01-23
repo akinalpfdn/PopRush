@@ -28,7 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.coop.presentation.component.CoopColorPicker
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
-import com.akinalpfdn.poprush.core.ui.theme.PastelColors 
+import com.akinalpfdn.poprush.core.ui.theme.PastelColors
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 
 // Theme Colors
 private val DarkGray = Color(0xFF1C1917)
@@ -91,7 +92,7 @@ fun CoopPlayerSetupScreen(
                 text = if (isHost) "CREATE LOBBY" else "JOIN LOBBY",
                 style = MaterialTheme.typography.headlineMedium,
                 color = DarkGray,
-                fontFamily = FontFamily.Default,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp
             )
@@ -100,7 +101,7 @@ fun CoopPlayerSetupScreen(
                 text = "Customize your profile",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.Gray,
-                fontFamily = FontFamily.Default,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Medium
             )
 
@@ -199,7 +200,7 @@ private fun StyledNameInput(
             text = "DISPLAY NAME",
             style = MaterialTheme.typography.labelLarge,
             color = DarkGray.copy(alpha = 0.6f),
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold
         )
 
@@ -209,7 +210,7 @@ private fun StyledNameInput(
             placeholder = {
                 Text(
                     "Enter name...",
-                    fontFamily = FontFamily.Default,
+                    fontFamily = NunitoFontFamily,
                     color = Color.Gray
                 )
             },
@@ -226,7 +227,7 @@ private fun StyledNameInput(
             ),
             shape = RoundedCornerShape(16.dp),
             textStyle = MaterialTheme.typography.titleMedium.copy(
-                fontFamily = FontFamily.Default,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold
             ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -263,7 +264,7 @@ private fun InfoPill(isHost: Boolean) {
             text = if (isHost) "Bluetooth & Location required to host." else "Bluetooth & Location required to join.",
             style = MaterialTheme.typography.bodySmall,
             color = Color.Gray,
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Medium
         )
     }
@@ -312,7 +313,7 @@ private fun PrimaryActionButton(
             Text(
                 text = text,
                 fontSize = 20.sp,
-                fontFamily = FontFamily.Default,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold
             )
         }

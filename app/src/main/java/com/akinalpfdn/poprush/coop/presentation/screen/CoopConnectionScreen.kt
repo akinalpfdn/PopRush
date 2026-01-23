@@ -26,6 +26,7 @@ import com.akinalpfdn.poprush.coop.domain.model.ConnectionState
 import com.akinalpfdn.poprush.coop.domain.model.EndpointInfo
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 
 // Theme Colors
 private val DarkGray = Color(0xFF1C1917)
@@ -150,7 +151,7 @@ fun CoopConnectionScreen(
                     color = Color.White,
                     modifier = Modifier.padding(16.dp),
                     textAlign = TextAlign.Center,
-                    fontFamily = FontFamily.Default,
+                    fontFamily = NunitoFontFamily,
                     fontSize = 14.sp
                 )
             }
@@ -176,14 +177,14 @@ private fun AdvertisingView(onStopHosting: () -> Unit) {
             text = "Hosting...",
             color = DarkGray,
             fontSize = 24.sp,
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = "Waiting for players to join",
             color = Color.Gray,
             fontSize = 16.sp,
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             modifier = Modifier.padding(top = 8.dp)
         )
 
@@ -198,7 +199,7 @@ private fun AdvertisingView(onStopHosting: () -> Unit) {
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.height(50.dp)
         ) {
-            Text("Cancel Hosting", fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold)
+            Text("Cancel Hosting", fontFamily = NunitoFontFamily, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -219,7 +220,7 @@ private fun DiscoveryView(
             text = "NEARBY GAMES",
             color = DarkGray,
             fontSize = 24.sp,
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.ExtraBold
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -238,7 +239,7 @@ private fun DiscoveryView(
                     Text(
                         text = "Scanning...",
                         color = Color.Gray,
-                        fontFamily = FontFamily.Default
+                        fontFamily = NunitoFontFamily
                     )
                 }
             }
@@ -264,7 +265,7 @@ private fun DiscoveryView(
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Text("Stop Searching", fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Stop Searching", fontFamily = NunitoFontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
     }
 }
@@ -282,7 +283,7 @@ private fun ConnectingView(message: String) {
             text = message,
             color = DarkGray,
             fontSize = 20.sp,
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold
         )
     }
@@ -307,7 +308,7 @@ private fun ConnectedView(isHost: Boolean, onDisconnect: () -> Unit, onStartGame
             text = "Connected!",
             color = DarkGray,
             fontSize = 28.sp,
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.ExtraBold
         )
 
@@ -325,7 +326,7 @@ private fun ConnectedView(isHost: Boolean, onDisconnect: () -> Unit, onStartGame
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
-                Text("Start Game", fontFamily = FontFamily.Default, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Start Game", fontFamily = NunitoFontFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -340,7 +341,7 @@ private fun ConnectedView(isHost: Boolean, onDisconnect: () -> Unit, onStartGame
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Text("Disconnect", fontFamily = FontFamily.Default, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Disconnect", fontFamily = NunitoFontFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -365,7 +366,7 @@ private fun PlayerBadge(name: String, color: BubbleColor) {
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = name.ifEmpty { "Player" },
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold,
             color = DarkGray,
             fontSize = 14.sp
@@ -395,7 +396,7 @@ private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
         Column {
             Text(
                 text = endpoint.getPlayerName(),
-                fontFamily = FontFamily.Default,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold,
                 color = DarkGray,
                 fontSize = 16.sp
@@ -404,7 +405,7 @@ private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                     Box(modifier = Modifier.size(10.dp).background(PastelColors.getColor(color), CircleShape))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Color", fontSize = 12.sp, color = Color.Gray, fontFamily = FontFamily.Default)
+                    Text("Color", fontSize = 12.sp, color = Color.Gray, fontFamily = NunitoFontFamily)
                 }
             }
         }

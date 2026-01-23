@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 
 // Consistent color palette
 private val DarkGray = Color(0xFF1C1917)
@@ -72,7 +73,7 @@ fun CoopConnectionSetupScreen(
                     text = "CO-OP LOBBY",
                     color = DarkGray,
                     fontSize = 32.sp,
-                    fontFamily = FontFamily.Default,
+                    fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.sp
                 )
@@ -81,7 +82,7 @@ fun CoopConnectionSetupScreen(
                     text = "Connect with nearby friends",
                     color = Color.Gray,
                     fontSize = 16.sp,
-                    fontFamily = FontFamily.Default,
+                    fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -135,7 +136,7 @@ private fun CompactFeatureRow(
         Text(
             text = text,
             color = DarkGray.copy(alpha = 0.8f),
-            fontFamily = FontFamily.Default,
+            fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Medium,
             fontSize = 16.sp
         )
@@ -183,7 +184,7 @@ private fun CoopActionButton(
             Text(
                 text = text,
                 color = Color.White,
-                fontFamily = FontFamily.Default,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )

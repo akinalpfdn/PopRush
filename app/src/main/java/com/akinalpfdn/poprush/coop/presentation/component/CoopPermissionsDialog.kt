@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 
 /**
  * Permissions dialog for coop mode that explains required permissions
@@ -83,7 +84,7 @@ private fun CoopPermissionsDialogContent(
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
                 textAlign = TextAlign.Center,
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
 
 
@@ -106,14 +107,14 @@ private fun CoopPermissionsDialogContent(
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF856404), // Dark yellow text
-                            fontFamily = FontFamily.Default
+                            fontFamily = NunitoFontFamily
                         )
                         missingPermissions.forEach { permission ->
                             Text(
                                 text = "• $permission",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF856404),
-                                fontFamily = FontFamily.Default
+                                fontFamily = NunitoFontFamily
                             )
                         }
                     }
@@ -161,7 +162,7 @@ private fun CoopPermissionsDialogContent(
                     color = Color.Black.copy(alpha = 0.6f),
                     modifier = Modifier.padding(16.dp),
                     textAlign = TextAlign.Center,
-                    fontFamily = FontFamily.Default,
+                    fontFamily = NunitoFontFamily,
                     lineHeight = 18.sp
                 )
             }
@@ -192,7 +193,7 @@ private fun CoopPermissionsDialogContent(
                         text = "Open Settings",
                         style = MaterialTheme.typography.titleMedium,
                         fontSize = 16.sp,
-                        fontFamily = FontFamily.Default
+                        fontFamily = NunitoFontFamily
                     )
                 }
 
@@ -210,7 +211,7 @@ private fun CoopPermissionsDialogContent(
                         text = "Not Now",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.Black.copy(alpha = 0.6f),
-                        fontFamily = FontFamily.Default
+                        fontFamily = NunitoFontFamily
                     )
                 }
             }
@@ -222,7 +223,7 @@ private fun CoopPermissionsDialogContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Black.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
-                fontFamily = FontFamily.Default,
+                fontFamily = NunitoFontFamily,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
@@ -263,13 +264,13 @@ private fun PermissionItem(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium,
                 color = Color.Black,
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Black.copy(alpha = 0.6f),
-                fontFamily = FontFamily.Default
+                fontFamily = NunitoFontFamily
             )
         }
     }

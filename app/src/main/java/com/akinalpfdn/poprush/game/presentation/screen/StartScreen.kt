@@ -30,7 +30,7 @@ import kotlin.time.Duration
  * @param modifier Additional modifier for the screen
  */
 // This grabs the built-in Android "sans-serif-rounded" font
-val roundedFont = FontFamily(
+val NunitoFontFamily = FontFamily(
     androidx.compose.ui.text.font.Typeface(
         Typeface.create("sans-serif-rounded", Typeface.BOLD)
     )
@@ -57,7 +57,7 @@ fun StartScreen(
                 text = "POP RUSH",
                 color = Color(0xFF44403C),
                 fontSize = 36.sp,
-                fontFamily = roundedFont,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold
             )
 
@@ -68,7 +68,7 @@ fun StartScreen(
                 text = gameState.selectedMod.displayName,
                 color = Color(0xFF6B7280),
                 fontSize = 20.sp,
-                fontFamily = roundedFont,
+                fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Medium
             )
 
