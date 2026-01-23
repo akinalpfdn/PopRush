@@ -243,13 +243,13 @@ private fun BubbleGameModeCard(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color.White.withAlpha(0.4f),
+                        Color.White.withAlpha(0.15f), // Significantly reduced opacity
                         Color.White.withAlpha(0f)
                     ),
                     center = Offset(width * 0.15f, height * 0.25f),
-                    radius = height * 0.6f
+                    radius = height * 0.8f // Increased radius for softer diffusion
                 ),
-                radius = height * 0.4f,
+                radius = height * 0.6f,
                 center = Offset(width * 0.15f, height * 0.25f)
             )
 
