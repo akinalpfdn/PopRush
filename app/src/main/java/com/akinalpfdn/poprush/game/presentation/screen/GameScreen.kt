@@ -389,8 +389,7 @@ private fun GameContent(
 ) {
     Column(
         modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 32.dp),
+            .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Only show header when actively playing (not on start screens)
@@ -400,10 +399,8 @@ private fun GameContent(
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(32.dp))
-        } else if (!gameState.isPlaying) {
-            // Add spacing when not playing (no header)
-            Spacer(modifier = Modifier.height(16.dp))
         }
+
         
         // Main content area
         Box(

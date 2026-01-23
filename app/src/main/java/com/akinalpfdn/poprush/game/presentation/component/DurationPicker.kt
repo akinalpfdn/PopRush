@@ -107,8 +107,8 @@ fun DurationPicker(
                     .fillMaxWidth()
                     .height(itemHeight)
                     .background(
-                        color = AppColors.BluePrimary.withAlpha(0.1f),
-                        shape = RoundedCornerShape(12.dp)
+                        color = AppColors.BluePrimary.withAlpha(0.6f),
+                        shape = RoundedCornerShape(22.dp)
                     )
                     .align(Alignment.Center)
             )
