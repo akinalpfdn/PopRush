@@ -21,40 +21,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
 // ============================================================================
-// COLOR PALETTES - Carefully crafted for game feel
+// COLOR PALETTES - Now centralized in AppColors.GameAnimation
 // ============================================================================
 
-object GameColors {
-    // Warm, energetic palette for positive feedback
-    val ScoreGold = Color(0xFFFFD700)
-    val ScoreOrange = Color(0xFFFF9500)
-    val ScorePink = Color(0xFFFF6B9D)
-    val ScorePurple = Color(0xFFB266FF)
-    val ScoreCyan = Color(0xFF00E5FF)
-    
-    // Combo colors - vibrant gradient progression
-    val ComboLevel1 = Color(0xFF7DD3FC) // Sky blue - starting combo
-    val ComboLevel2 = Color(0xFF22D3EE) // Cyan - getting warmer
-    val ComboLevel3 = Color(0xFFFBBF24) // Amber/Gold - nice streak
-    val ComboLevel4 = Color(0xFFFB923C) // Orange - hot streak
-    val ComboLevel5 = Color(0xFFF472B6) // Pink - amazing
-    val ComboLevel6 = Color(0xFFC084FC) // Purple - legendary
-    val ComboLevelMax = Color(0xFFFF6B6B) // Coral red - on fire
-    
-    // Glow colors (slightly desaturated for glow effect)
-    val GlowGold = Color(0x80FFD700)
-    val GlowPink = Color(0x80FF6B9D)
-    val GlowCyan = Color(0x8000E5FF)
-    val GlowPurple = Color(0x80B266FF)
-    
-    // Background accents
-    val BackgroundWarm = Color(0xFFFFF7ED) // Warm cream
-    val BackgroundCool = Color(0xFFF0F9FF) // Cool blue-white
-}
+// Use AppColors.GameAnimation for all game-specific colors
+// Example: AppColors.GameAnimation.ComboLevel1, AppColors.GameAnimation.ScoreGold, etc.
 
 // ============================================================================
 // FLOATING SCORE TEXT - Enhanced with better animations
@@ -211,13 +187,13 @@ data class FloatingScoreData(
  */
 private fun getComboColor(combo: Int): Color {
     return when {
-        combo >= 20 -> GameColors.ComboLevelMax
-        combo >= 15 -> GameColors.ComboLevel6
-        combo >= 12 -> GameColors.ComboLevel5
-        combo >= 9 -> GameColors.ComboLevel4
-        combo >= 6 -> GameColors.ComboLevel3
-        combo >= 4 -> GameColors.ComboLevel2
-        else -> GameColors.ComboLevel1
+        combo >= 20 -> AppColors.GameAnimation.ComboLevelMax
+        combo >= 15 -> AppColors.GameAnimation.ComboLevel6
+        combo >= 12 -> AppColors.GameAnimation.ComboLevel5
+        combo >= 9 -> AppColors.GameAnimation.ComboLevel4
+        combo >= 6 -> AppColors.GameAnimation.ComboLevel3
+        combo >= 4 -> AppColors.GameAnimation.ComboLevel2
+        else -> AppColors.GameAnimation.ComboLevel1
     }
 }
 
@@ -226,11 +202,11 @@ private fun getComboColor(combo: Int): Color {
  */
 fun getScoreColor(combo: Int): Color {
     return when {
-        combo >= 10 -> GameColors.ScorePink
-        combo >= 7 -> GameColors.ScoreOrange
-        combo >= 5 -> GameColors.ScoreGold
-        combo >= 3 -> GameColors.ScoreCyan
-        else -> GameColors.ScoreGold
+        combo >= 10 -> AppColors.GameAnimation.ScorePink
+        combo >= 7 -> AppColors.GameAnimation.ScoreOrange
+        combo >= 5 -> AppColors.GameAnimation.ScoreGold
+        combo >= 3 -> AppColors.GameAnimation.ScoreCyan
+        else -> AppColors.GameAnimation.ScoreGold
     }
 }
 
@@ -428,11 +404,11 @@ fun ComboBurstText(
         modifier = modifier
     ) {
         val (burstText, burstColor, emoji) = when {
-            combo >= 25 -> Triple("LEGENDARY", GameColors.ComboLevelMax, "👑")
-            combo >= 20 -> Triple("UNSTOPPABLE", GameColors.ComboLevel6, "🔥")
-            combo >= 15 -> Triple("ON FIRE", GameColors.ComboLevel5, "⚡")
-            combo >= 10 -> Triple("AMAZING", GameColors.ComboLevel4, "✨")
-            combo >= 5 -> Triple("NICE", GameColors.ComboLevel3, "👍")
+            combo >= 25 -> Triple("LEGENDARY", AppColors.GameAnimation.ComboLevelMax, "👑")
+            combo >= 20 -> Triple("UNSTOPPABLE", AppColors.GameAnimation.ComboLevel6, "🔥")
+            combo >= 15 -> Triple("ON FIRE", AppColors.GameAnimation.ComboLevel5, "⚡")
+            combo >= 10 -> Triple("AMAZING", AppColors.GameAnimation.ComboLevel4, "✨")
+            combo >= 5 -> Triple("NICE", AppColors.GameAnimation.ComboLevel3, "👍")
             else -> Triple("", Color.White, "")
         }
         
@@ -533,18 +509,18 @@ fun AnimatedGameBackground(
     
     // Warmer, more inviting gradient
     val topColor = lerp(
-        Color(0xFFFFFBF5),     // Warm white
-        Color(0xFFFFF0F5),     // Lavender blush
+        AppColors.GameAnimation.BackgroundTop,     // Warm white
+        AppColors.GameAnimation.BackgroundTopAlt,  // Lavender blush
         colorShift * 0.4f
     )
     val middleColor = lerp(
-        Color(0xFFFFF7ED),     // Warm cream
-        Color(0xFFFCE7F3),     // Pink tint
+        AppColors.GameAnimation.BackgroundMiddle,     // Warm cream
+        AppColors.GameAnimation.BackgroundMiddleAlt,  // Pink tint
         colorShift * 0.3f
     )
     val bottomColor = lerp(
-        Color(0xFFFAFAF9),     // Stone-50
-        Color(0xFFF5F3FF),     // Purple tint
+        AppColors.GameAnimation.BackgroundBottom,     // Stone-50
+        AppColors.GameAnimation.BackgroundBottomAlt,  // Purple tint
         colorShift * 0.2f
     )
     
@@ -576,10 +552,10 @@ private fun FloatingParticlesLayer(particleCount: Int = 20) {
                 alpha = 0.06f + Random.nextFloat() * 0.12f,
                 wobbleOffset = Random.nextFloat() * 1000f,
                 color = listOf(
-                    Color(0xFFFFD6E0), // Light pink
-                    Color(0xFFD4E4FF), // Light blue
-                    Color(0xFFE8D4FF), // Light purple
-                    Color(0xFFFFECD4)  // Light orange
+                    AppColors.GameAnimation.ParticlePink,   // Light pink
+                    AppColors.GameAnimation.ParticleBlue,   // Light blue
+                    AppColors.GameAnimation.ParticlePurple, // Light purple
+                    AppColors.GameAnimation.ParticleOrange  // Light orange
                 ).random()
             )
         }
@@ -618,7 +594,7 @@ private data class AmbientParticle(
     val speed: Float,
     val alpha: Float,
     val wobbleOffset: Float,
-    val color: Color = Color(0xFFD6D3D1)
+    val color: Color = AppColors.LightGray
 )
 
 // ============================================================================
@@ -678,7 +654,7 @@ fun ScreenShakeWrapper(
 fun AnimatedScoreCounter(
     score: Int,
     modifier: Modifier = Modifier,
-    textColor: Color = Color(0xFF292524),
+    textColor: Color = AppColors.GameAnimation.TextPrimary,
     fontSize: Int = 48
 ) {
     var displayScore by remember { mutableStateOf(score) }
@@ -759,9 +735,9 @@ fun AnimatedTimer(
     
     val timerColor by animateColorAsState(
         targetValue = when {
-            isCritical -> Color(0xFFEF4444)
-            isWarning -> Color(0xFFF97316)
-            else -> Color(0xFF57534E)
+            isCritical -> AppColors.GameAnimation.TimerCritical
+            isWarning -> AppColors.GameAnimation.TimerWarning
+            else -> AppColors.GameAnimation.TimerNormal
         },
         animationSpec = tween(300),
         label = "timerColor"

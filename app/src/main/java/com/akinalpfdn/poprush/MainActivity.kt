@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
             PopRushTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color.White // Force white background
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     GameScreen()
                 }

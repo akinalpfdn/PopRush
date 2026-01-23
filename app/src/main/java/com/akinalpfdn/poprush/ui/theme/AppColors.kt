@@ -165,6 +165,56 @@ object AppColors {
         val Info = BlueInfo
         val Neutral = StoneMedium
     }
+
+    // ========================================================================
+    // Game Animation Colors (Visual Feedback Effects)
+    // ========================================================================
+
+    object GameAnimation {
+        // Score colors for floating text
+        val ScoreGold = Color(0xFFFFD700)
+        val ScoreOrange = Color(0xFFFF9500)
+        val ScorePink = Color(0xFFFF6B9D)
+        val ScorePurple = Color(0xFFB266FF)
+        val ScoreCyan = Color(0xFF00E5FF)
+
+        // Combo progression colors
+        val ComboLevel1 = Color(0xFF7DD3FC)  // Sky blue
+        val ComboLevel2 = Color(0xFF22D3EE)  // Cyan
+        val ComboLevel3 = Color(0xFFFBBF24)  // Amber/Gold
+        val ComboLevel4 = Color(0xFFFB923C)  // Orange
+        val ComboLevel5 = Color(0xFFF472B6)  // Pink
+        val ComboLevel6 = Color(0xFFC084FC)  // Purple
+        val ComboLevelMax = Color(0xFFFF6B6B) // Coral red
+
+        // Glow colors for effects
+        val GlowGold = Color(0x80FFD700)
+        val GlowPink = Color(0x80FF6B9D)
+        val GlowCyan = Color(0x8000E5FF)
+        val GlowPurple = Color(0x80B266FF)
+
+        // Background gradient colors
+        val BackgroundTop = Color(0xFFFFFBF5)      // Warm white
+        val BackgroundTopAlt = Color(0xFFFFF0F5)    // Lavender blush
+        val BackgroundMiddle = Color(0xFFFFF7ED)    // Warm cream
+        val BackgroundMiddleAlt = Color(0xFFFCE7F3) // Pink tint
+        val BackgroundBottom = Color(0xFFFAFAF9)    // Stone-50
+        val BackgroundBottomAlt = Color(0xFFF5F3FF) // Purple tint
+
+        // Particle colors
+        val ParticlePink = Color(0xFFFFD6E0)
+        val ParticleBlue = Color(0xFFD4E4FF)
+        val ParticlePurple = Color(0xFFE8D4FF)
+        val ParticleOrange = Color(0xFFFFECD4)
+
+        // Timer colors
+        val TimerCritical = Color(0xFFEF4444)
+        val TimerWarning = Color(0xFFF97316)
+        val TimerNormal = Color(0xFF57534E)
+
+        // Default text color for game elements
+        val TextPrimary = Color(0xFF292524)
+    }
 }
 
 /**

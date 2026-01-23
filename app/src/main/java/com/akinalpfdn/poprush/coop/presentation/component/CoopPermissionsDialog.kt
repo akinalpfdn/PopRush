@@ -94,7 +94,7 @@ private fun CoopPermissionsDialogContent(
             if (missingPermissions.isNotEmpty() && false) {
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFFF3CD) // Light yellow background
+                        containerColor = AppColors.YellowWarningBg
                     ),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -107,14 +107,14 @@ private fun CoopPermissionsDialogContent(
                             text = "⚠️ Missing Permissions:",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF856404), // Dark yellow text
+                            color = AppColors.YellowWarning,
                             fontFamily = NunitoFontFamily
                         )
                         missingPermissions.forEach { permission ->
                             Text(
                                 text = "• $permission",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF856404),
+                                color = AppColors.YellowWarning,
                                 fontFamily = NunitoFontFamily
                             )
                         }
