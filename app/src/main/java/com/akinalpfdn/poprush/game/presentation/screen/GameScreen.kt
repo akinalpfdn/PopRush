@@ -2,10 +2,7 @@ package com.akinalpfdn.poprush.game.presentation.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
-import androidx.compose.animation.core.EaseInCubic
-import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -19,8 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,66 +27,113 @@ import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameIntent
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
-import com.akinalpfdn.poprush.core.ui.component.BubbleGrid
-import com.akinalpfdn.poprush.game.presentation.component.GameHeader
-import com.akinalpfdn.poprush.game.presentation.component.CoopComingSoonToast
-import com.akinalpfdn.poprush.game.presentation.component.LoadingOverlay
-import com.akinalpfdn.poprush.game.presentation.component.SpeedModeLoadingOverlay
-import com.akinalpfdn.poprush.game.presentation.component.PauseButton
-import com.akinalpfdn.poprush.game.presentation.component.SettingsOverlay
-import com.akinalpfdn.poprush.game.presentation.component.BackConfirmationDialog
+import com.akinalpfdn.poprush.core.ui.component.*
+import com.akinalpfdn.poprush.game.presentation.component.*
 import com.akinalpfdn.poprush.game.presentation.GameViewModel
-import com.akinalpfdn.poprush.coop.presentation.screen.CoopPlayerSetupScreen
-import com.akinalpfdn.poprush.coop.presentation.screen.CoopConnectionScreen
 import com.akinalpfdn.poprush.coop.presentation.screen.CoopGameplayScreen
 import com.akinalpfdn.poprush.coop.presentation.component.CoopConnectionOverlay
-import com.akinalpfdn.poprush.game.presentation.component.CoopConnectionSetupScreen
 import com.akinalpfdn.poprush.coop.presentation.component.CoopPermissionsDialog
 import com.akinalpfdn.poprush.coop.presentation.permission.rememberCoopPermissionManager
+import kotlinx.coroutines.delay
+import java.util.UUID
+import kotlin.random.Random
 import kotlin.time.Duration
 
 /**
- * Main game screen that orchestrates the entire PopRush game experience.
- * Handles game state, UI rendering, and user interactions.
- *
- * @param viewModel The game ViewModel for state management
- * @param modifier Additional modifier for the screen
+ * Enhanced main game screen with:
+ * - Animated background
+ * - Pop sound effects
+ * - Floating score indicators
+ * - Combo system with visual feedback
+ * - Screen shake effects
+ * - Smooth transitions
  */
-@OptIn(androidx.compose.animation.ExperimentalAnimationApi::class)
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun GameScreen(
     viewModel: GameViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val gameState by viewModel.gameState.collectAsStateWithLifecycle()
-
-    // Collect discovered endpoints from CoopUseCase
     val discoveredEndpoints by viewModel.discoveredEndpoints.collectAsStateWithLifecycle(
         initialValue = emptyList()
     )
 
-    // Debug: Log discovered endpoints changes
-    LaunchedEffect(discoveredEndpoints) {
-        Timber.d("GameScreen: discoveredEndpoints.size = ${discoveredEndpoints.size}, endpoints = $discoveredEndpoints")
-    }
-
-    // Get the current context for permission management
     val context = LocalContext.current
-
-    // Permission manager for coop mode
     val permissionManager = rememberCoopPermissionManager(context)
 
-    // Debug: Log isHost value from gameState
-    LaunchedEffect(gameState.coopState?.isHost) {
-        Timber.d("GameScreen: gameState.coopState?.isHost = ${gameState.coopState?.isHost}")
-    }
+    // Sound manager for pop effects
+    val soundManager = rememberPopSoundManager()
 
-    // State for permissions dialog
+    // State for floating scores
+    var floatingScores by remember { mutableStateOf(listOf<FloatingScoreData>()) }
+
+    // Combo tracking
+    var currentCombo by remember { mutableStateOf(0) }
+    var lastPopTime by remember { mutableStateOf(0L) }
+    var showComboBurst by remember { mutableStateOf(false) }
+
+    // Screen shake trigger
+    var shouldShake by remember { mutableStateOf(false) }
+
+    // Permission states
     var showPermissionsDialog by remember { mutableStateOf(false) }
     var hasCheckedPermissions by remember { mutableStateOf(false) }
     var pendingCoopSelection by remember { mutableStateOf(false) }
 
-    // Function to open app settings
+    // Debug logging
+    LaunchedEffect(discoveredEndpoints) {
+        Timber.d("GameScreen: discoveredEndpoints.size = ${discoveredEndpoints.size}")
+    }
+
+    LaunchedEffect(gameState.coopState?.isHost) {
+        Timber.d("GameScreen: gameState.coopState?.isHost = ${gameState.coopState?.isHost}")
+    }
+
+    // Permission check on first load
+    LaunchedEffect(hasCheckedPermissions) {
+        if (!hasCheckedPermissions) {
+            hasCheckedPermissions = true
+            if (!permissionManager.hasPermissions) {
+                showPermissionsDialog = true
+            }
+        }
+    }
+
+    // Reset combo if game ends or restarts
+    LaunchedEffect(gameState.isPlaying) {
+        if (!gameState.isPlaying) {
+            currentCombo = 0
+            floatingScores = emptyList()
+        }
+    }
+
+    // Combo timeout checker
+    LaunchedEffect(lastPopTime) {
+        if (lastPopTime > 0) {
+            delay(1500) // 1.5 second combo window
+            if (System.currentTimeMillis() - lastPopTime >= 1500) {
+                currentCombo = 0
+            }
+        }
+    }
+
+    // Combo burst display timer
+    LaunchedEffect(showComboBurst) {
+        if (showComboBurst) {
+            delay(1000)
+            showComboBurst = false
+        }
+    }
+
+    // Screen shake reset
+    LaunchedEffect(shouldShake) {
+        if (shouldShake) {
+            delay(300)
+            shouldShake = false
+        }
+    }
+
     fun openAppSettings() {
         val intent = Intent().apply {
             action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
@@ -99,74 +143,177 @@ fun GameScreen(
         context.startActivity(intent)
     }
 
-    // Check permissions on first load if we haven't checked yet
-    LaunchedEffect(hasCheckedPermissions) {
-        if (!hasCheckedPermissions) {
-            hasCheckedPermissions = true
-            // Only show permissions dialog if permissions are missing
-            if (!permissionManager.hasPermissions) {
-                showPermissionsDialog = true
+    // Enhanced bubble press handler with combo and floating score
+    fun handleBubblePress(bubbleId: Int) {
+        val currentTime = System.currentTimeMillis()
+
+        // Update combo
+        if (currentTime - lastPopTime < 1500) {
+            currentCombo++
+
+            // Trigger combo burst at milestones
+            if (currentCombo >= 5 && currentCombo % 5 == 0) {
+                showComboBurst = true
+                shouldShake = true
+                soundManager.playComboSound(currentCombo)
             }
+        } else {
+            currentCombo = 1
+        }
+        lastPopTime = currentTime
+
+        // Calculate score based on combo
+        val scoreValue = when {
+            currentCombo >= 10 -> 5
+            currentCombo >= 5 -> 3
+            currentCombo >= 3 -> 2
+            else -> 1
+        }
+
+        // Find bubble position for floating score (approximate)
+        val bubble = gameState.bubbles.find { it.id == bubbleId }
+        if (bubble != null) {
+            val xOffset = (Random.nextFloat() * 100 - 50).dp
+            val yOffset = (Random.nextFloat() * 50).dp
+
+            val scoreColor = when {
+                currentCombo >= 10 -> Color(0xFFDC2626)
+                currentCombo >= 5 -> Color(0xFFF97316)
+                currentCombo >= 3 -> Color(0xFF22C55E)
+                else -> Color(0xFF3B82F6)
+            }
+
+            floatingScores = floatingScores + FloatingScoreData(
+                id = UUID.randomUUID().toString(),
+                score = scoreValue,
+                x = xOffset + 150.dp, // Approximate center offset
+                y = yOffset + 200.dp,
+                color = scoreColor
+            )
+        }
+
+        // Send intent to ViewModel
+        if (gameState.isCoopMode) {
+            viewModel.processIntent(GameIntent.CoopClaimBubble(bubbleId))
+        } else {
+            viewModel.processIntent(GameIntent.PressBubble(bubbleId))
         }
     }
 
-    // Handle back press for settings
+    // Remove completed floating scores
+    fun removeFloatingScore(id: String) {
+        floatingScores = floatingScores.filter { it.id != id }
+    }
+
+    // Back handlers
     BackHandler(enabled = gameState.showSettings) {
         viewModel.processIntent(GameIntent.ToggleSettings)
     }
 
-    // Handle back press for game (show confirmation when game is playing)
     BackHandler(enabled = gameState.isPlaying && !gameState.isGameOver) {
         viewModel.processIntent(GameIntent.ShowBackConfirmation)
     }
 
-    // Handle back press for start screens (navigate back in flow)
     BackHandler(enabled = !gameState.isPlaying && !gameState.isGameOver) {
         viewModel.processIntent(GameIntent.NavigateBack)
     }
 
-    Box(
-        modifier = modifier.fillMaxSize()
-    ) {
-        // Main game content
-        GameContent(
-            gameState = gameState,
-            onStartGame = { viewModel.processIntent(GameIntent.StartGame) },
-            onBubblePress = { bubbleId ->
-                // Use coop-specific intent when in coop mode
-                if (gameState.isCoopMode) {
-                    viewModel.processIntent(GameIntent.CoopClaimBubble(bubbleId))
-                } else {
-                    viewModel.processIntent(GameIntent.PressBubble(bubbleId))
-                }
-            },
-            onToggleSettings = { viewModel.processIntent(GameIntent.ToggleSettings) },
-            onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
-            onTogglePause = { viewModel.processIntent(GameIntent.TogglePause) },
-            onDurationChange = { duration -> viewModel.processIntent(GameIntent.UpdateSelectedDuration(duration)) },
-            onGameModeSelected = { mode -> viewModel.processIntent(GameIntent.SelectGameMode(mode)) },
-            onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
-            onDisconnectCoop = { viewModel.processIntent(GameIntent.DisconnectCoop) },
-            onStartCoopConnection = { viewModel.processIntent(GameIntent.StartCoopConnection) },
-            onStartMatch = { viewModel.processIntent(GameIntent.StartCoopMatch) },
-            permissionManager = permissionManager,
-            showPermissionsDialog = showPermissionsDialog,
-            onShowPermissionsDialog = { showPermissionsDialog = true },
-            onHidePermissionsDialog = { showPermissionsDialog = false },
-            pendingCoopSelection = pendingCoopSelection,
-            setPendingCoopSelection = { pendingCoopSelection = it },
-            openAppSettings = { openAppSettings() },
+    // Main screen with animated background
+    Box(modifier = modifier.fillMaxSize()) {
+        // Animated background layer
+        AnimatedGameBackground(
+            modifier = Modifier.fillMaxSize(),
+            particleCount = 25
+        )
+
+        // Screen shake wrapper for main content
+        ScreenShakeWrapper(
+            shouldShake = shouldShake,
+            intensity = 0.8f,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Main game content
+            GameContent(
+                gameState = gameState,
+                soundManager = soundManager,
+                currentCombo = currentCombo,
+                onStartGame = { viewModel.processIntent(GameIntent.StartGame) },
+                onBubblePress = ::handleBubblePress,
+                onToggleSettings = { viewModel.processIntent(GameIntent.ToggleSettings) },
+                onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
+                onTogglePause = { viewModel.processIntent(GameIntent.TogglePause) },
+                onDurationChange = { duration -> viewModel.processIntent(GameIntent.UpdateSelectedDuration(duration)) },
+                onGameModeSelected = { mode -> viewModel.processIntent(GameIntent.SelectGameMode(mode)) },
+                onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
+                onDisconnectCoop = { viewModel.processIntent(GameIntent.DisconnectCoop) },
+                onStartCoopConnection = { viewModel.processIntent(GameIntent.StartCoopConnection) },
+                onStartMatch = { viewModel.processIntent(GameIntent.StartCoopMatch) },
+                permissionManager = permissionManager,
+                showPermissionsDialog = showPermissionsDialog,
+                onShowPermissionsDialog = { showPermissionsDialog = true },
+                onHidePermissionsDialog = { showPermissionsDialog = false },
+                pendingCoopSelection = pendingCoopSelection,
+                setPendingCoopSelection = { pendingCoopSelection = it },
+                openAppSettings = { openAppSettings() },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // Floating scores layer
+        FloatingScoreManager(
+            scores = floatingScores,
+            onScoreComplete = ::removeFloatingScore,
             modifier = Modifier.fillMaxSize()
         )
 
-        // Settings button only
+        // Combo indicator (top center when playing)
+        if (gameState.isPlaying && !gameState.isGameOver) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 120.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                ComboIndicator(
+                    combo = currentCombo
+                )
+            }
+
+            // Combo burst text
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                ComboBurstText(
+                    combo = currentCombo,
+                    isVisible = showComboBurst
+                )
+            }
+        }
+
+        // Settings button with subtle animation
+        val infiniteTransition = rememberInfiniteTransition(label = "settingsBtn")
+        val settingsPulse by infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.05f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = EaseInOutSine),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "settingsPulse"
+        )
+
         IconButton(
             onClick = { viewModel.processIntent(GameIntent.ToggleSettings) },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
+                .graphicsLayer {
+                    scaleX = settingsPulse
+                    scaleY = settingsPulse
+                }
                 .background(
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = Color.White.copy(alpha = 0.9f),
                     shape = CircleShape
                 )
                 .size(48.dp)
@@ -174,17 +321,17 @@ fun GameScreen(
             Icon(
                 imageVector = Icons.Default.Settings,
                 contentDescription = "Settings",
-                tint = Color(0xFF57534E) // stone-600
+                tint = Color(0xFF57534E)
             )
         }
 
-        // Bottom instruction text
+        // Bottom credit text
         Text(
             text = "MADE BY MOVI",
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp),
-            color = Color(0xFFA8A29E), // stone-400
+            color = Color(0xFFA8A29E),
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.sp
@@ -213,7 +360,7 @@ fun GameScreen(
             )
         }
 
-        // Game over overlay on top of everything
+        // Game over overlay
         if (gameState.isGameOver) {
             GameOverScreen(
                 gameState = gameState,
@@ -230,18 +377,6 @@ fun GameScreen(
             isVisible = gameState.showBackConfirmation
         )
 
-        // TODO: Implement CoopComingSoonToast when needed
-        // CoopComingSoonToast(
-        //     isVisible = gameState.showCoopConnectionDialog,
-        //     modifier = Modifier.fillMaxSize()
-        // )
-
-        // TODO: Implement SpeedModeLoadingOverlay when needed
-        // SpeedModeLoadingOverlay(
-        //     isVisible = false, // gameState.isLoadingSpeedMode when implemented
-        //     modifier = Modifier.fillMaxSize()
-        // )
-
         // Coop connection overlay
         CoopConnectionOverlay(
             isVisible = gameState.showCoopConnectionDialog,
@@ -255,7 +390,7 @@ fun GameScreen(
                     com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.DISCOVERING -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCOVERING
                     com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.CONNECTING -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTING
                     com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.CONNECTED -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.CONNECTED
-                    com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.ERROR -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED // Map ERROR to DISCONNECTED
+                    com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.ERROR -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED
                 }
             } ?: com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED,
             discoveredEndpoints = discoveredEndpoints,
@@ -278,12 +413,14 @@ fun GameScreen(
 }
 
 /**
- * Main game content including header, bubble grid, and controls.
+ * Main game content with enhanced visuals
  */
-@OptIn(androidx.compose.animation.ExperimentalAnimationApi::class)
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun GameContent(
     gameState: GameState,
+    soundManager: PopSoundManager,
+    currentCombo: Int,
     onStartGame: () -> Unit,
     onBubblePress: (Int) -> Unit,
     onToggleSettings: () -> Unit,
@@ -307,36 +444,38 @@ private fun GameContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 32.dp), // Much less horizontal padding
+            .padding(horizontal = 8.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (gameState.isCoopMode && gameState.coopState != null) {
-        }
-        else{
-            // Game header with score, timer, and high score
+            // Coop mode header handled separately
+        } else {
+            // Enhanced game header
             GameHeader(
                 gameState = gameState,
                 modifier = Modifier.fillMaxWidth()
             )
-
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Bubble grid or start/game over screens
+        // Main content area
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            // Always show the appropriate main content with smooth transitions
             when {
-                !gameState.isPlaying && !gameState.isGameOver && (!gameState.isCoopMode || gameState.coopState == null || gameState.coopState.gamePhase == com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase.WAITING) -> {
+                !gameState.isPlaying && !gameState.isGameOver &&
+                        (!gameState.isCoopMode || gameState.coopState == null ||
+                                gameState.coopState.gamePhase == com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase.WAITING) -> {
+
+                    // Start screen flow with smooth transitions
                     AnimatedContent(
                         targetState = gameState.currentScreen,
                         transitionSpec = {
-                            fadeIn(animationSpec = tween(300, easing = LinearEasing)) with
-                            fadeOut(animationSpec = tween(200, easing = LinearEasing))
+                            fadeIn(animationSpec = tween(300, easing = LinearEasing)) togetherWith
+                                    fadeOut(animationSpec = tween(200, easing = LinearEasing))
                         },
                         contentKey = { it },
                         label = "startScreenTransition"
@@ -345,7 +484,6 @@ private fun GameContent(
                             StartScreenFlow.MODE_SELECTION -> {
                                 ModeSelectionScreen(
                                     onModeSelected = { mode ->
-                                        // Check permissions if COOP mode is selected
                                         if (mode == com.akinalpfdn.poprush.core.domain.model.GameMode.COOP) {
                                             if (permissionManager.hasPermissions) {
                                                 onGameModeSelected(mode)
@@ -375,7 +513,6 @@ private fun GameContent(
                                 )
                             }
                             StartScreenFlow.COOP_CONNECTION -> {
-                                // Coop connection setup
                                 CoopConnectionSetupScreen(
                                     onShowConnectionDialog = { onStartCoopConnection() },
                                     onBack = { onGameModeSelected(com.akinalpfdn.poprush.core.domain.model.GameMode.SINGLE) },
@@ -388,7 +525,6 @@ private fun GameContent(
 
                 else -> {
                     if (gameState.isCoopMode && gameState.coopState != null) {
-                        // Coop gameplay
                         CoopGameplayScreen(
                             coopGameState = gameState.coopState,
                             selectedDuration = gameState.selectedDuration,
@@ -398,20 +534,21 @@ private fun GameContent(
                             onStartMatch = onStartMatch,
                             onDurationChange = onDurationChange,
                             onPlayAgain = {
-                                // Reset coop game and start over
                                 Timber.tag("GAME_SCREEN").d("🔄 PLAY_AGAIN_CLICKED: Resetting coop game")
-                                onDisconnectCoop()  // Disconnect current game
-                                onStartCoopConnection()  // Start new connection
+                                onDisconnectCoop()
+                                onStartCoopConnection()
                             },
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
+                        // Enhanced bubble grid with sound
                         BubbleGrid(
                             gameState = gameState,
                             selectedShape = gameState.selectedShape,
                             zoomLevel = gameState.zoomLevel,
                             onBubblePress = onBubblePress,
                             enabled = gameState.isPlaying && !gameState.isPaused,
+                            soundManager = soundManager,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -419,7 +556,7 @@ private fun GameContent(
             }
         }
 
-        // Pause button (only show when game is playing and not game over)
+        // Pause button with animation
         if (gameState.isPlaying && !gameState.isGameOver) {
             Box(
                 modifier = Modifier
@@ -434,7 +571,7 @@ private fun GameContent(
             }
         }
 
-        // Permissions dialog for coop mode
+        // Permissions dialog
         CoopPermissionsDialog(
             isVisible = showPermissionsDialog,
             missingPermissions = permissionManager.getMissingPermissionsDisplay(),
@@ -444,9 +581,7 @@ private fun GameContent(
             },
             onDismiss = {
                 onHidePermissionsDialog()
-                // Refresh permissions in case user granted them via settings
                 permissionManager.refreshPermissions()
-                // If we had a pending COOP selection and now have permissions, proceed
                 if (pendingCoopSelection && permissionManager.hasPermissions) {
                     setPendingCoopSelection(false)
                     onGameModeSelected(com.akinalpfdn.poprush.core.domain.model.GameMode.COOP)
@@ -459,4 +594,3 @@ private fun GameContent(
         )
     }
 }
-
