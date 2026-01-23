@@ -168,7 +168,7 @@ object AppColors {
     }
 
     object Background {
-        val Primary = Color.White
+        val Primary = Color(0xFFFFF9F5)
         val Secondary = LightGray
         val Tertiary = SoftWhite
         val Card = Color.White
