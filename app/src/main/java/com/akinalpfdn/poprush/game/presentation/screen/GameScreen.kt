@@ -34,19 +34,18 @@ import com.akinalpfdn.poprush.coop.presentation.screen.CoopGameplayScreen
 import com.akinalpfdn.poprush.coop.presentation.component.CoopConnectionOverlay
 import com.akinalpfdn.poprush.coop.presentation.component.CoopPermissionsDialog
 import com.akinalpfdn.poprush.coop.presentation.permission.rememberCoopPermissionManager
-import kotlinx.coroutines.delay
-import java.util.UUID
-import kotlin.random.Random
 import kotlin.time.Duration
 
 /**
  * Enhanced main game screen with:
  * - Animated background
- * - Pop sound effects
- * - Floating score indicators
- * - Combo system with visual feedback
- * - Screen shake effects
+ * - Pop sound effects  
+ * - Bubble pop animations with particles
+ * - Entrance animations
  * - Smooth transitions
+ * 
+ * Note: Combo system (floating scores, combo counter, screen shake) 
+ * is commented out - not useful for fast-paced gameplay
  */
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -58,38 +57,41 @@ fun GameScreen(
     val discoveredEndpoints by viewModel.discoveredEndpoints.collectAsStateWithLifecycle(
         initialValue = emptyList()
     )
-
+    
     val context = LocalContext.current
     val permissionManager = rememberCoopPermissionManager(context)
-
+    
     // Sound manager for pop effects
     val soundManager = rememberPopSoundManager()
-
+    
+    // === COMBO SYSTEM DISABLED ===
+    // Commented out - not useful for fast-paced gameplay
     // State for floating scores
-    var floatingScores by remember { mutableStateOf(listOf<FloatingScoreData>()) }
-
+    // var floatingScores by remember { mutableStateOf(listOf<FloatingScoreData>()) }
+    
     // Combo tracking
-    var currentCombo by remember { mutableStateOf(0) }
-    var lastPopTime by remember { mutableStateOf(0L) }
-    var showComboBurst by remember { mutableStateOf(false) }
-
+    // var currentCombo by remember { mutableStateOf(0) }
+    // var lastPopTime by remember { mutableStateOf(0L) }
+    // var showComboBurst by remember { mutableStateOf(false) }
+    
     // Screen shake trigger
-    var shouldShake by remember { mutableStateOf(false) }
-
+    // var shouldShake by remember { mutableStateOf(false) }
+    // === END COMBO SYSTEM ===
+    
     // Permission states
     var showPermissionsDialog by remember { mutableStateOf(false) }
     var hasCheckedPermissions by remember { mutableStateOf(false) }
     var pendingCoopSelection by remember { mutableStateOf(false) }
-
+    
     // Debug logging
     LaunchedEffect(discoveredEndpoints) {
         Timber.d("GameScreen: discoveredEndpoints.size = ${discoveredEndpoints.size}")
     }
-
+    
     LaunchedEffect(gameState.coopState?.isHost) {
         Timber.d("GameScreen: gameState.coopState?.isHost = ${gameState.coopState?.isHost}")
     }
-
+    
     // Permission check on first load
     LaunchedEffect(hasCheckedPermissions) {
         if (!hasCheckedPermissions) {
@@ -99,41 +101,43 @@ fun GameScreen(
             }
         }
     }
-
+    
+    // === COMBO SYSTEM DISABLED ===
     // Reset combo if game ends or restarts
-    LaunchedEffect(gameState.isPlaying) {
-        if (!gameState.isPlaying) {
-            currentCombo = 0
-            floatingScores = emptyList()
-        }
-    }
-
+    // LaunchedEffect(gameState.isPlaying) {
+    //     if (!gameState.isPlaying) {
+    //         currentCombo = 0
+    //         floatingScores = emptyList()
+    //     }
+    // }
+    
     // Combo timeout checker
-    LaunchedEffect(lastPopTime) {
-        if (lastPopTime > 0) {
-            delay(1500) // 1.5 second combo window
-            if (System.currentTimeMillis() - lastPopTime >= 1500) {
-                currentCombo = 0
-            }
-        }
-    }
-
+    // LaunchedEffect(lastPopTime) {
+    //     if (lastPopTime > 0) {
+    //         delay(1500) // 1.5 second combo window
+    //         if (System.currentTimeMillis() - lastPopTime >= 1500) {
+    //             currentCombo = 0
+    //         }
+    //     }
+    // }
+    
     // Combo burst display timer
-    LaunchedEffect(showComboBurst) {
-        if (showComboBurst) {
-            delay(1000)
-            showComboBurst = false
-        }
-    }
-
+    // LaunchedEffect(showComboBurst) {
+    //     if (showComboBurst) {
+    //         delay(1000)
+    //         showComboBurst = false
+    //     }
+    // }
+    
     // Screen shake reset
-    LaunchedEffect(shouldShake) {
-        if (shouldShake) {
-            delay(300)
-            shouldShake = false
-        }
-    }
-
+    // LaunchedEffect(shouldShake) {
+    //     if (shouldShake) {
+    //         delay(300)
+    //         shouldShake = false
+    //     }
+    // }
+    // === END COMBO SYSTEM ===
+    
     fun openAppSettings() {
         val intent = Intent().apply {
             action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
@@ -142,56 +146,9 @@ fun GameScreen(
         }
         context.startActivity(intent)
     }
-
-    // Enhanced bubble press handler with combo and floating score
+    
+    // Simple bubble press handler - just play sound and send intent
     fun handleBubblePress(bubbleId: Int) {
-        val currentTime = System.currentTimeMillis()
-
-        // Update combo
-        if (currentTime - lastPopTime < 1500) {
-            currentCombo++
-
-            // Trigger combo burst at milestones
-            if (currentCombo >= 5 && currentCombo % 5 == 0) {
-                showComboBurst = true
-                shouldShake = true
-                soundManager.playComboSound(currentCombo)
-            }
-        } else {
-            currentCombo = 1
-        }
-        lastPopTime = currentTime
-
-        // Calculate score based on combo
-        val scoreValue = when {
-            currentCombo >= 10 -> 5
-            currentCombo >= 5 -> 3
-            currentCombo >= 3 -> 2
-            else -> 1
-        }
-
-        // Find bubble position for floating score (approximate)
-        val bubble = gameState.bubbles.find { it.id == bubbleId }
-        if (bubble != null) {
-            val xOffset = (Random.nextFloat() * 100 - 50).dp
-            val yOffset = (Random.nextFloat() * 50).dp
-
-            val scoreColor = when {
-                currentCombo >= 10 -> Color(0xFFDC2626)
-                currentCombo >= 5 -> Color(0xFFF97316)
-                currentCombo >= 3 -> Color(0xFF22C55E)
-                else -> Color(0xFF3B82F6)
-            }
-
-            floatingScores = floatingScores + FloatingScoreData(
-                id = UUID.randomUUID().toString(),
-                score = scoreValue,
-                x = xOffset + 150.dp, // Approximate center offset
-                y = yOffset + 200.dp,
-                color = scoreColor
-            )
-        }
-
         // Send intent to ViewModel
         if (gameState.isCoopMode) {
             viewModel.processIntent(GameIntent.CoopClaimBubble(bubbleId))
@@ -199,25 +156,27 @@ fun GameScreen(
             viewModel.processIntent(GameIntent.PressBubble(bubbleId))
         }
     }
-
+    
+    // === COMBO SYSTEM DISABLED ===
     // Remove completed floating scores
-    fun removeFloatingScore(id: String) {
-        floatingScores = floatingScores.filter { it.id != id }
-    }
-
+    // fun removeFloatingScore(id: String) {
+    //     floatingScores = floatingScores.filter { it.id != id }
+    // }
+    // === END COMBO SYSTEM ===
+    
     // Back handlers
     BackHandler(enabled = gameState.showSettings) {
         viewModel.processIntent(GameIntent.ToggleSettings)
     }
-
+    
     BackHandler(enabled = gameState.isPlaying && !gameState.isGameOver) {
         viewModel.processIntent(GameIntent.ShowBackConfirmation)
     }
-
+    
     BackHandler(enabled = !gameState.isPlaying && !gameState.isGameOver) {
         viewModel.processIntent(GameIntent.NavigateBack)
     }
-
+    
     // Main screen with animated background
     Box(modifier = modifier.fillMaxSize()) {
         // Animated background layer
@@ -225,72 +184,66 @@ fun GameScreen(
             modifier = Modifier.fillMaxSize(),
             particleCount = 25
         )
-
-        // Screen shake wrapper for main content
-        ScreenShakeWrapper(
-            shouldShake = shouldShake,
-            intensity = 0.8f,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Main game content
-            GameContent(
-                gameState = gameState,
-                soundManager = soundManager,
-                currentCombo = currentCombo,
-                onStartGame = { viewModel.processIntent(GameIntent.StartGame) },
-                onBubblePress = ::handleBubblePress,
-                onToggleSettings = { viewModel.processIntent(GameIntent.ToggleSettings) },
-                onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
-                onTogglePause = { viewModel.processIntent(GameIntent.TogglePause) },
-                onDurationChange = { duration -> viewModel.processIntent(GameIntent.UpdateSelectedDuration(duration)) },
-                onGameModeSelected = { mode -> viewModel.processIntent(GameIntent.SelectGameMode(mode)) },
-                onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
-                onDisconnectCoop = { viewModel.processIntent(GameIntent.DisconnectCoop) },
-                onStartCoopConnection = { viewModel.processIntent(GameIntent.StartCoopConnection) },
-                onStartMatch = { viewModel.processIntent(GameIntent.StartCoopMatch) },
-                permissionManager = permissionManager,
-                showPermissionsDialog = showPermissionsDialog,
-                onShowPermissionsDialog = { showPermissionsDialog = true },
-                onHidePermissionsDialog = { showPermissionsDialog = false },
-                pendingCoopSelection = pendingCoopSelection,
-                setPendingCoopSelection = { pendingCoopSelection = it },
-                openAppSettings = { openAppSettings() },
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-
-        // Floating scores layer
-        FloatingScoreManager(
-            scores = floatingScores,
-            onScoreComplete = ::removeFloatingScore,
+        
+        // Main game content (no screen shake wrapper - disabled)
+        GameContent(
+            gameState = gameState,
+            soundManager = soundManager,
+            onStartGame = { viewModel.processIntent(GameIntent.StartGame) },
+            onBubblePress = ::handleBubblePress,
+            onToggleSettings = { viewModel.processIntent(GameIntent.ToggleSettings) },
+            onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
+            onTogglePause = { viewModel.processIntent(GameIntent.TogglePause) },
+            onDurationChange = { duration -> viewModel.processIntent(GameIntent.UpdateSelectedDuration(duration)) },
+            onGameModeSelected = { mode -> viewModel.processIntent(GameIntent.SelectGameMode(mode)) },
+            onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
+            onDisconnectCoop = { viewModel.processIntent(GameIntent.DisconnectCoop) },
+            onStartCoopConnection = { viewModel.processIntent(GameIntent.StartCoopConnection) },
+            onStartMatch = { viewModel.processIntent(GameIntent.StartCoopMatch) },
+            permissionManager = permissionManager,
+            showPermissionsDialog = showPermissionsDialog,
+            onShowPermissionsDialog = { showPermissionsDialog = true },
+            onHidePermissionsDialog = { showPermissionsDialog = false },
+            pendingCoopSelection = pendingCoopSelection,
+            setPendingCoopSelection = { pendingCoopSelection = it },
+            openAppSettings = { openAppSettings() },
             modifier = Modifier.fillMaxSize()
         )
-
+        
+        // === COMBO SYSTEM DISABLED ===
+        // Floating scores layer
+        // FloatingScoreManager(
+        //     scores = floatingScores,
+        //     onScoreComplete = ::removeFloatingScore,
+        //     modifier = Modifier.fillMaxSize()
+        // )
+        
         // Combo indicator (top center when playing)
-        if (gameState.isPlaying && !gameState.isGameOver) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 120.dp),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                ComboIndicator(
-                    combo = currentCombo
-                )
-            }
-
-            // Combo burst text
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                ComboBurstText(
-                    combo = currentCombo,
-                    isVisible = showComboBurst
-                )
-            }
-        }
-
+        // if (gameState.isPlaying && !gameState.isGameOver) {
+        //     Box(
+        //         modifier = Modifier
+        //             .fillMaxWidth()
+        //             .padding(top = 120.dp),
+        //         contentAlignment = Alignment.TopCenter
+        //     ) {
+        //         ComboIndicator(
+        //             combo = currentCombo
+        //         )
+        //     }
+        //     
+        //     // Combo burst text
+        //     Box(
+        //         modifier = Modifier.fillMaxSize(),
+        //         contentAlignment = Alignment.Center
+        //     ) {
+        //         ComboBurstText(
+        //             combo = currentCombo,
+        //             isVisible = showComboBurst
+        //         )
+        //     }
+        // }
+        // === END COMBO SYSTEM ===
+        
         // Settings button with subtle animation
         val infiniteTransition = rememberInfiniteTransition(label = "settingsBtn")
         val settingsPulse by infiniteTransition.animateFloat(
@@ -302,7 +255,7 @@ fun GameScreen(
             ),
             label = "settingsPulse"
         )
-
+        
         IconButton(
             onClick = { viewModel.processIntent(GameIntent.ToggleSettings) },
             modifier = Modifier
@@ -324,7 +277,7 @@ fun GameScreen(
                 tint = Color(0xFF57534E)
             )
         }
-
+        
         // Bottom credit text
         Text(
             text = "MADE BY MOVI",
@@ -336,7 +289,7 @@ fun GameScreen(
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.sp
         )
-
+        
         // Settings overlay
         AnimatedVisibility(
             visible = gameState.showSettings,
@@ -359,7 +312,7 @@ fun GameScreen(
                 modifier = Modifier.fillMaxSize()
             )
         }
-
+        
         // Game over overlay
         if (gameState.isGameOver) {
             GameOverScreen(
@@ -369,14 +322,14 @@ fun GameScreen(
                 modifier = Modifier.fillMaxSize()
             )
         }
-
+        
         // Back confirmation dialog
         BackConfirmationDialog(
             onConfirm = { viewModel.processIntent(GameIntent.BackToMenu) },
             onDismiss = { viewModel.processIntent(GameIntent.HideBackConfirmation) },
             isVisible = gameState.showBackConfirmation
         )
-
+        
         // Coop connection overlay
         CoopConnectionOverlay(
             isVisible = gameState.showCoopConnectionDialog,
@@ -420,7 +373,6 @@ fun GameScreen(
 private fun GameContent(
     gameState: GameState,
     soundManager: PopSoundManager,
-    currentCombo: Int,
     onStartGame: () -> Unit,
     onBubblePress: (Int) -> Unit,
     onToggleSettings: () -> Unit,
@@ -456,9 +408,9 @@ private fun GameContent(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-
+        
         Spacer(modifier = Modifier.height(32.dp))
-
+        
         // Main content area
         Box(
             modifier = Modifier
@@ -466,16 +418,16 @@ private fun GameContent(
                 .weight(1f)
         ) {
             when {
-                !gameState.isPlaying && !gameState.isGameOver &&
-                        (!gameState.isCoopMode || gameState.coopState == null ||
-                                gameState.coopState.gamePhase == com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase.WAITING) -> {
-
+                !gameState.isPlaying && !gameState.isGameOver && 
+                (!gameState.isCoopMode || gameState.coopState == null || 
+                 gameState.coopState.gamePhase == com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase.WAITING) -> {
+                    
                     // Start screen flow with smooth transitions
                     AnimatedContent(
                         targetState = gameState.currentScreen,
                         transitionSpec = {
                             fadeIn(animationSpec = tween(300, easing = LinearEasing)) togetherWith
-                                    fadeOut(animationSpec = tween(200, easing = LinearEasing))
+                            fadeOut(animationSpec = tween(200, easing = LinearEasing))
                         },
                         contentKey = { it },
                         label = "startScreenTransition"
@@ -522,7 +474,7 @@ private fun GameContent(
                         }
                     }
                 }
-
+                
                 else -> {
                     if (gameState.isCoopMode && gameState.coopState != null) {
                         CoopGameplayScreen(
@@ -555,7 +507,7 @@ private fun GameContent(
                 }
             }
         }
-
+        
         // Pause button with animation
         if (gameState.isPlaying && !gameState.isGameOver) {
             Box(
@@ -570,7 +522,7 @@ private fun GameContent(
                 )
             }
         }
-
+        
         // Permissions dialog
         CoopPermissionsDialog(
             isVisible = showPermissionsDialog,
