@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
+import com.akinalpfdn.poprush.ui.theme.AppColors
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 
 /**
  * Loading overlay component shown during speed mode initialization.
@@ -40,7 +42,7 @@ fun LoadingOverlay(
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f)),
+                .background(AppColors.DarkGray.withAlpha(0.6f)),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -53,7 +55,7 @@ fun LoadingOverlay(
                 // Loading message
                 Text(
                     text = message,
-                    color = Color.White,
+                    color = AppColors.Background.Primary,
                     fontSize = 16.sp,
                     fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Medium
@@ -104,7 +106,7 @@ private fun LoadingIndicator() {
                     rotationZ = rotation
                 }
                 .background(
-                    color = Color(0xFF60A5FA).copy(alpha = 0.3f), // blue-400
+                    color = AppColors.BluePrimary.copy(alpha = 0.3f), // blue-400
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -113,7 +115,7 @@ private fun LoadingIndicator() {
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        color = Color(0xFF60A5FA).copy(alpha = 0.6f), // blue-400
+                        color = AppColors.BluePrimary.copy(alpha = 0.6f), // blue-400
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -126,7 +128,7 @@ private fun LoadingIndicator() {
                             scaleY = scale
                         }
                         .background(
-                            color = Color(0xFF3B82F6), // blue-600
+                            color = AppColors.BluePrimary,
                             shape = CircleShape
                         )
                 )

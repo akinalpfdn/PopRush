@@ -24,10 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
-
-// Consistent color palette
-private val DarkGray = Color(0xFF1C1917)
-private val LightGray = Color(0xFFF5F5F4)
+import com.akinalpfdn.poprush.ui.theme.AppColors
 
 @Composable
 fun CoopConnectionSetupScreen(
@@ -38,7 +35,7 @@ fun CoopConnectionSetupScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White),
+            .background(AppColors.Background.Primary),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -57,21 +54,21 @@ fun CoopConnectionSetupScreen(
                 Box(
                     modifier = Modifier
                         .size(100.dp)
-                        .background(LightGray, CircleShape),
+                        .background(AppColors.LightGray, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.WifiTethering,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = DarkGray
+                        tint = AppColors.DarkGray
                     )
                 }
 
 
                 Text(
                     text = "CO-OP LOBBY",
-                    color = DarkGray,
+                    color = AppColors.DarkGray,
                     fontSize = 32.sp,
                     fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.ExtraBold,
@@ -129,13 +126,13 @@ private fun CompactFeatureRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = DarkGray,
+            tint = AppColors.DarkGray,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = text,
-            color = DarkGray.copy(alpha = 0.8f),
+            color = AppColors.DarkGray.copy(alpha = 0.8f),
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Medium,
             fontSize = 16.sp
@@ -170,7 +167,7 @@ private fun CoopActionButton(
             ),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = DarkGray
+            containerColor = AppColors.DarkGray
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
@@ -183,7 +180,7 @@ private fun CoopActionButton(
         ) {
             Text(
                 text = text,
-                color = Color.White,
+                color = AppColors.Background.Primary,
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
@@ -192,10 +189,10 @@ private fun CoopActionButton(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
+                tint = AppColors.Background.Primary,
                 modifier = Modifier
                     .size(32.dp)
-                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                    .background(AppColors.Background.Primary.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
                     .padding(6.dp)
             )
         }

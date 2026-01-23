@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
+import com.akinalpfdn.poprush.ui.theme.AppColors
 
 // This grabs the built-in Android "sans-serif-rounded" font
 val NunitoFontFamily = FontFamily(
@@ -50,12 +51,12 @@ fun ToastSnackbar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = Color(0xFF1F2937), // gray-800
+                        color = AppColors.Background.Overlay, // gray-800
                         shape = RoundedCornerShape(12.dp)
                     ),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF1F2937)
+                    containerColor = AppColors.Background.Overlay
                 ),
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = 8.dp
@@ -71,7 +72,7 @@ fun ToastSnackbar(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = "Info",
-                        tint = Color(0xFF60A5FA), // blue-400
+                        tint = AppColors.BluePrimary, // blue-400
                         modifier = Modifier.size(24.dp)
                     )
 
@@ -83,7 +84,7 @@ fun ToastSnackbar(
                     ) {
                         Text(
                             text = "Coming Soon!",
-                            color = Color.White,
+                            color = AppColors.Background.Primary,
                             fontSize = 16.sp,
                             fontFamily = NunitoFontFamily,
                             fontWeight = FontWeight.Bold
@@ -91,7 +92,7 @@ fun ToastSnackbar(
 
                         Text(
                             text = "Co-op mode will be available in a future update",
-                            color = Color(0xFFD1D5DB), // gray-300
+                            color = AppColors.StonePale, // gray-300
                             fontSize = 14.sp,
                             fontFamily = NunitoFontFamily
                         )

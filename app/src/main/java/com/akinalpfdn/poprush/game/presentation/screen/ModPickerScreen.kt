@@ -27,11 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameMod
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
-
-private val DarkGray = Color(0xFF1C1917)
-private val ClassicGreen = Color(0xFF4ADE80)
-private val SpeedRed = Color(0xFFF87171)
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 
 @Composable
 fun ModPickerScreen(
@@ -41,7 +39,7 @@ fun ModPickerScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(AppColors.Background.Primary)
     ) {
         // We use LazyColumn with Arrangement.Center to vertically center the whole block
         LazyColumn(
@@ -57,7 +55,7 @@ fun ModPickerScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Game Modes",
-                        color = DarkGray,
+                        color = AppColors.Text.Primary,
                         fontSize = 32.sp,
                         fontFamily = NunitoFontFamily,
                         fontWeight = FontWeight.ExtraBold,
@@ -81,7 +79,7 @@ fun ModPickerScreen(
                     title = "Classic Mode",
                     description = "Pop bubbles against the clock. Test your reflexes in this timeless challenge.",
                     icon = Icons.Default.Timer,
-                    accentColor = ClassicGreen,
+                    accentColor = AppColors.EmeraldClassic,
                     onClick = { onModSelected(GameMod.CLASSIC) }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -92,7 +90,7 @@ fun ModPickerScreen(
                     title = "Speed Mode",
                     description = "Cells light up randomly! The pace quickens with every second.",
                     icon = Icons.Default.Speed,
-                    accentColor = SpeedRed,
+                    accentColor = AppColors.RoseMedium,
                     onClick = { onModSelected(GameMod.SPEED) }
                 )
             }
@@ -127,7 +125,7 @@ private fun ModCard(
             ),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = DarkGray
+            containerColor = AppColors.Button.Primary
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -141,7 +139,7 @@ private fun ModCard(
                 modifier = Modifier
                     .size(48.dp) // Slightly smaller icon box to match reduced padding
                     .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.2f)),
+                    .background(accentColor.withAlpha(0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -159,7 +157,7 @@ private fun ModCard(
             ) {
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = AppColors.Button.Text,
                     fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
@@ -169,7 +167,7 @@ private fun ModCard(
 
                 Text(
                     text = description,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = AppColors.Button.Text.withAlpha(0.6f),
                     fontFamily = NunitoFontFamily,
                     fontSize = 13.sp,
                     lineHeight = 18.sp
@@ -181,7 +179,7 @@ private fun ModCard(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.3f),
+                tint = AppColors.Button.Text.withAlpha(0.3f),
                 modifier = Modifier.size(24.dp)
             )
         }

@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,7 +36,7 @@ fun BackConfirmationDialog(
             title = {
                 Text(
                     text = "Leave Game?",
-                    color = Color(0xFF1C1917), // stone-900
+                    color = AppColors.Text.Primary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -43,7 +44,7 @@ fun BackConfirmationDialog(
             text = {
                 Text(
                     text = "Are you sure? Your current progress will be lost.",
-                    color = Color(0xFF57534E), // stone-600
+                    color = AppColors.Text.Tertiary,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Start,
                     lineHeight = 20.sp
@@ -55,7 +56,7 @@ fun BackConfirmationDialog(
                         .defaultMinSize(minWidth = 100.dp)
                         .height(44.dp)
                         .background(
-                            color = Color(0xFF000000), // stone-400
+                            color = AppColors.Button.Primary,
                             shape = CircleShape
                         )
                         .clickable { onConfirm()
@@ -65,7 +66,7 @@ fun BackConfirmationDialog(
 
                         Text(
                             text = "Yes",
-                            color = Color.White,
+                            color = AppColors.Button.Text,
                             fontWeight = FontWeight.Medium,
                             fontSize = 16.sp
                         )
@@ -79,7 +80,7 @@ fun BackConfirmationDialog(
                         .defaultMinSize(minWidth = 100.dp)
                         .height(44.dp)
                         .background(
-                            color = Color(0xFFA8A6A6), // stone-400
+                            color = AppColors.StonePaleAlt,
                             shape = CircleShape
                         )
                         .clickable {
@@ -89,14 +90,14 @@ fun BackConfirmationDialog(
 
                     Text(
                         text = "No",
-                        color = Color.White,
+                        color = AppColors.Button.Text,
                         fontWeight = FontWeight.Medium,
                         fontSize = 16.sp
                     )
 
                 }
             },
-            containerColor = Color.White,
+            containerColor = AppColors.Background.Primary,
             shape = RoundedCornerShape(16.dp)
         )
     }

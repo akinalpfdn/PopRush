@@ -26,13 +26,8 @@ import com.akinalpfdn.poprush.coop.domain.model.ConnectionState
 import com.akinalpfdn.poprush.coop.domain.model.EndpointInfo
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
-
-// Theme Colors
-private val DarkGray = Color(0xFF1C1917)
-private val LightGray = Color(0xFFF5F5F4)
-private val SuccessGreen = Color(0xFF22C55E)
-private val ErrorRed = Color(0xFFEF4444)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,13 +77,13 @@ fun CoopConnectionScreen(
                 IconButton(
                     onClick = onBackToMenu,
                     modifier = Modifier
-                        .background(LightGray, CircleShape)
+                        .background(AppColors.LightGray, CircleShape)
                         .size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
-                        tint = DarkGray
+                        tint = AppColors.DarkGray
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -139,7 +134,7 @@ fun CoopConnectionScreen(
         // -- Error Toast --
         errorMessage?.let { message ->
             Card(
-                colors = CardDefaults.cardColors(containerColor = ErrorRed),
+                colors = CardDefaults.cardColors(containerColor = AppColors.RedError),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -169,13 +164,13 @@ private fun AdvertisingView(onStopHosting: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        PulseAnimation(color = DarkGray)
+        PulseAnimation(color = AppColors.DarkGray)
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
             text = "Hosting...",
-            color = DarkGray,
+            color = AppColors.DarkGray,
             fontSize = 24.sp,
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold
@@ -193,8 +188,8 @@ private fun AdvertisingView(onStopHosting: () -> Unit) {
         Button(
             onClick = onStopHosting,
             colors = ButtonDefaults.buttonColors(
-                containerColor = LightGray,
-                contentColor = ErrorRed
+                containerColor = AppColors.LightGray,
+                contentColor = AppColors.RedError
             ),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.height(50.dp)
@@ -218,7 +213,7 @@ private fun DiscoveryView(
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = "NEARBY GAMES",
-            color = DarkGray,
+            color = AppColors.DarkGray,
             fontSize = 24.sp,
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.ExtraBold
@@ -230,11 +225,11 @@ private fun DiscoveryView(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .background(LightGray, RoundedCornerShape(24.dp)),
+                    .background(AppColors.LightGray, RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = DarkGray, strokeWidth = 3.dp)
+                    CircularProgressIndicator(color = AppColors.DarkGray, strokeWidth = 3.dp)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Scanning...",
@@ -259,7 +254,7 @@ private fun DiscoveryView(
         Button(
             onClick = onStopDiscovery,
             colors = ButtonDefaults.buttonColors(
-                containerColor = ErrorRed,
+                containerColor = AppColors.RedError,
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(16.dp),
@@ -275,13 +270,13 @@ private fun ConnectingView(message: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(
             modifier = Modifier.size(60.dp),
-            color = DarkGray,
+            color = AppColors.DarkGray,
             strokeWidth = 6.dp
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = message,
-            color = DarkGray,
+            color = AppColors.DarkGray,
             fontSize = 20.sp,
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold
@@ -300,13 +295,13 @@ private fun ConnectedView(isHost: Boolean, onDisconnect: () -> Unit, onStartGame
         Icon(
             imageVector = Icons.Default.CheckCircle,
             contentDescription = null,
-            tint = SuccessGreen,
+            tint = AppColors.EmeraldSuccess,
             modifier = Modifier.size(100.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Connected!",
-            color = DarkGray,
+            color = AppColors.DarkGray,
             fontSize = 28.sp,
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.ExtraBold
@@ -322,7 +317,7 @@ private fun ConnectedView(isHost: Boolean, onDisconnect: () -> Unit, onStartGame
                     Timber.tag("COOP_CONNECTION").d("🎮 START_GAME_CLICKED: Host clicked Start Game button")
                     onStartGame()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = DarkGray),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.DarkGray),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
@@ -337,7 +332,7 @@ private fun ConnectedView(isHost: Boolean, onDisconnect: () -> Unit, onStartGame
         // Disconnect Button (both players can disconnect)
         Button(
             onClick = onDisconnect,
-            colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
+            colors = ButtonDefaults.buttonColors(containerColor = AppColors.RedError),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
@@ -355,7 +350,7 @@ private fun PlayerBadge(name: String, color: BubbleColor) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .background(LightGray, RoundedCornerShape(50))
+            .background(AppColors.LightGray, RoundedCornerShape(50))
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Box(
@@ -368,7 +363,7 @@ private fun PlayerBadge(name: String, color: BubbleColor) {
             text = name.ifEmpty { "Player" },
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold,
-            color = DarkGray,
+            color = AppColors.DarkGray,
             fontSize = 14.sp
         )
     }
@@ -384,7 +379,7 @@ private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(LightGray, RoundedCornerShape(16.dp))
+            .background(AppColors.LightGray, RoundedCornerShape(16.dp))
             .clickable(onClick = {
                 Timber.d("Endpoint clicked: ${endpoint.name} (${endpoint.id})")
                 onClick()
@@ -398,7 +393,7 @@ private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
                 text = endpoint.getPlayerName(),
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold,
-                color = DarkGray,
+                color = AppColors.DarkGray,
                 fontSize = 16.sp
             )
             endpoint.getPlayerColor()?.let { color ->
@@ -412,7 +407,7 @@ private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Default.NavigateNext,
             contentDescription = "Join",
-            tint = DarkGray
+            tint = AppColors.DarkGray
         )
     }
 }

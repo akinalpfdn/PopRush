@@ -18,9 +18,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 import kotlin.math.abs
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -77,7 +79,7 @@ fun DurationPicker(
             Icon(
                 imageVector = Icons.Default.AccessTime,
                 contentDescription = "Duration",
-                tint = Color(0xFF78716C),
+                tint = AppColors.Text.Label,
                 modifier = Modifier.size(16.dp) // Smaller icon
             )
 
@@ -85,7 +87,7 @@ fun DurationPicker(
 
             Text(
                 text = "GAME DURATION",
-                color = Color(0xFF78716C),
+                color = AppColors.Text.Label,
                 fontSize = 12.sp, // Smaller font
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
@@ -105,7 +107,7 @@ fun DurationPicker(
                     .fillMaxWidth()
                     .height(itemHeight)
                     .background(
-                        color = Color(0xFF3B82F6).copy(alpha = 0.1f),
+                        color = AppColors.BluePrimary.withAlpha(0.1f),
                         shape = RoundedCornerShape(12.dp)
                     )
                     .align(Alignment.Center)
@@ -164,8 +166,8 @@ fun DurationPicker(
                     ) {
                         Text(
                             text = "${second}s",
-                            color = if (scale > 1.1f) Color(0xFF1C1917) else Color(0xFF78716C),
-                            fontSize = 20.sp, // Reduced font size
+                            color = if (scale > 1.1f) AppColors.DarkGray else AppColors.Text.Label,
+                            fontSize = 20.sp,
                             fontWeight = if (scale > 1.1f) FontWeight.Black else FontWeight.Medium,
                             textAlign = TextAlign.Center
                         )

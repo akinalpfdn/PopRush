@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameState
@@ -41,7 +42,7 @@ fun GameOverScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.8f))
+                .background(AppColors.gameOverOverlay())
                 .clickable(onClick = { /* Consume clicks, prevent interaction with game */ })
         )
 
@@ -54,7 +55,7 @@ fun GameOverScreen(
                 .wrapContentHeight(),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFFFFFFF) // stone-900
+                containerColor = AppColors.Background.Card
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
@@ -74,7 +75,7 @@ fun GameOverScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .background(
-                                color = Color(0xFFFBBF24), // amber-400
+                                color = AppColors.AmberMedium,
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center
@@ -82,7 +83,7 @@ fun GameOverScreen(
                         Icon(
                             imageVector = Icons.Default.EmojiEvents, // Trophy icon
                             contentDescription = "Trophy",
-                            tint = Color.White,
+                            tint = AppColors.Button.Text,
                             modifier = Modifier.size(40.dp)
                         )
                     }
@@ -103,7 +104,7 @@ fun GameOverScreen(
                 // Final score
                 Text(
                     text = gameState.score.toString(),
-                    color = Color(0xFFFCA5A5), // rose-300 (lighter)
+                    color = AppColors.RoseLight,
                     fontSize = 64.sp,
                     fontWeight = FontWeight.Black
                 )
@@ -113,7 +114,7 @@ fun GameOverScreen(
                 // Score label
                 Text(
                     text = "Final Score",
-                    color = Color(0xFF000000), // stone-400
+                    color = Color.Black,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -126,7 +127,7 @@ fun GameOverScreen(
                         .defaultMinSize(minWidth = 160.dp)
                         .height(52.dp)
                         .background(
-                            color = Color.Black,
+                            color = AppColors.Button.Primary,
                             shape = CircleShape
                         )
                         .clickable { onPlayAgain() },
@@ -139,7 +140,7 @@ fun GameOverScreen(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Restart",
-                            tint = Color.White,
+                            tint = AppColors.Button.Text,
                             modifier = Modifier.size(20.dp)
                         )
 
@@ -147,7 +148,7 @@ fun GameOverScreen(
 
                         Text(
                             text = "TRY AGAIN",
-                            color = Color.White,
+                            color = AppColors.Button.Text,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
                         )
@@ -162,7 +163,7 @@ fun GameOverScreen(
                         .defaultMinSize(minWidth = 160.dp)
                         .height(44.dp)
                         .background(
-                            color = Color(0xFF78716C), // stone-400
+                            color = AppColors.Text.Label,
                             shape = CircleShape
                         )
                         .clickable { onBackToMenu() },
@@ -175,7 +176,7 @@ fun GameOverScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back to Menu",
-                            tint = Color.White,
+                            tint = AppColors.Button.Text,
                             modifier = Modifier.size(18.dp)
                         )
 
@@ -183,7 +184,7 @@ fun GameOverScreen(
 
                         Text(
                             text = "BACK TO MENU",
-                            color = Color.White,
+                            color = AppColors.Button.Text,
                             fontWeight = FontWeight.Medium,
                             fontSize = 12.sp
                         )

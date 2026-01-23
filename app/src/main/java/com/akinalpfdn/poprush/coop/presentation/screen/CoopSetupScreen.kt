@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.coop.domain.model.CoopGameState
@@ -42,7 +43,7 @@ fun CoopSetupScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White.copy(alpha = 0.6f)),
+            .background(AppColors.Background.Overlay),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -52,7 +53,7 @@ fun CoopSetupScreen(
             // Title
             Text(
                 text = "COOP SETUP",
-                color = Color(0xFF44403C),
+                color = AppColors.StoneGray,
                 fontSize = 36.sp,
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold
@@ -63,7 +64,7 @@ fun CoopSetupScreen(
             // Subtitle (Players)
             Text(
                 text = "${coopGameState.localPlayerName} vs ${coopGameState.opponentPlayerName.ifEmpty { "Opponent" }}",
-                color = Color(0xFF6B7280),
+                color = AppColors.GrayMedium,
                 fontSize = 20.sp,
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Medium
@@ -94,7 +95,7 @@ fun CoopSetupScreen(
             TextButton(onClick = onDisconnect) {
                 Text(
                     text = "Disconnect",
-                    color = Color(0xFFEF4444), // red-500
+                    color = AppColors.RedError,
                     fontSize = 16.sp,
                     fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Medium
@@ -112,7 +113,7 @@ private fun PlayButton(
     Box(
         modifier = modifier
             .background(
-                color = Color(0xFF1C1917), // stone-800
+                color = AppColors.Button.Primary,
                 shape = CircleShape
             )
             .clickable { onClick() }
@@ -126,7 +127,7 @@ private fun PlayButton(
             Icon(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = "Start Match",
-                tint = Color.White,
+                tint = AppColors.Button.Text,
                 modifier = Modifier.size(24.dp)
             )
 
@@ -134,7 +135,7 @@ private fun PlayButton(
 
             Text(
                 text = "START MATCH",
-                color = Color.White,
+                color = AppColors.Button.Text,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )

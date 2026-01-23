@@ -29,10 +29,7 @@ import com.akinalpfdn.poprush.coop.presentation.screen.CoopPlayerSetupScreen
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 import timber.log.Timber
-
-// Theme Colors
-private val DarkGray = Color(0xFF1C1917)
-private val LightGray = Color(0xFFF5F5F4)
+import com.akinalpfdn.poprush.ui.theme.AppColors
 
 private enum class CoopConnectionStep {
     HOST_JOIN_SELECTION,
@@ -274,10 +271,10 @@ private fun HostJoinSelectionStep(
             IconButton(
                 onClick = onBack,
                 modifier = Modifier
-                    .background(LightGray, CircleShape)
+                    .background(AppColors.LightGray, CircleShape)
                     .size(48.dp)
             ) {
-                Icon(Icons.Default.Close, "Close", tint = DarkGray)
+                Icon(Icons.Default.Close, "Close", tint = AppColors.DarkGray)
             }
         }
 
@@ -288,7 +285,7 @@ private fun HostJoinSelectionStep(
             imageVector = Icons.Default.Groups,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
-            tint = DarkGray
+            tint = AppColors.DarkGray
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -296,7 +293,7 @@ private fun HostJoinSelectionStep(
         Text(
             text = "MULTIPLAYER",
             style = MaterialTheme.typography.headlineMedium,
-            color = DarkGray,
+            color = AppColors.DarkGray,
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp
@@ -343,7 +340,7 @@ private fun ProfileSummaryPill(
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(50),
-        colors = CardDefaults.cardColors(containerColor = LightGray),
+        colors = CardDefaults.cardColors(containerColor = AppColors.LightGray),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
@@ -360,7 +357,7 @@ private fun ProfileSummaryPill(
                 text = name.ifEmpty { "Player" },
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold,
-                color = DarkGray,
+                color = AppColors.DarkGray,
                 fontSize = 14.sp
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -396,7 +393,7 @@ private fun CoopActionCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkGray),
+        colors = CardDefaults.cardColors(containerColor = AppColors.DarkGray),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Row(

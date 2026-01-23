@@ -30,10 +30,7 @@ import com.akinalpfdn.poprush.coop.presentation.component.CoopColorPicker
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
-
-// Theme Colors
-private val DarkGray = Color(0xFF1C1917)
-private val LightGray = Color(0xFFF5F5F4)
+import com.akinalpfdn.poprush.ui.theme.AppColors
 
 @Composable
 fun CoopPlayerSetupScreen(
@@ -74,13 +71,13 @@ fun CoopPlayerSetupScreen(
                 IconButton(
                     onClick = onBack,
                     modifier = Modifier
-                        .background(LightGray, CircleShape)
+                        .background(AppColors.LightGray, CircleShape)
                         .size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
-                        tint = DarkGray
+                        tint = AppColors.DarkGray
                     )
                 }
             }
@@ -91,7 +88,7 @@ fun CoopPlayerSetupScreen(
             Text(
                 text = if (isHost) "CREATE LOBBY" else "JOIN LOBBY",
                 style = MaterialTheme.typography.headlineMedium,
-                color = DarkGray,
+                color = AppColors.DarkGray,
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp
@@ -136,7 +133,7 @@ fun CoopPlayerSetupScreen(
                         imageVector = Icons.Default.Edit,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = DarkGray
+                        tint = AppColors.DarkGray
                     )
                 }
             }
@@ -199,7 +196,7 @@ private fun StyledNameInput(
         Text(
             text = "DISPLAY NAME",
             style = MaterialTheme.typography.labelLarge,
-            color = DarkGray.copy(alpha = 0.6f),
+            color = AppColors.DarkGray.copy(alpha = 0.6f),
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold
         )
@@ -216,14 +213,14 @@ private fun StyledNameInput(
             },
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = LightGray,
-                unfocusedContainerColor = LightGray,
-                disabledContainerColor = LightGray,
+                focusedContainerColor = AppColors.LightGray,
+                unfocusedContainerColor = AppColors.LightGray,
+                disabledContainerColor = AppColors.LightGray,
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent,
-                cursorColor = DarkGray,
-                focusedTextColor = DarkGray,
-                unfocusedTextColor = DarkGray
+                cursorColor = AppColors.DarkGray,
+                focusedTextColor = AppColors.DarkGray,
+                unfocusedTextColor = AppColors.DarkGray
             ),
             shape = RoundedCornerShape(16.dp),
             textStyle = MaterialTheme.typography.titleMedium.copy(
@@ -249,7 +246,7 @@ private fun InfoPill(isHost: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(LightGray.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .background(AppColors.LightGray.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -290,9 +287,9 @@ private fun PrimaryActionButton(
             .scale(scale),
         shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = DarkGray,
+            containerColor = AppColors.DarkGray,
             contentColor = Color.White,
-            disabledContainerColor = LightGray,
+            disabledContainerColor = AppColors.LightGray,
             disabledContentColor = Color.Gray
         ),
         elevation = ButtonDefaults.buttonElevation(

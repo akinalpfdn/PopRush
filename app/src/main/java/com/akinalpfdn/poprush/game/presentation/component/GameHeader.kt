@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameState
@@ -46,14 +47,14 @@ fun GameHeader(
         ) {
             Text(
                 text = "SCORE",
-                color = Color(0xFF78716C), // stone-400
+                color = AppColors.Text.Label,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.1.sp
             )
             Text(
                 text = gameState.score.toString(),
-                color = Color(0xFF44403C), // stone-700
+                color = AppColors.Text.Secondary,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Black
             )
@@ -73,14 +74,14 @@ fun GameHeader(
         ) {
             Text(
                 text = "BEST",
-                color = Color(0xFF78716C), // stone-400
+                color = AppColors.Text.Label,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.1.sp
             )
             Text(
                 text = gameState.highScore.toString(),
-                color = Color(0xFFFCD34D), // amber-300
+                color = AppColors.Score.Best,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Black
             )
@@ -119,18 +120,14 @@ private fun TimerDisplay(
                 .size(64.dp)
                 .scale(pulseAnimation)
                 .background(
-                    color = Color(0xFFF5F5F4), // stone-100
+                    color = AppColors.Background.Secondary,
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = timeRemaining.split(":")[1], // Only show seconds
-                color = if (isCritical) {
-                    Color(0xFFF87171) // rose-400
-                } else {
-                    Color(0xFF57534E) // stone-600
-                },
+                color = if (isCritical) AppColors.Score.TimerCritical else AppColors.Score.Timer,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )

@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,7 +46,7 @@ fun StartScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White.copy(alpha = 0.6f)), // Semi-transparent white overlay
+            .background(AppColors.Background.Overlay), // Semi-transparent white overlay
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -55,7 +56,7 @@ fun StartScreen(
             // Game title
             Text(
                 text = "POP RUSH",
-                color = Color(0xFF44403C),
+                color = AppColors.StoneGray,
                 fontSize = 36.sp,
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold
@@ -66,7 +67,7 @@ fun StartScreen(
             // Mode title
             Text(
                 text = gameState.selectedMod.displayName,
-                color = Color(0xFF6B7280),
+                color = AppColors.GrayMedium,
                 fontSize = 20.sp,
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Medium
@@ -107,7 +108,7 @@ private fun PlayButton(
     Box(
         modifier = modifier
             .background(
-                color = Color(0xFF1C1917), // stone-800
+                color = AppColors.Button.Primary,
                 shape = CircleShape
             )
             .clickable { onClick() }
@@ -121,7 +122,7 @@ private fun PlayButton(
             Icon(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = "Play",
-                tint = Color.White,
+                tint = AppColors.Button.Text,
                 modifier = Modifier.size(24.dp)
             )
 
@@ -129,7 +130,7 @@ private fun PlayButton(
 
             Text(
                 text = "PLAY",
-                color = Color.White,
+                color = AppColors.Button.Text,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )

@@ -26,12 +26,8 @@ import com.akinalpfdn.poprush.core.ui.component.BubbleGrid
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
-
-// Theme Colors
-private val DarkGray = Color(0xFF1C1917)
-private val LightGray = Color(0xFFF5F5F4)
-private val SoftWhite = Color(0xFFFAFAFA)
 
 /**
  * Main coop gameplay screen showing the bubble grid and player scores
@@ -61,7 +57,7 @@ fun CoopGameplayScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(SoftWhite)
+            .background(AppColors.SoftWhite)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
@@ -205,7 +201,7 @@ private fun WaitingPhaseContent(
             verticalArrangement = Arrangement.Center
         ) {
             CircularProgressIndicator(
-                color = DarkGray,
+                color = AppColors.DarkGray,
                 strokeWidth = 6.dp,
                 modifier = Modifier.size(64.dp)
             )
@@ -215,7 +211,7 @@ private fun WaitingPhaseContent(
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
-                color = DarkGray,
+                color = AppColors.DarkGray,
                 fontWeight = FontWeight.ExtraBold,
                 fontFamily = NunitoFontFamily
             )
@@ -285,14 +281,14 @@ private fun PausedPhaseContent(
                     imageVector = Icons.Default.PauseCircle,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
-                    tint = DarkGray
+                    tint = AppColors.DarkGray
                 )
 
                 Text(
                     text = "PAUSED",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Black,
-                    color = DarkGray,
+                    color = AppColors.DarkGray,
                     fontFamily = NunitoFontFamily
                 )
 
@@ -301,7 +297,7 @@ private fun PausedPhaseContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = DarkGray),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.DarkGray),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
@@ -336,7 +332,7 @@ private fun FinishedPhaseContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(SoftWhite)
+            .background(AppColors.SoftWhite)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -350,14 +346,14 @@ private fun FinishedPhaseContent(
                     imageVector = if (isDraw) Icons.Default.Handshake else Icons.Default.EmojiEvents,
                     contentDescription = null,
                     modifier = Modifier.size(80.dp),
-                    tint = if (isDraw) DarkGray else PastelColors.getColor(if (isLocalWinner) coopGameState.localPlayerColor else coopGameState.remotePlayerColor)
+                    tint = if (isDraw) AppColors.DarkGray else PastelColors.getColor(if (isLocalWinner) coopGameState.localPlayerColor else coopGameState.remotePlayerColor)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = if (isDraw) "DRAW!" else if (isLocalWinner) "YOU WON!" else "YOU LOST!",
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Black,
-                    color = DarkGray,
+                    color = AppColors.DarkGray,
                     fontFamily = NunitoFontFamily,
                     letterSpacing = 2.sp
                 )
@@ -401,7 +397,7 @@ private fun FinishedPhaseContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = DarkGray),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.DarkGray),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(
@@ -417,8 +413,8 @@ private fun FinishedPhaseContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkGray),
-                    border = androidx.compose.foundation.BorderStroke(2.dp, LightGray),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.DarkGray),
+                    border = androidx.compose.foundation.BorderStroke(2.dp, AppColors.LightGray),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(
@@ -451,7 +447,7 @@ private fun CompactGameHUD(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(LightGray, RoundedCornerShape(24.dp))
+            .background(AppColors.LightGray, RoundedCornerShape(24.dp))
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -469,7 +465,7 @@ private fun CompactGameHUD(
                 text = "${timeRemaining}s", // Displaying raw long as seconds
                 fontWeight = FontWeight.Black,
                 fontSize = 20.sp,
-                color = DarkGray,
+                color = AppColors.DarkGray,
                 fontFamily = NunitoFontFamily
             )
         }
@@ -513,7 +509,7 @@ private fun CompactScorePill(
                 text = "$score",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = DarkGray,
+                color = AppColors.DarkGray,
                 lineHeight = 16.sp,
                 fontFamily = NunitoFontFamily
             )
@@ -528,7 +524,7 @@ private fun PlayerStatusPill(name: String, color: BubbleColor, isReady: Boolean)
             modifier = Modifier
                 .size(56.dp)
                 .background(
-                    color = if (isReady) PastelColors.getColor(color) else LightGray,
+                    color = if (isReady) PastelColors.getColor(color) else AppColors.LightGray,
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -556,7 +552,7 @@ private fun PlayerStatusPill(name: String, color: BubbleColor, isReady: Boolean)
             text = if (isReady) name else "Waiting...",
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            color = DarkGray,
+            color = AppColors.DarkGray,
             fontFamily = NunitoFontFamily
         )
     }
@@ -588,7 +584,7 @@ private fun ScoreResultItem(name: String, score: Int, color: BubbleColor, isWinn
             text = name,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = DarkGray,
+            color = AppColors.DarkGray,
             fontFamily = NunitoFontFamily
         )
         if (isWinner) {

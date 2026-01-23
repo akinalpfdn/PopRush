@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
+import com.akinalpfdn.poprush.ui.theme.AppColors
 
 /**
  * Permissions dialog for coop mode that explains required permissions
@@ -65,7 +66,7 @@ private fun CoopPermissionsDialogContent(
             .padding(24.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = AppColors.Background.Primary
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
@@ -82,7 +83,7 @@ private fun CoopPermissionsDialogContent(
                 text = "PopRush needs permissions to connect devices nearby",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = AppColors.DarkGray,
                 textAlign = TextAlign.Center,
                 fontFamily = NunitoFontFamily
             )
@@ -152,14 +153,14 @@ private fun CoopPermissionsDialogContent(
             // Note about privacy
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.Black.copy(alpha = 0.05f)
+                    containerColor = AppColors.DarkGray.copy(alpha = 0.05f)
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
                     text = "🔒 Your privacy matters: These permissions are only used for local device discovery. No data is collected or transmitted online.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Black.copy(alpha = 0.6f),
+                    color = AppColors.DarkGray.copy(alpha = 0.6f),
                     modifier = Modifier.padding(16.dp),
                     textAlign = TextAlign.Center,
                     fontFamily = NunitoFontFamily,
@@ -179,8 +180,8 @@ private fun CoopPermissionsDialogContent(
                         .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Black,
-                        contentColor = Color.White
+                        containerColor = AppColors.DarkGray,
+                        contentColor = AppColors.Background.Primary
                     )
                 ) {
                     Icon(
@@ -204,13 +205,13 @@ private fun CoopPermissionsDialogContent(
                         .height(48.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         width = 1.dp,
-                        color = Color.Black.copy(alpha = 0.3f)
+                        color = AppColors.DarkGray.copy(alpha = 0.3f)
                     )
                 ) {
                     Text(
                         text = "Not Now",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black.copy(alpha = 0.6f),
+                        color = AppColors.DarkGray.copy(alpha = 0.6f),
                         fontFamily = NunitoFontFamily
                     )
                 }
@@ -221,7 +222,7 @@ private fun CoopPermissionsDialogContent(
             Text(
                 text = "Please enable the required permissions in your device settings, then return to the app to continue.",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Black.copy(alpha = 0.6f),
+                color = AppColors.DarkGray.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
                 fontFamily = NunitoFontFamily,
                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -245,7 +246,7 @@ private fun PermissionItem(
             modifier = Modifier
                 .size(48.dp)
                 .background(
-                    color = Color.Black.copy(alpha = 0.1f),
+                    color = AppColors.DarkGray.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(12.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -254,7 +255,7 @@ private fun PermissionItem(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
-                tint = Color.Black
+                tint = AppColors.DarkGray
             )
         }
 
@@ -263,13 +264,13 @@ private fun PermissionItem(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium,
-                color = Color.Black,
+                color = AppColors.DarkGray,
                 fontFamily = NunitoFontFamily
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Black.copy(alpha = 0.6f),
+                color = AppColors.DarkGray.copy(alpha = 0.6f),
                 fontFamily = NunitoFontFamily
             )
         }

@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -35,9 +36,9 @@ fun PauseButton(
             .clickable { onPauseToggle() },
         shape = CircleShape,
         color = if (isPaused) {
-            Color(0xFF10B981) // emerald-500
+            AppColors.Button.Success
         } else {
-            Color(0xFFF59E0B) // amber-500
+            AppColors.Button.Warning
         },
         shadowElevation = 4.dp
     ) {
@@ -57,7 +58,7 @@ fun PauseButton(
                         Icons.Default.Pause
                     },
                     contentDescription = if (isPaused) "Resume" else "Pause",
-                    tint = Color.White,
+                    tint = AppColors.Button.Text,
                     modifier = Modifier.size(18.dp)
                 )
 
@@ -65,7 +66,7 @@ fun PauseButton(
 
                 Text(
                     text = if (isPaused) "RESUME" else "PAUSE",
-                    color = Color.White,
+                    color = AppColors.Button.Text,
                     fontWeight = FontWeight.Medium,
                     fontSize = 12.sp
                 )

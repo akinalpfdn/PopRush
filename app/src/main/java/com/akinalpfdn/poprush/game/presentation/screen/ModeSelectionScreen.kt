@@ -23,10 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameMode
-
-// Define constants for the preferred dark gray palette
-private val DarkGray = Color(0xFF1C1917)
-private val StoneGray = Color(0xFF44403C)
+import com.akinalpfdn.poprush.ui.theme.AppColors
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 
 @Composable
 fun ModeSelectionScreen(
@@ -36,7 +34,7 @@ fun ModeSelectionScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White), // Clean background
+            .background(AppColors.Background.Primary),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -51,7 +49,7 @@ fun ModeSelectionScreen(
             ) {
                 Text(
                     text = "POP RUSH",
-                    color = DarkGray,
+                    color = AppColors.Text.Primary,
                     fontSize = 42.sp,
                     fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.ExtraBold,
@@ -120,7 +118,7 @@ private fun GameModeCard(
             ),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = DarkGray
+            containerColor = AppColors.Button.Primary
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
@@ -136,14 +134,14 @@ private fun GameModeCard(
             ) {
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = AppColors.Button.Text,
                     fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
                 Text(
                     text = subtitle,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = AppColors.Button.Text.withAlpha(0.6f),
                     fontFamily = NunitoFontFamily,
                     fontSize = 14.sp
                 )
@@ -152,10 +150,10 @@ private fun GameModeCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
+                tint = AppColors.Button.Text,
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                    .background(AppColors.Button.Text.withAlpha(0.1f), RoundedCornerShape(12.dp))
                     .padding(8.dp)
             )
         }

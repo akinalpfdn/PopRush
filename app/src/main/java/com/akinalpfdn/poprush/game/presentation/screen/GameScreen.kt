@@ -17,6 +17,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import com.akinalpfdn.poprush.ui.theme.AppColors
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,6 +35,7 @@ import com.akinalpfdn.poprush.coop.presentation.screen.CoopGameplayScreen
 import com.akinalpfdn.poprush.coop.presentation.component.CoopConnectionOverlay
 import com.akinalpfdn.poprush.coop.presentation.component.CoopPermissionsDialog
 import com.akinalpfdn.poprush.coop.presentation.permission.rememberCoopPermissionManager
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 import kotlin.time.Duration
 
 /**
@@ -266,7 +268,7 @@ fun GameScreen(
                     scaleY = settingsPulse
                 }
                 .background(
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = AppColors.Background.Card.withAlpha(0.9f),
                     shape = CircleShape
                 )
                 .size(48.dp)
@@ -274,7 +276,7 @@ fun GameScreen(
             Icon(
                 imageVector = Icons.Default.Settings,
                 contentDescription = "Settings",
-                tint = Color(0xFF57534E)
+                tint = AppColors.StoneMedium
             )
         }
         
@@ -284,7 +286,7 @@ fun GameScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp),
-            color = Color(0xFFA8A29E),
+            color = AppColors.StonePale,
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.sp
