@@ -245,52 +245,44 @@ fun GameScreen(
         //     }
         // }
         // === END COMBO SYSTEM ===
-        
-        // Settings button with subtle animation
-        val infiniteTransition = rememberInfiniteTransition(label = "settingsBtn")
-        val settingsPulse by infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1.05f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(2000, easing = EaseInOutSine),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "settingsPulse"
-        )
-        
-        IconButton(
-            onClick = { viewModel.processIntent(GameIntent.ToggleSettings) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .graphicsLayer {
-                    scaleX = settingsPulse
-                    scaleY = settingsPulse
-                }
-                .background(
-                    color = AppColors.Background.Card.withAlpha(0.9f),
-                    shape = CircleShape
-                )
-                .size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
-                tint = AppColors.StoneMedium
+
+        // Settings button - only show during gameplay
+        if (gameState.isPlaying) {
+            val infiniteTransition = rememberInfiniteTransition(label = "settingsBtn")
+            val settingsPulse by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.05f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2000, easing = EaseInOutSine),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "settingsPulse"
             )
+
+            IconButton(
+                onClick = { viewModel.processIntent(GameIntent.ToggleSettings) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .graphicsLayer {
+                        scaleX = settingsPulse
+                        scaleY = settingsPulse
+                    }
+                    .background(
+                        color = AppColors.Background.Card.withAlpha(0.9f),
+                        shape = CircleShape
+                    )
+                    .size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = AppColors.StoneMedium
+                )
+            }
         }
+
         
-        // Bottom credit text
-        Text(
-            text = "MADE BY MOVI",
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp),
-            color = AppColors.StonePale,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.sp
-        )
         
         // Settings overlay
         AnimatedVisibility(
@@ -401,17 +393,17 @@ private fun GameContent(
             .padding(horizontal = 8.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (gameState.isCoopMode && gameState.coopState != null) {
-            // Coop mode header handled separately
-        } else {
-            // Enhanced game header
+        // Only show header when actively playing (not on start screens)
+        if (gameState.isPlaying && !gameState.isCoopMode) {
             GameHeader(
                 gameState = gameState,
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(32.dp))
+        } else if (!gameState.isPlaying) {
+            // Add spacing when not playing (no header)
+            Spacer(modifier = Modifier.height(16.dp))
         }
-        
-        Spacer(modifier = Modifier.height(32.dp))
         
         // Main content area
         Box(
