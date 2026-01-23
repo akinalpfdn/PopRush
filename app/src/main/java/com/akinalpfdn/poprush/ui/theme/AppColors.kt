@@ -105,6 +105,42 @@ object AppColors {
     val YellowWarningBg = Color(0xFFFFF3CD)
 
     // ========================================================================
+    // Bubble / Candy Palette Colors (for UI elements matching bubble style)
+    // ========================================================================
+
+    object Bubble {
+        // Coral - Primary action buttons (Play, Start, etc.)
+        val Coral = Color(0xFFFF6B6B)
+        val CoralPressed = Color(0xFFEE5A5A)
+        val CoralGlow = Color(0xFFFFAAAA)
+
+        // Sky Blue - Secondary actions, info elements
+        val SkyBlue = Color(0xFF5B9EFF)
+        val SkyBluePressed = Color(0xFF4A8BE8)
+        val SkyBlueGlow = Color(0xFFA3C9FF)
+
+        // Mint - Success, badges, positive indicators
+        val Mint = Color(0xFF5AD8A6)
+        val MintPressed = Color(0xFF45C795)
+        val MintGlow = Color(0xFF9EEFD0)
+
+        // Lemon - Warnings, highlights, attention
+        val Lemon = Color(0xFFFFE66D)
+        val LemonPressed = Color(0xFFFFD93D)
+        val LemonGlow = Color(0xFFFFF3A0)
+
+        // Grape - Special, premium, accent
+        val Grape = Color(0xFFA66CFF)
+        val GrapePressed = Color(0xFF8B4FE8)
+        val GrapeGlow = Color(0xFFCDB4FF)
+
+        // Peach - Warm accent, secondary highlights
+        val Peach = Color(0xFFFF9F7F)
+        val PeachPressed = Color(0xFFFF8A65)
+        val PeachGlow = Color(0xFFFFCBB8)
+    }
+
+    // ========================================================================
     // Game-Specific Colors
     // ========================================================================
 

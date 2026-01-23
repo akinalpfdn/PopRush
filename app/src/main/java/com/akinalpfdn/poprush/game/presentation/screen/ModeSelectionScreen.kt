@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.core.domain.model.GameMode
 import com.akinalpfdn.poprush.ui.theme.AppColors
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 import com.akinalpfdn.poprush.ui.theme.withAlpha
 
 @Composable
