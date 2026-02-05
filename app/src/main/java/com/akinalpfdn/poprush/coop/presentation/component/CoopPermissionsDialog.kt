@@ -1,6 +1,11 @@
 package com.akinalpfdn.poprush.coop.presentation.component
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -9,19 +14,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
+import androidx.compose.ui.window.DialogProperties
 import com.akinalpfdn.poprush.ui.theme.AppColors
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 
 /**
- * Permissions dialog for coop mode that explains required permissions
- * and guides users to grant them for offline multiplayer functionality.
+ * Permissions dialog with "Pop Rush" styling.
  */
 @Composable
 fun CoopPermissionsDialog(
@@ -35,7 +47,7 @@ fun CoopPermissionsDialog(
     if (isVisible) {
         Dialog(
             onDismissRequest = onNotNow,
-            properties = androidx.compose.ui.window.DialogProperties(
+            properties = DialogProperties(
                 usePlatformDefaultWidth = false,
                 dismissOnBackPress = true,
                 dismissOnClickOutside = false
@@ -60,15 +72,17 @@ private fun CoopPermissionsDialogContent(
     onNotNow: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(24.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = AppColors.Background.Primary
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            .padding(24.dp)
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(32.dp),
+                ambientColor = Color.Black.withAlpha(0.2f),
+                spotColor = Color.Black.withAlpha(0.2f)
+            )
+            .background(AppColors.Background.Primary, RoundedCornerShape(32.dp))
     ) {
         Column(
             modifier = Modifier
@@ -77,201 +91,220 @@ private fun CoopPermissionsDialogContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-
             // Title
             Text(
-                text = "PopRush needs permissions to connect devices nearby",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.DarkGray,
+                text = "Permissions Needed",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = AppColors.Text.Primary,
                 textAlign = TextAlign.Center,
                 fontFamily = NunitoFontFamily
             )
 
+            Text(
+                text = "PopRush needs access to connect with friends nearby.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.Text.Secondary,
+                textAlign = TextAlign.Center,
+                fontFamily = NunitoFontFamily
+            )
 
-
-            // Missing permissions info DO NOT EDIT OR DELETE THIS PART
-            if (missingPermissions.isNotEmpty() && false) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = AppColors.YellowWarningBg
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "⚠️ Missing Permissions:",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.YellowWarning,
-                            fontFamily = NunitoFontFamily
-                        )
-                        missingPermissions.forEach { permission ->
-                            Text(
-                                text = "• $permission",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = AppColors.YellowWarning,
-                                fontFamily = NunitoFontFamily
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Permissions list
+            // Permissions List
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                PermissionItem(
+                BubblePermissionItem(
                     icon = Icons.Default.Bluetooth,
                     title = "Bluetooth",
-                    description = "Connect with nearby players via Bluetooth"
+                    description = "Connect with nearby players via Bluetooth",
+                    color = AppColors.Bubble.SkyBlue
                 )
-                PermissionItem(
+                BubblePermissionItem(
                     icon = Icons.Default.Wifi,
                     title = "WiFi Direct",
-                    description = "Connect with nearby players via WiFi"
+                    description = "Connect with nearby players via WiFi (Offline)",
+                    color = AppColors.Bubble.Mint
                 )
-                PermissionItem(
+                BubblePermissionItem(
                     icon = Icons.Default.LocationOn,
                     title = "Location",
-                    description = "Required for device discovery (offline only, no GPS)"
-                )
-                PermissionItem(
-                    icon = Icons.Default.Settings,
-                    title = "Device Control",
-                    description = "Manage WiFi and Bluetooth connections"
+                    description = "Required for device discovery only (No GPS data used)",
+                    color = AppColors.Bubble.Coral
                 )
             }
 
-
-            // Note about privacy
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = AppColors.DarkGray.copy(alpha = 0.05f)
-                ),
-                shape = RoundedCornerShape(8.dp)
+            // Privacy Note
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AppColors.Status.Info.withAlpha(0.1f), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
             ) {
                 Text(
-                    text = "🔒 Your privacy matters: These permissions are only used for local device discovery. No data is collected or transmitted online.",
+                    text = "🔒 Privacy: Used only for local discovery. No data is collected or transmitted online.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = AppColors.DarkGray.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(16.dp),
-                    textAlign = TextAlign.Center,
+                    color = AppColors.Text.Secondary,
+                    textAlign = TextAlign.Start,
                     fontFamily = NunitoFontFamily,
-                    lineHeight = 18.sp
+                    lineHeight = 16.sp
                 )
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Action buttons
+            // Action Buttons
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
-                    onClick = onRequestPermissions,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AppColors.DarkGray,
-                        contentColor = AppColors.Background.Primary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Open Settings",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontSize = 16.sp,
-                        fontFamily = NunitoFontFamily
-                    )
-                }
+                BubbleDialogButton(
+                    text = "Open Settings",
+                    icon = Icons.Default.Settings,
+                    baseColor = AppColors.Bubble.Grape,
+                    pressedColor = AppColors.Bubble.GrapePressed,
+                    onClick = onRequestPermissions
+                )
 
-                OutlinedButton(
+                TextButton(
                     onClick = onNotNow,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        width = 1.dp,
-                        color = AppColors.DarkGray.copy(alpha = 0.3f)
-                    )
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = "Not Now",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = AppColors.DarkGray.copy(alpha = 0.6f),
-                        fontFamily = NunitoFontFamily
+                        fontFamily = NunitoFontFamily,
+                        color = AppColors.Text.Secondary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
-
-
-            // Instruction text
-            Text(
-                text = "Please enable the required permissions in your device settings, then return to the app to continue.",
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColors.DarkGray.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center,
-                fontFamily = NunitoFontFamily,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
         }
     }
 }
 
 @Composable
-private fun PermissionItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun BubblePermissionItem(
+    icon: ImageVector,
     title: String,
-    description: String
+    description: String,
+    color: Color
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Icon Bubble
         Box(
-            modifier = Modifier
-                .size(48.dp)
-                .background(
-                    color = AppColors.DarkGray.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(12.dp)
-                ),
+            modifier = Modifier.size(56.dp),
             contentAlignment = Alignment.Center
         ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val width = size.width
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            color.withAlpha(0.2f),
+                            color.withAlpha(0.1f)
+                        ),
+                        center = center,
+                        radius = width * 0.5f
+                    )
+                )
+            }
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = AppColors.DarkGray
+                tint = color,
+                modifier = Modifier.size(28.dp)
             )
         }
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                color = AppColors.DarkGray,
-                fontFamily = NunitoFontFamily
+                fontFamily = NunitoFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = AppColors.Text.Primary
             )
             Text(
                 text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColors.DarkGray.copy(alpha = 0.6f),
-                fontFamily = NunitoFontFamily
+                fontFamily = NunitoFontFamily,
+                fontSize = 14.sp,
+                color = AppColors.Text.Secondary
+            )
+        }
+    }
+}
+
+@Composable
+private fun BubbleDialogButton(
+    text: String,
+    icon: ImageVector,
+    baseColor: Color,
+    pressedColor: Color,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "scale")
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .scale(scale)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(20.dp),
+                ambientColor = baseColor.withAlpha(0.4f),
+                spotColor = baseColor.withAlpha(0.4f)
+            )
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            val lighter = baseColor.withAlpha(0.85f).compositeOver(Color.White)
+            val darker = if (isPressed) pressedColor else baseColor.withAlpha(0.95f)
+
+            drawRoundRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(lighter, baseColor, darker),
+                    center = Offset(width * 0.5f, height * 0.2f),
+                    radius = width * 1.5f
+                ),
+                cornerRadius = CornerRadius(20.dp.toPx())
+            )
+            
+            // Subtle Glass Highlight
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White.withAlpha(0.15f), Color.White.withAlpha(0f)),
+                    center = Offset(width * 0.5f, height * 0.1f),
+                    radius = width * 0.6f
+                ),
+                radius = width * 0.5f,
+                center = Offset(width * 0.5f, height * 0.1f)
+            )
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = AppColors.Text.OnDark,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = text,
+                color = AppColors.Text.OnDark,
+                fontFamily = NunitoFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
             )
         }
     }
