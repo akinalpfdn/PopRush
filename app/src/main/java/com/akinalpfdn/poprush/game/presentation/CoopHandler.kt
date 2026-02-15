@@ -8,9 +8,11 @@ import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -22,6 +24,7 @@ class CoopHandler @Inject constructor(
     private lateinit var scope: CoroutineScope
     private lateinit var gameStateFlow: MutableStateFlow<GameState>
     private var _cachedInitialCoopState: CoopGameState? = null
+    private var coopTimerJob: Job? = null
 
     val discoveredEndpoints = coopUseCase.discoveredEndpoints
 
@@ -406,11 +409,12 @@ class CoopHandler @Inject constructor(
     }
 
     private fun startCoopTimer() {
-        scope.launch {
-            while (true) {
+        coopTimerJob?.cancel()
+        coopTimerJob = scope.launch {
+            while (isActive) {
                 val currentState = gameStateFlow.value
                 val coopState = currentState.coopState ?: break
-                
+
                 if (coopState.gamePhase != CoopGamePhase.PLAYING) break
 
                 // Force state update to trigger UI recomposition for timer
@@ -432,6 +436,8 @@ class CoopHandler @Inject constructor(
     }
 
     fun handleDisconnectCoop() {
+        coopTimerJob?.cancel()
+        coopTimerJob = null
         scope.launch {
             try {
                 coopUseCase.disconnect()
@@ -451,6 +457,8 @@ class CoopHandler @Inject constructor(
     }
 
     fun handleCloseCoopConnection() {
+        coopTimerJob?.cancel()
+        coopTimerJob = null
         gameStateFlow.update {
             it.copy(
                 showCoopConnectionDialog = false,

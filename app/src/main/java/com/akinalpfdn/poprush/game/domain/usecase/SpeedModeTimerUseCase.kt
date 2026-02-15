@@ -15,6 +15,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
@@ -69,9 +70,9 @@ class SpeedModeTimerUseCase @Inject constructor(
     // Private state
     private var timerJob: Job? = null
     private val isTimerRunning = AtomicBoolean(false)
-    private var lastActivationTime = 0L
-    private var elapsedTime = Duration.ZERO
-    private var lastUpdateTime = 0L
+    private val lastActivationTime = AtomicLong(0L)
+    private val elapsedTimeMs = AtomicLong(0L)
+    private val lastUpdateTime = AtomicLong(0L)
 
     /**
      * Starts the speed mode timer.
@@ -84,15 +85,15 @@ class SpeedModeTimerUseCase @Inject constructor(
             timerJob = null
 
             _timerState.value = SpeedModeTimerState.RUNNING
-            lastUpdateTime = System.currentTimeMillis()
+            lastUpdateTime.set(System.currentTimeMillis())
 
             // Only reset elapsed time if this is a fresh start (not a resume)
             if (resetElapsed) {
-                elapsedTime = Duration.ZERO
-                lastActivationTime = System.currentTimeMillis() + INITIAL_DELAY_MS
+                elapsedTimeMs.set(0L)
+                lastActivationTime.set(System.currentTimeMillis() + INITIAL_DELAY_MS)
             } else {
                 // When resuming, set lastActivationTime to trigger soon
-                lastActivationTime = System.currentTimeMillis()
+                lastActivationTime.set(System.currentTimeMillis())
             }
 
             timerJob = timerScope.launch {
@@ -113,16 +114,16 @@ class SpeedModeTimerUseCase @Inject constructor(
                 // Main timer loop
                 while (isActive && isTimerRunning.get()) {
                     val currentTime = System.currentTimeMillis()
-                    val deltaTime = currentTime - lastUpdateTime
-                    lastUpdateTime = currentTime
+                    val deltaTime = currentTime - lastUpdateTime.get()
+                    lastUpdateTime.set(currentTime)
 
-                    elapsedTime += deltaTime.milliseconds
+                    elapsedTimeMs.addAndGet(deltaTime)
 
                     // Update speed mode state
                     speedModeUseCase.updateSpeedMode(deltaTime.milliseconds)
 
                     // Check if it's time to activate a new bubble
-                    val timeSinceLastActivation = currentTime - lastActivationTime
+                    val timeSinceLastActivation = currentTime - lastActivationTime.get()
                     val currentInterval = speedModeUseCase.getCurrentIntervalMs()
 
                     if (timeSinceLastActivation >= currentInterval) {
@@ -190,7 +191,7 @@ class SpeedModeTimerUseCase @Inject constructor(
 
         // Emit request for random bubble activation
         _timerEvents.emit(SpeedModeTimerEvent.ActivateBubble(-1))
-        lastActivationTime = System.currentTimeMillis()
+        lastActivationTime.set(System.currentTimeMillis())
     }
 
     /**
@@ -208,7 +209,7 @@ class SpeedModeTimerUseCase @Inject constructor(
 
         // Trigger random activation request
         _timerEvents.emit(SpeedModeTimerEvent.ActivateBubble(-1))
-        lastActivationTime = System.currentTimeMillis()
+        lastActivationTime.set(System.currentTimeMillis())
     }
 
     /**
@@ -217,7 +218,7 @@ class SpeedModeTimerUseCase @Inject constructor(
     fun triggerManualActivation(bubbleId: Int) {
         if (isTimerRunning.get()) {
             _timerEvents.tryEmit(SpeedModeTimerEvent.ActivateBubble(bubbleId))
-            lastActivationTime = System.currentTimeMillis()
+            lastActivationTime.set(System.currentTimeMillis())
         }
     }
 
@@ -227,16 +228,16 @@ class SpeedModeTimerUseCase @Inject constructor(
     fun resetTimer() {
         stopTimer()
         speedModeUseCase.resetSpeedMode()
-        elapsedTime = Duration.ZERO
-        lastActivationTime = 0L
-        lastUpdateTime = 0L
+        elapsedTimeMs.set(0L)
+        lastActivationTime.set(0L)
+        lastUpdateTime.set(0L)
     }
 
     /**
      * Gets the current elapsed time.
      */
     fun getElapsedTime(): Duration {
-        return elapsedTime
+        return elapsedTimeMs.get().milliseconds
     }
 
     /**
@@ -246,7 +247,7 @@ class SpeedModeTimerUseCase @Inject constructor(
         if (!isTimerRunning.get()) return Duration.ZERO
 
         val currentTime = System.currentTimeMillis()
-        val nextActivationTime = lastActivationTime + speedModeUseCase.getCurrentIntervalMs()
+        val nextActivationTime = lastActivationTime.get() + speedModeUseCase.getCurrentIntervalMs()
         val timeUntil = (nextActivationTime - currentTime).coerceAtLeast(0L)
         return timeUntil.milliseconds
     }

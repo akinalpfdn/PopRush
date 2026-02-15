@@ -11,7 +11,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import timber.log.Timber
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
@@ -52,10 +55,11 @@ class TimerUseCase @Inject constructor() {
     // Internal timer management
     private var timerJob: Job? = null
     private val isRunning = AtomicBoolean(false)
-    private var totalDuration: Duration = Duration.ZERO
-    private var startTime: Long = 0L
-    private var pausedTime: Long = 0L
-    private var pauseStartTime: Long = 0L
+    private val timerMutex = Mutex()
+    @Volatile private var totalDuration: Duration = Duration.ZERO
+    private val startTime = AtomicLong(0L)
+    private val pausedTime = AtomicLong(0L)
+    private val pauseStartTime = AtomicLong(0L)
 
     /**
      * Starts the timer with the specified duration.
@@ -71,15 +75,15 @@ class TimerUseCase @Inject constructor() {
             _timeRemaining.value = duration
             _timerState.value = TimerState.RUNNING
             isRunning.set(true)
-            startTime = System.currentTimeMillis()
-            pausedTime = 0L
+            startTime.set(System.currentTimeMillis())
+            pausedTime.set(0L)
 
             timerJob = timerScope.launch {
                 while (isActive && _timeRemaining.value > Duration.ZERO) {
                     delay(TICK_INTERVAL_MS)
 
                     if (isRunning.get()) {
-                        val elapsed = System.currentTimeMillis() - startTime
+                        val elapsed = System.currentTimeMillis() - startTime.get()
                         val remaining = (totalDuration.inWholeMilliseconds - elapsed).coerceAtLeast(0)
 
                         _timeRemaining.value = remaining.milliseconds
@@ -131,7 +135,7 @@ class TimerUseCase @Inject constructor() {
                 isRunning.set(false)
                 _timerState.value = TimerState.PAUSED
                 // Store the pause time to adjust startTime when resuming
-                pauseStartTime = System.currentTimeMillis()
+                pauseStartTime.set(System.currentTimeMillis())
                 Timber.d("Timer paused at: ${_timeRemaining.value}")
             }
         } catch (e: Exception) {
@@ -148,9 +152,9 @@ class TimerUseCase @Inject constructor() {
                 isRunning.set(true)
                 _timerState.value = TimerState.RUNNING
                 // Adjust startTime to account for the pause duration
-                val pauseDuration = System.currentTimeMillis() - pauseStartTime
-                startTime += pauseDuration
-                pauseStartTime = 0L
+                val pauseDuration = System.currentTimeMillis() - pauseStartTime.get()
+                startTime.addAndGet(pauseDuration)
+                pauseStartTime.set(0L)
                 Timber.d("Timer resumed from: ${_timeRemaining.value}, pauseDuration: ${pauseDuration}ms")
             }
         } catch (e: Exception) {
@@ -166,8 +170,8 @@ class TimerUseCase @Inject constructor() {
             stopTimer()
             _timeRemaining.value = totalDuration
             _timerState.value = TimerState.STOPPED
-            pausedTime = 0L
-            startTime = 0L
+            pausedTime.set(0L)
+            startTime.set(0L)
             Timber.d("Timer reset to: $totalDuration")
         } catch (e: Exception) {
             Timber.e(e, "Error resetting timer")
@@ -258,9 +262,9 @@ class TimerUseCase @Inject constructor() {
     val elapsedTime: Duration
         get() {
             val elapsed = if (isRunning.get()) {
-                System.currentTimeMillis() - startTime - pausedTime
+                System.currentTimeMillis() - startTime.get() - pausedTime.get()
             } else {
-                pausedTime
+                pausedTime.get()
             }
             return elapsed.milliseconds
         }

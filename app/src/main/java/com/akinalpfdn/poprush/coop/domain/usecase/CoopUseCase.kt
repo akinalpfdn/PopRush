@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -246,27 +245,22 @@ class CoopUseCase @Inject constructor(
     /**
      * Get whether this device is the host (first to start advertising)
      */
-    fun isHost(): Boolean {
-        // This will be determined by the connection flow - for now assume advertising means host
-        return runBlocking {
-            try {
-                connectionState.first() == ConnectionState.ADVERTISING
-            } catch (e: Exception) {
-                false
-            }
+    suspend fun isHost(): Boolean {
+        return try {
+            connectionState.first() == ConnectionState.ADVERTISING
+        } catch (e: Exception) {
+            false
         }
     }
 
     /**
      * Get the current connection state
      */
-    fun getCurrentConnectionState(): ConnectionState {
-        return runBlocking {
-            try {
-                connectionState.first()
-            } catch (e: Exception) {
-                ConnectionState.DISCONNECTED
-            }
+    suspend fun getCurrentConnectionState(): ConnectionState {
+        return try {
+            connectionState.first()
+        } catch (e: Exception) {
+            ConnectionState.DISCONNECTED
         }
     }
 

@@ -15,7 +15,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,6 +36,7 @@ class AudioRepositoryImpl @Inject constructor(
 
     private var soundPool: SoundPool? = null
     private var audioManager: AudioManager? = null
+    private val audioScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     // Audio state
     private val _audioState = MutableStateFlow(
@@ -258,6 +263,7 @@ class AudioRepositoryImpl @Inject constructor(
 
             soundPool?.release()
             soundPool = null
+            audioScope.cancel()
 
             _audioState.value = _audioState.value.copy(isInitialized = false)
 
@@ -327,10 +333,10 @@ class AudioRepositoryImpl @Inject constructor(
     }
 
     private fun pauseAudio() {
-        runBlocking { pauseMusic() }
+        audioScope.launch { pauseMusic() }
     }
 
     private fun resumeAudio() {
-        runBlocking { resumeMusic() }
+        audioScope.launch { resumeMusic() }
     }
 }
