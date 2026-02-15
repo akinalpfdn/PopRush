@@ -19,6 +19,7 @@ import com.akinalpfdn.poprush.core.domain.repository.AudioRepository
 import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
 import com.akinalpfdn.poprush.game.presentation.strategy.GameModeStrategy
 import com.akinalpfdn.poprush.game.presentation.strategy.GameModeStrategyFactory
+import com.akinalpfdn.poprush.game.presentation.strategy.PausableGameMode
 import com.akinalpfdn.poprush.game.presentation.strategy.impl.CoopModeStrategy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -310,11 +311,12 @@ class GameViewModel @Inject constructor(
         _gameState.update { currentState ->
             val newPausedState = !currentState.isPaused
             viewModelScope.launch {
+                val pausable = activeStrategy as? PausableGameMode
                 if (newPausedState) {
-                    activeStrategy?.pauseGame()
+                    pausable?.pauseGame()
                     audioRepository.pauseMusic()
                 } else {
-                    activeStrategy?.resumeGame()
+                    pausable?.resumeGame()
                     audioRepository.resumeMusic()
                 }
             }
@@ -398,7 +400,7 @@ class GameViewModel @Inject constructor(
 
     private fun handleShowBackConfirmation() {
         viewModelScope.launch {
-            activeStrategy?.pauseGame()
+            (activeStrategy as? PausableGameMode)?.pauseGame()
             _gameState.update { it.copy(showBackConfirmation = true, isPaused = true) }
         }
     }
@@ -407,7 +409,7 @@ class GameViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _gameState.value
             if (currentState.isPlaying && !currentState.isGameOver) {
-                activeStrategy?.resumeGame()
+                (activeStrategy as? PausableGameMode)?.resumeGame()
             }
             _gameState.update {
                 it.copy(

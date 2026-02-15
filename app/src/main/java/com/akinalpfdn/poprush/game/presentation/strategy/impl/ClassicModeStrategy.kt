@@ -1,11 +1,12 @@
 package com.akinalpfdn.poprush.game.presentation.strategy.impl
 
+import com.akinalpfdn.poprush.core.domain.model.GameResult
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.core.domain.model.SoundType
+import com.akinalpfdn.poprush.game.presentation.strategy.BaseGameModeStrategy
 import com.akinalpfdn.poprush.game.presentation.strategy.GameModeConfig
-import com.akinalpfdn.poprush.game.presentation.strategy.GameModeStrategy
 import com.akinalpfdn.poprush.game.presentation.strategy.GameModeDependencies
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.akinalpfdn.poprush.game.presentation.strategy.PausableGameMode
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -13,34 +14,21 @@ import timber.log.Timber
 
 /**
  * Strategy implementation for Classic game mode.
- * Wraps the existing GameLogicHandler functionality.
  */
 class ClassicModeStrategy(
-    private val dependencies: GameModeDependencies
-) : GameModeStrategy {
+    dependencies: GameModeDependencies
+) : BaseGameModeStrategy(dependencies), PausableGameMode {
 
     override val modeId: String = "classic"
     override val modeName: String = "Classic Mode"
 
-    private lateinit var scope: CoroutineScope
-    private lateinit var stateFlow: MutableStateFlow<GameState>
-
     private val config = GameModeConfig.classic()
 
-    override suspend fun initialize(scope: CoroutineScope, stateFlow: MutableStateFlow<GameState>) {
-        this.scope = scope
-        this.stateFlow = stateFlow
-        Timber.d("ClassicModeStrategy initialized")
-    }
-
     override suspend fun startGame() {
-        // Stop any existing timer before starting fresh
         dependencies.timerUseCase.stopTimer()
 
         val currentState = stateFlow.value
         val newBubbles = dependencies.initializeGameUseCase.execute()
-
-        // Get difficulty from settings
         val difficulty = dependencies.settingsRepository.getGameDifficultyFlow().first()
 
         val activeBubbles = dependencies.generateLevelUseCase.execute(
@@ -63,16 +51,11 @@ class ClassicModeStrategy(
             )
         }
 
-        // Start the timer with selected duration
         dependencies.timerUseCase.startTimer(selectedDuration)
-
-        // Start collecting timer updates
         collectTimerState()
 
         Timber.d("Classic mode game started with ${activeBubbles.count { it.isActive }} active bubbles")
-
-        // Play start sound
-        dependencies.audioRepository.playSound(com.akinalpfdn.poprush.core.domain.model.SoundType.BUTTON_PRESS)
+        dependencies.audioRepository.playSound(SoundType.BUTTON_PRESS)
     }
 
     private fun collectTimerState() {
@@ -101,22 +84,15 @@ class ClassicModeStrategy(
         )
 
         if (result.success) {
-            // Update bubbles
             stateFlow.update { it.copy(bubbles = result.updatedBubbles) }
 
-            // Play sound with haptic feedback
             val hapticFeedback = dependencies.settingsRepository.getHapticFeedbackFlow().first()
-            dependencies.audioRepository.playSoundWithHaptic(
-                com.akinalpfdn.poprush.core.domain.model.SoundType.BUBBLE_PRESS,
-                hapticFeedback
-            )
+            dependencies.audioRepository.playSoundWithHaptic(SoundType.BUBBLE_PRESS, hapticFeedback)
 
-            // Check if level is complete
             if (result.isLevelComplete) {
                 stateFlow.update { it.copy(score = it.score + 1) }
-                dependencies.audioRepository.playSound(com.akinalpfdn.poprush.core.domain.model.SoundType.LEVEL_COMPLETE)
+                dependencies.audioRepository.playSound(SoundType.LEVEL_COMPLETE)
 
-                // Generate new level after a short delay
                 kotlinx.coroutines.delay(200)
                 generateNewLevel()
             }
@@ -134,10 +110,12 @@ class ClassicModeStrategy(
                 currentLevel = currentState.currentLevel
             )
 
-            stateFlow.update { it.copy(
-                bubbles = newBubbles,
-                currentLevel = it.currentLevel + 1
-            )}
+            stateFlow.update {
+                it.copy(
+                    bubbles = newBubbles,
+                    currentLevel = it.currentLevel + 1
+                )
+            }
 
             Timber.d("Generated new level ${currentState.currentLevel + 1}")
         }
@@ -153,61 +131,30 @@ class ClassicModeStrategy(
 
     override suspend fun endGame() {
         val currentState = stateFlow.value
-
-        // Stop timer
         dependencies.timerUseCase.stopTimer()
 
-        // Create game result for statistics
         val gameResult = createGameResult(currentState)
-
-        // Save game result
-        dependencies.gameRepository.saveGameResult(gameResult)
-
-        // Update high score if needed
-        if (currentState.score > currentState.highScore) {
-            dependencies.gameRepository.updateHighScore(currentState.score)
-            dependencies.audioRepository.playSound(com.akinalpfdn.poprush.core.domain.model.SoundType.HIGH_SCORE)
-        } else {
-            dependencies.audioRepository.playSound(com.akinalpfdn.poprush.core.domain.model.SoundType.GAME_OVER)
-        }
-
-        stateFlow.update { it.copy(
-            isPlaying = false,
-            isGameOver = true,
-            isPaused = false
-        )}
+        saveAndAnnounceResult(gameResult)
+        markGameOver()
 
         Timber.d("Classic game ended with score: ${currentState.score}")
     }
 
     override suspend fun resetGame() {
         dependencies.timerUseCase.stopTimer()
-
-        stateFlow.update { currentState ->
-            currentState.copy(
-                isPlaying = false,
-                isGameOver = false,
-                isPaused = false,
-                score = 0,
-                currentLevel = 1,
-                bubbles = emptyList(),
-                timeRemaining = GameState.GAME_DURATION
-            )
-        }
-
+        resetStateToDefaults()
         Timber.d("Classic game reset to initial state")
     }
 
     override fun cleanup() {
-        // Synchronous cleanup - stopTimer() is now non-suspend
-        if (this::scope.isInitialized) {
+        if (isInitialized) {
             dependencies.timerUseCase.stopTimer()
         }
     }
 
     override fun getConfig(): GameModeConfig = config
 
-    private fun createGameResult(gameState: GameState) = com.akinalpfdn.poprush.core.domain.model.GameResult(
+    private fun createGameResult(gameState: GameState) = GameResult(
         finalScore = gameState.score,
         levelsCompleted = gameState.currentLevel - 1,
         totalBubblesPressed = gameState.pressedBubbleCount,
