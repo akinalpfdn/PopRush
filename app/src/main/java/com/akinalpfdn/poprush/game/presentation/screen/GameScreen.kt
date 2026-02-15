@@ -249,6 +249,21 @@ fun GameScreen(
         // }
         // === END COMBO SYSTEM ===
 
+        // Speed bonus overlay - positioned above the grid, below header
+        if (gameState.isPlaying && !gameState.isGameOver) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(top = 80.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                SpeedBonusOverlay(
+                    isVisible = gameState.showSpeedBonus
+                )
+            }
+        }
+
         // Settings button - only show during gameplay
         if (gameState.isPlaying) {
             val infiniteTransition = rememberInfiniteTransition(label = "settingsBtn")

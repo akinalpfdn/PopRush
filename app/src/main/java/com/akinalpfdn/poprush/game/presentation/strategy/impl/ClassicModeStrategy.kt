@@ -7,6 +7,8 @@ import com.akinalpfdn.poprush.game.presentation.strategy.BaseGameModeStrategy
 import com.akinalpfdn.poprush.game.presentation.strategy.GameModeConfig
 import com.akinalpfdn.poprush.game.presentation.strategy.GameModeDependencies
 import com.akinalpfdn.poprush.game.presentation.strategy.PausableGameMode
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -14,6 +16,11 @@ import timber.log.Timber
 
 /**
  * Strategy implementation for Classic game mode.
+ *
+ * Scoring:
+ * - Each wave awards points equal to the number of bubbles popped.
+ * - Completing a wave faster than the target time (BASE_TIME_PER_BUBBLE_MS × bubbleCount)
+ *   awards 1.5× points instead.
  */
 class ClassicModeStrategy(
     dependencies: GameModeDependencies
@@ -23,6 +30,9 @@ class ClassicModeStrategy(
     override val modeName: String = "Classic Mode"
 
     private val config = GameModeConfig.classic()
+
+    private var waveStartTimeMs: Long = 0L
+    private var speedBonusResetJob: Job? = null
 
     override suspend fun startGame() {
         dependencies.timerUseCase.stopTimer()
@@ -47,9 +57,13 @@ class ClassicModeStrategy(
                 score = 0,
                 timeRemaining = selectedDuration,
                 currentLevel = 1,
-                bubbles = activeBubbles
+                bubbles = activeBubbles,
+                showSpeedBonus = false,
+                speedBonusPoints = 0
             )
         }
+
+        waveStartTimeMs = System.currentTimeMillis()
 
         dependencies.timerUseCase.startTimer(selectedDuration)
         collectTimerState()
@@ -90,12 +104,39 @@ class ClassicModeStrategy(
             dependencies.audioRepository.playSoundWithHaptic(SoundType.BUBBLE_PRESS, hapticFeedback)
 
             if (result.isLevelComplete) {
-                stateFlow.update { it.copy(score = it.score + 1) }
+                val activeBubbleCount = currentState.bubbles.count { it.isActive }
+                val elapsedMs = System.currentTimeMillis() - waveStartTimeMs
+                val targetMs = BASE_TIME_PER_BUBBLE_MS * activeBubbleCount
+                val isFast = elapsedMs < targetMs
+
+                val points = if (isFast) {
+                    (activeBubbleCount * SPEED_BONUS_MULTIPLIER).toInt()
+                } else {
+                    activeBubbleCount
+                }
+
+                stateFlow.update { it.copy(score = it.score + points) }
+
+                if (isFast) {
+                    showSpeedBonusAnimation(points)
+                }
+
                 dependencies.audioRepository.playSound(SoundType.LEVEL_COMPLETE)
 
-                kotlinx.coroutines.delay(200)
+                delay(200)
                 generateNewLevel()
             }
+        }
+    }
+
+    private fun showSpeedBonusAnimation(points: Int) {
+        speedBonusResetJob?.cancel()
+        stateFlow.update {
+            it.copy(showSpeedBonus = true, speedBonusPoints = points)
+        }
+        speedBonusResetJob = scope.launch {
+            delay(SPEED_BONUS_DISPLAY_MS)
+            stateFlow.update { it.copy(showSpeedBonus = false) }
         }
     }
 
@@ -103,21 +144,23 @@ class ClassicModeStrategy(
         scope.launch {
             val currentState = stateFlow.value
             val difficulty = dependencies.settingsRepository.getGameDifficultyFlow().first()
+            val nextLevel = currentState.currentLevel + 1
 
             val newBubbles = dependencies.generateLevelUseCase.execute(
                 currentBubbles = currentState.bubbles,
                 difficulty = difficulty,
-                currentLevel = currentState.currentLevel
+                currentLevel = nextLevel
             )
 
             stateFlow.update {
                 it.copy(
                     bubbles = newBubbles,
-                    currentLevel = it.currentLevel + 1
+                    currentLevel = nextLevel
                 )
             }
 
-            Timber.d("Generated new level ${currentState.currentLevel + 1}")
+            waveStartTimeMs = System.currentTimeMillis()
+            Timber.d("Generated new level $nextLevel with ${newBubbles.count { it.isActive }} active bubbles")
         }
     }
 
@@ -132,6 +175,7 @@ class ClassicModeStrategy(
     override suspend fun endGame() {
         val currentState = stateFlow.value
         dependencies.timerUseCase.stopTimer()
+        speedBonusResetJob?.cancel()
 
         val gameResult = createGameResult(currentState)
         saveAndAnnounceResult(gameResult)
@@ -142,6 +186,7 @@ class ClassicModeStrategy(
 
     override suspend fun resetGame() {
         dependencies.timerUseCase.stopTimer()
+        speedBonusResetJob?.cancel()
         resetStateToDefaults()
         Timber.d("Classic game reset to initial state")
     }
@@ -149,6 +194,7 @@ class ClassicModeStrategy(
     override fun cleanup() {
         if (isInitialized) {
             dependencies.timerUseCase.stopTimer()
+            speedBonusResetJob?.cancel()
         }
     }
 
@@ -165,4 +211,10 @@ class ClassicModeStrategy(
         gameDuration = GameState.GAME_DURATION - gameState.timeRemaining,
         isHighScore = gameState.score > gameState.highScore
     )
+
+    companion object {
+        const val BASE_TIME_PER_BUBBLE_MS = 400L
+        const val SPEED_BONUS_MULTIPLIER = 1.5f
+        const val SPEED_BONUS_DISPLAY_MS = 1500L
+    }
 }

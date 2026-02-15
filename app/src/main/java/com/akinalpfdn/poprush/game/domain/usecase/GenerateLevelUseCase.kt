@@ -66,25 +66,20 @@ class GenerateLevelUseCase @Inject constructor(
 
     /**
      * Calculates how many bubbles should be active based on difficulty and level.
+     * Deterministic progression: starts at difficulty minimum and increases by 1 every 3 levels.
      *
      * @param difficulty The current game difficulty
      * @param levelNumber The current level number
-     * @return Number of bubbles to activate (4-12 based on difficulty)
+     * @return Number of bubbles to activate
      */
     private fun calculateActiveBubbleCount(difficulty: GameDifficulty, levelNumber: Int): Int {
-        val baseRange = when (difficulty) {
-            GameDifficulty.EASY -> difficulty.minActiveBubbles..(difficulty.minActiveBubbles + 1)
-            GameDifficulty.NORMAL -> difficulty.minActiveBubbles..difficulty.maxActiveBubbles
-            GameDifficulty.HARD -> difficulty.minActiveBubbles..difficulty.maxActiveBubbles
-            GameDifficulty.EXPERT -> difficulty.minActiveBubbles..difficulty.maxActiveBubbles
-        }
+        val base = difficulty.minActiveBubbles
+        return (base + (levelNumber - 1) / LEVELS_PER_INCREASE).coerceAtMost(MAX_ACTIVE_BUBBLES)
+    }
 
-        // Add level progression scaling (increase difficulty every 5 levels)
-        val levelScaling = (levelNumber - 1) / 5
-        val adjustedMax = (baseRange.last + levelScaling).coerceAtMost(15)
-
-        val finalRange = baseRange.first..adjustedMax
-        return random.nextInt(finalRange.first, finalRange.last + 1)
+    companion object {
+        const val MAX_ACTIVE_BUBBLES = 15
+        const val LEVELS_PER_INCREASE = 3
     }
 
     /**

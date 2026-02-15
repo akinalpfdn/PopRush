@@ -36,7 +36,9 @@ abstract class BaseGameModeStrategy(
                 score = 0,
                 currentLevel = 1,
                 bubbles = emptyList(),
-                timeRemaining = GameState.GAME_DURATION
+                timeRemaining = GameState.GAME_DURATION,
+                showSpeedBonus = false,
+                speedBonusPoints = 0
             )
         }
     }
