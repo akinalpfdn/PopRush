@@ -57,34 +57,39 @@ data class GameState(
     val showCoopConnectionDialog: Boolean = false,
     val coopErrorMessage: String? = null
 ) {
-    /**
-     * Returns the number of currently active bubbles that can be pressed.
-     */
+    // --- Composite sub-state views (read-only, for gradual migration) ---
+
+    /** Gameplay-related state grouped together. */
+    val playState: PlayState
+        get() = PlayState(isPlaying, isGameOver, isPaused, score, highScore, timeRemaining, currentLevel, bubbles)
+
+    /** Audio and visual settings grouped together. */
+    val settingsState: SettingsState
+        get() = SettingsState(selectedShape, zoomLevel, soundEnabled, musicEnabled, soundVolume, musicVolume)
+
+    /** UI navigation and dialog state grouped together. */
+    val uiState: UiState
+        get() = UiState(showSettings, showBackConfirmation, currentScreen, selectedDuration)
+
+    /** Game mode and coop state grouped together. */
+    val modeState: ModeState
+        get() = ModeState(gameMode, selectedMod, speedModeState, isCoopMode, coopState, showCoopConnectionDialog, coopErrorMessage)
+
+    // --- Computed gameplay properties ---
+
     val activeBubbleCount: Int
         get() = bubbles.count { it.canBePressed }
 
-    /**
-     * Returns the total number of bubbles that have been pressed in the current level.
-     */
     val pressedBubbleCount: Int
         get() = bubbles.count { it.isPressed }
 
-    /**
-     * Checks if the current level is complete (all active bubbles have been pressed).
-     */
     val isLevelComplete: Boolean
         get() = bubbles.any { it.isActive } &&
                  bubbles.filter { it.isActive }.all { it.isPressed }
 
-    /**
-     * Returns whether the timer is in critical state (less than 10 seconds).
-     */
     val isTimerCritical: Boolean
         get() = timeRemaining <= CRITICAL_TIME_THRESHOLD
 
-    /**
-     * Returns the time formatted as MM:SS string for display.
-     */
     val timeDisplay: String
         get() = String.format("%02d:%02d",
             timeRemaining.inWholeMinutes,

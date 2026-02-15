@@ -4,10 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.domain.model.GameDifficulty
+import com.akinalpfdn.poprush.core.domain.model.AudioIntent
+import com.akinalpfdn.poprush.core.domain.model.CoopIntent
 import com.akinalpfdn.poprush.core.domain.model.GameIntent
 import com.akinalpfdn.poprush.core.domain.model.GameMode
 import com.akinalpfdn.poprush.core.domain.model.GameMod
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.core.domain.model.GameplayIntent
+import com.akinalpfdn.poprush.core.domain.model.NavigationIntent
+import com.akinalpfdn.poprush.core.domain.model.SettingsIntent
 import com.akinalpfdn.poprush.core.domain.model.SoundType
 import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
 import com.akinalpfdn.poprush.core.domain.repository.AudioRepository
@@ -91,7 +96,7 @@ class GameViewModel @Inject constructor(
         }
 
         // Load initial game data
-        processIntent(GameIntent.LoadGameData)
+        processIntent(GameplayIntent.LoadGameData)
 
         // Initialize strategies once (like the original handlers)
         initializeStrategies()
@@ -133,79 +138,100 @@ class GameViewModel @Inject constructor(
         Timber.d("Processing intent: $intent")
 
         when (intent) {
-            // Global state management
-            is GameIntent.StartGame -> handleStartGame()
-            is GameIntent.BackToMenu -> handleBackToMenu()
-            is GameIntent.EndGame -> handleEndGame()
-            is GameIntent.TogglePause -> handleTogglePause()
-            is GameIntent.RestartGame -> handleRestartGame()
-            is GameIntent.ResetGame -> handleResetGame()
-            is GameIntent.LoadGameData -> handleLoadGameData()
-            is GameIntent.SaveGameData -> handleSaveGameData()
+            // Gameplay intents
+            is GameplayIntent -> handleGameplayIntent(intent)
 
-            // Game-specific events - delegate to active strategy
-            is GameIntent.PressBubble -> handleBubblePress(intent.bubbleId)
+            // Settings intents
+            is SettingsIntent -> handleSettingsIntent(intent)
 
-            // Settings and UI
-            is GameIntent.SelectShape -> handleSelectShape(intent.shape)
-            is GameIntent.UpdateZoom -> handleUpdateZoom(intent.zoomLevel)
-            is GameIntent.ZoomIn -> handleZoomIn()
-            is GameIntent.ZoomOut -> handleZoomOut()
-            is GameIntent.ToggleSettings -> handleToggleSettings()
-            is GameIntent.ShowBackConfirmation -> handleShowBackConfirmation()
-            is GameIntent.HideBackConfirmation -> handleHideBackConfirmation()
-            is GameIntent.UpdateHighScore -> handleUpdateHighScore(intent.newHighScore)
-            is GameIntent.ToggleSound -> handleToggleSound()
-            is GameIntent.ToggleMusic -> handleToggleMusic()
-            is GameIntent.UpdateSoundVolume -> handleUpdateSoundVolume(intent.volume)
-            is GameIntent.UpdateMusicVolume -> handleUpdateMusicVolume(intent.volume)
-            is GameIntent.ChangeDifficulty -> handleChangeDifficulty(intent.difficulty)
-            is GameIntent.UpdateSelectedDuration -> handleUpdateSelectedDuration(intent.duration)
+            // Navigation intents
+            is NavigationIntent -> handleNavigationIntent(intent)
 
-            // Mode selection - switches strategy
-            is GameIntent.SelectGameMode -> handleSelectGameMode(intent.mode)
-            is GameIntent.SelectGameMod -> handleSelectGameMod(intent.mod)
+            // Audio intents
+            is AudioIntent -> handleAudioIntent(intent)
 
-            // Navigation
-            is GameIntent.NavigateToModPicker -> handleNavigateToModPicker()
-            is GameIntent.NavigateToGameSetup -> handleNavigateToGameSetup()
-            is GameIntent.NavigateBack -> handleNavigateBack()
+            // Coop intents - delegate to CoopHandler
+            is CoopIntent -> handleCoopIntent(intent)
+        }
+    }
 
-            // Audio
-            is GameIntent.AudioIntent -> handleAudioIntent(intent)
+    // ============ Intent Dispatchers ============
 
-            // Coop-specific intents - delegate to CoopHandler
-            is GameIntent.StartCoopAdvertising -> coopHandler.handleStartCoopAdvertising(intent.playerName, intent.selectedColor)
-            is GameIntent.StartCoopDiscovery -> coopHandler.handleStartCoopDiscovery(intent.playerName, intent.selectedColor)
-            is GameIntent.StopCoopConnection -> coopHandler.handleStopCoopConnection()
-            is GameIntent.CoopClaimBubble -> coopHandler.handleCoopClaimBubble(intent.bubbleId)
-            is GameIntent.CoopSyncBubbles -> coopHandler.handleCoopSyncBubbles(intent.bubbles)
-            is GameIntent.CoopSyncScores -> coopHandler.handleCoopSyncScores(intent.localScore, intent.opponentScore)
-            is GameIntent.CoopGameFinished -> coopHandler.handleCoopGameFinished(intent.winnerId)
-            is GameIntent.ShowCoopConnectionDialog -> coopHandler.handleShowCoopConnectionDialog()
-            is GameIntent.HideCoopConnectionDialog -> coopHandler.handleHideCoopConnectionDialog()
-            is GameIntent.ShowCoopError -> coopHandler.handleShowCoopError(intent.errorMessage)
-            is GameIntent.ClearCoopError -> coopHandler.handleClearCoopError()
-            is GameIntent.UpdateCoopPlayerName -> coopHandler.handleUpdateCoopPlayerName(intent.playerName)
-            is GameIntent.UpdateCoopPlayerColor -> coopHandler.handleUpdateCoopPlayerColor(intent.playerColor)
-            is GameIntent.StartCoopConnection -> coopHandler.handleStartCoopConnection()
-            is GameIntent.StartHosting -> coopHandler.handleStartHosting()
-            is GameIntent.StopHosting -> coopHandler.handleStopHosting()
-            is GameIntent.StartDiscovery -> coopHandler.handleStartDiscovery()
-            is GameIntent.StopDiscovery -> coopHandler.handleStopDiscovery()
-            is GameIntent.ConnectToEndpoint -> coopHandler.handleConnectToEndpoint(intent.endpointId)
-            is GameIntent.DisconnectCoop -> coopHandler.handleDisconnectCoop()
-            is GameIntent.StartCoopGame -> coopHandler.handleStartCoopGame()
-            is GameIntent.StartCoopMatch -> coopHandler.handleStartCoopMatch()
-            is GameIntent.CloseCoopConnection -> coopHandler.handleCloseCoopConnection()
+    private fun handleGameplayIntent(intent: GameplayIntent) {
+        when (intent) {
+            is GameplayIntent.StartGame -> handleStartGame()
+            is GameplayIntent.EndGame -> handleEndGame()
+            is GameplayIntent.TogglePause -> handleTogglePause()
+            is GameplayIntent.RestartGame -> handleRestartGame()
+            is GameplayIntent.ResetGame -> handleResetGame()
+            is GameplayIntent.LoadGameData -> handleLoadGameData()
+            is GameplayIntent.SaveGameData -> handleSaveGameData()
+            is GameplayIntent.PressBubble -> handleBubblePress(intent.bubbleId)
+            is GameplayIntent.UpdateHighScore -> handleUpdateHighScore(intent.newHighScore)
+            // Legacy intents - handled by strategies directly
+            is GameplayIntent.UpdateTimer -> { /* Handled by strategies */ }
+            is GameplayIntent.GenerateNewLevel -> { /* Handled by strategies */ }
+            is GameplayIntent.ActivateRandomBubble -> { /* Handled by strategies */ }
+            is GameplayIntent.UpdateSpeedModeInterval -> { /* Handled by strategies */ }
+            is GameplayIntent.StartSpeedModeTimer -> { /* Handled by strategies */ }
+            is GameplayIntent.ResetSpeedModeState -> { /* Handled by strategies */ }
+        }
+    }
 
-            // Legacy intents - no longer used with strategy pattern
-            is GameIntent.UpdateTimer -> { /* Handled by strategies */ }
-            is GameIntent.GenerateNewLevel -> { /* Handled by strategies */ }
-            is GameIntent.ActivateRandomBubble -> { /* Handled by strategies */ }
-            is GameIntent.UpdateSpeedModeInterval -> { /* Handled by strategies */ }
-            is GameIntent.StartSpeedModeTimer -> { /* Handled by strategies */ }
-            is GameIntent.ResetSpeedModeState -> { /* Handled by strategies */ }
+    private fun handleSettingsIntent(intent: SettingsIntent) {
+        when (intent) {
+            is SettingsIntent.SelectShape -> handleSelectShape(intent.shape)
+            is SettingsIntent.UpdateZoom -> handleUpdateZoom(intent.zoomLevel)
+            is SettingsIntent.ZoomIn -> handleZoomIn()
+            is SettingsIntent.ZoomOut -> handleZoomOut()
+            is SettingsIntent.ToggleSettings -> handleToggleSettings()
+            is SettingsIntent.ToggleSound -> handleToggleSound()
+            is SettingsIntent.ToggleMusic -> handleToggleMusic()
+            is SettingsIntent.UpdateSoundVolume -> handleUpdateSoundVolume(intent.volume)
+            is SettingsIntent.UpdateMusicVolume -> handleUpdateMusicVolume(intent.volume)
+            is SettingsIntent.ChangeDifficulty -> handleChangeDifficulty(intent.difficulty)
+            is SettingsIntent.UpdateSelectedDuration -> handleUpdateSelectedDuration(intent.duration)
+        }
+    }
+
+    private fun handleNavigationIntent(intent: NavigationIntent) {
+        when (intent) {
+            is NavigationIntent.NavigateToModPicker -> handleNavigateToModPicker()
+            is NavigationIntent.NavigateToGameSetup -> handleNavigateToGameSetup()
+            is NavigationIntent.NavigateBack -> handleNavigateBack()
+            is NavigationIntent.BackToMenu -> handleBackToMenu()
+            is NavigationIntent.ShowBackConfirmation -> handleShowBackConfirmation()
+            is NavigationIntent.HideBackConfirmation -> handleHideBackConfirmation()
+            is NavigationIntent.SelectGameMode -> handleSelectGameMode(intent.mode)
+            is NavigationIntent.SelectGameMod -> handleSelectGameMod(intent.mod)
+        }
+    }
+
+    private fun handleCoopIntent(intent: CoopIntent) {
+        when (intent) {
+            is CoopIntent.StartCoopAdvertising -> coopHandler.handleStartCoopAdvertising(intent.playerName, intent.selectedColor)
+            is CoopIntent.StartCoopDiscovery -> coopHandler.handleStartCoopDiscovery(intent.playerName, intent.selectedColor)
+            is CoopIntent.StopCoopConnection -> coopHandler.handleStopCoopConnection()
+            is CoopIntent.CoopClaimBubble -> coopHandler.handleCoopClaimBubble(intent.bubbleId)
+            is CoopIntent.CoopSyncBubbles -> coopHandler.handleCoopSyncBubbles(intent.bubbles)
+            is CoopIntent.CoopSyncScores -> coopHandler.handleCoopSyncScores(intent.localScore, intent.opponentScore)
+            is CoopIntent.CoopGameFinished -> coopHandler.handleCoopGameFinished(intent.winnerId)
+            is CoopIntent.ShowCoopConnectionDialog -> coopHandler.handleShowCoopConnectionDialog()
+            is CoopIntent.HideCoopConnectionDialog -> coopHandler.handleHideCoopConnectionDialog()
+            is CoopIntent.ShowCoopError -> coopHandler.handleShowCoopError(intent.errorMessage)
+            is CoopIntent.ClearCoopError -> coopHandler.handleClearCoopError()
+            is CoopIntent.UpdateCoopPlayerName -> coopHandler.handleUpdateCoopPlayerName(intent.playerName)
+            is CoopIntent.UpdateCoopPlayerColor -> coopHandler.handleUpdateCoopPlayerColor(intent.playerColor)
+            is CoopIntent.StartCoopConnection -> coopHandler.handleStartCoopConnection()
+            is CoopIntent.StartHosting -> coopHandler.handleStartHosting()
+            is CoopIntent.StopHosting -> coopHandler.handleStopHosting()
+            is CoopIntent.StartDiscovery -> coopHandler.handleStartDiscovery()
+            is CoopIntent.StopDiscovery -> coopHandler.handleStopDiscovery()
+            is CoopIntent.ConnectToEndpoint -> coopHandler.handleConnectToEndpoint(intent.endpointId)
+            is CoopIntent.DisconnectCoop -> coopHandler.handleDisconnectCoop()
+            is CoopIntent.StartCoopGame -> coopHandler.handleStartCoopGame()
+            is CoopIntent.StartCoopMatch -> coopHandler.handleStartCoopMatch()
+            is CoopIntent.CloseCoopConnection -> coopHandler.handleCloseCoopConnection()
         }
     }
 
@@ -499,17 +525,17 @@ class GameViewModel @Inject constructor(
 
     // ============ Audio ============
 
-    private fun handleAudioIntent(intent: GameIntent.AudioIntent) {
+    private fun handleAudioIntent(intent: AudioIntent) {
         viewModelScope.launch {
             when (intent) {
-                is GameIntent.AudioIntent.PlaySound -> audioRepository.playSound(intent.soundType)
-                is GameIntent.AudioIntent.PlayMusic -> audioRepository.playMusic(intent.musicTrack)
-                is GameIntent.AudioIntent.StopAllAudio -> {
+                is AudioIntent.PlaySound -> audioRepository.playSound(intent.soundType)
+                is AudioIntent.PlayMusic -> audioRepository.playMusic(intent.musicTrack)
+                is AudioIntent.StopAllAudio -> {
                     audioRepository.stopAllSounds()
                     audioRepository.stopMusic()
                 }
-                is GameIntent.AudioIntent.PauseAudio -> audioRepository.pauseMusic()
-                is GameIntent.AudioIntent.ResumeAudio -> audioRepository.resumeMusic()
+                is AudioIntent.PauseAudio -> audioRepository.pauseMusic()
+                is AudioIntent.ResumeAudio -> audioRepository.resumeMusic()
             }
         }
     }

@@ -25,8 +25,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import timber.log.Timber
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
-import com.akinalpfdn.poprush.core.domain.model.GameIntent
+import com.akinalpfdn.poprush.core.domain.model.CoopIntent
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.core.domain.model.GameplayIntent
+import com.akinalpfdn.poprush.core.domain.model.NavigationIntent
+import com.akinalpfdn.poprush.core.domain.model.SettingsIntent
 import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
 import com.akinalpfdn.poprush.core.ui.component.*
 import com.akinalpfdn.poprush.game.presentation.component.*
@@ -153,9 +156,9 @@ fun GameScreen(
     fun handleBubblePress(bubbleId: Int) {
         // Send intent to ViewModel
         if (gameState.isCoopMode) {
-            viewModel.processIntent(GameIntent.CoopClaimBubble(bubbleId))
+            viewModel.processIntent(CoopIntent.CoopClaimBubble(bubbleId))
         } else {
-            viewModel.processIntent(GameIntent.PressBubble(bubbleId))
+            viewModel.processIntent(GameplayIntent.PressBubble(bubbleId))
         }
     }
     
@@ -168,15 +171,15 @@ fun GameScreen(
     
     // Back handlers
     BackHandler(enabled = gameState.showSettings) {
-        viewModel.processIntent(GameIntent.ToggleSettings)
+        viewModel.processIntent(SettingsIntent.ToggleSettings)
     }
     
     BackHandler(enabled = gameState.isPlaying && !gameState.isGameOver) {
-        viewModel.processIntent(GameIntent.ShowBackConfirmation)
+        viewModel.processIntent(NavigationIntent.ShowBackConfirmation)
     }
     
     BackHandler(enabled = !gameState.isPlaying && !gameState.isGameOver) {
-        viewModel.processIntent(GameIntent.NavigateBack)
+        viewModel.processIntent(NavigationIntent.NavigateBack)
     }
     
     // Main screen with animated background
@@ -191,17 +194,17 @@ fun GameScreen(
         GameContent(
             gameState = gameState,
             soundManager = soundManager,
-            onStartGame = { viewModel.processIntent(GameIntent.StartGame) },
+            onStartGame = { viewModel.processIntent(GameplayIntent.StartGame) },
             onBubblePress = ::handleBubblePress,
-            onToggleSettings = { viewModel.processIntent(GameIntent.ToggleSettings) },
-            onSelectShape = { shape -> viewModel.processIntent(GameIntent.SelectShape(shape)) },
-            onTogglePause = { viewModel.processIntent(GameIntent.TogglePause) },
-            onDurationChange = { duration -> viewModel.processIntent(GameIntent.UpdateSelectedDuration(duration)) },
-            onGameModeSelected = { mode -> viewModel.processIntent(GameIntent.SelectGameMode(mode)) },
-            onGameModSelected = { mod -> viewModel.processIntent(GameIntent.SelectGameMod(mod)) },
-            onDisconnectCoop = { viewModel.processIntent(GameIntent.DisconnectCoop) },
-            onStartCoopConnection = { viewModel.processIntent(GameIntent.StartCoopConnection) },
-            onStartMatch = { viewModel.processIntent(GameIntent.StartCoopMatch) },
+            onToggleSettings = { viewModel.processIntent(SettingsIntent.ToggleSettings) },
+            onSelectShape = { shape -> viewModel.processIntent(SettingsIntent.SelectShape(shape)) },
+            onTogglePause = { viewModel.processIntent(GameplayIntent.TogglePause) },
+            onDurationChange = { duration -> viewModel.processIntent(SettingsIntent.UpdateSelectedDuration(duration)) },
+            onGameModeSelected = { mode -> viewModel.processIntent(NavigationIntent.SelectGameMode(mode)) },
+            onGameModSelected = { mod -> viewModel.processIntent(NavigationIntent.SelectGameMod(mod)) },
+            onDisconnectCoop = { viewModel.processIntent(CoopIntent.DisconnectCoop) },
+            onStartCoopConnection = { viewModel.processIntent(CoopIntent.StartCoopConnection) },
+            onStartMatch = { viewModel.processIntent(CoopIntent.StartCoopMatch) },
             permissionManager = permissionManager,
             showPermissionsDialog = showPermissionsDialog,
             onShowPermissionsDialog = { showPermissionsDialog = true },
@@ -260,7 +263,7 @@ fun GameScreen(
             )
 
             IconButton(
-                onClick = { viewModel.processIntent(GameIntent.ToggleSettings) },
+                onClick = { viewModel.processIntent(SettingsIntent.ToggleSettings) },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(16.dp)
@@ -299,10 +302,10 @@ fun GameScreen(
             SettingsOverlay(
                 gameState = gameState,
                 onSelectShape = { shape ->
-                    viewModel.processIntent(GameIntent.SelectShape(shape))
-                    viewModel.processIntent(GameIntent.ToggleSettings)
+                    viewModel.processIntent(SettingsIntent.SelectShape(shape))
+                    viewModel.processIntent(SettingsIntent.ToggleSettings)
                 },
-                onClose = { viewModel.processIntent(GameIntent.ToggleSettings) },
+                onClose = { viewModel.processIntent(SettingsIntent.ToggleSettings) },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -311,16 +314,16 @@ fun GameScreen(
         if (gameState.isGameOver) {
             GameOverScreen(
                 gameState = gameState,
-                onPlayAgain = { viewModel.processIntent(GameIntent.StartGame) },
-                onBackToMenu = { viewModel.processIntent(GameIntent.BackToMenu) },
+                onPlayAgain = { viewModel.processIntent(GameplayIntent.StartGame) },
+                onBackToMenu = { viewModel.processIntent(NavigationIntent.BackToMenu) },
                 modifier = Modifier.fillMaxSize()
             )
         }
         
         // Back confirmation dialog
         BackConfirmationDialog(
-            onConfirm = { viewModel.processIntent(GameIntent.BackToMenu) },
-            onDismiss = { viewModel.processIntent(GameIntent.HideBackConfirmation) },
+            onConfirm = { viewModel.processIntent(NavigationIntent.BackToMenu) },
+            onDismiss = { viewModel.processIntent(NavigationIntent.HideBackConfirmation) },
             isVisible = gameState.showBackConfirmation
         )
         
@@ -343,17 +346,17 @@ fun GameScreen(
             discoveredEndpoints = discoveredEndpoints,
             errorMessage = gameState.coopErrorMessage,
             isHost = gameState.coopState?.isHost ?: false,
-            onPlayerNameChange = { viewModel.processIntent(GameIntent.UpdateCoopPlayerName(it)) },
-            onColorSelected = { viewModel.processIntent(GameIntent.UpdateCoopPlayerColor(it)) },
-            onPlayerSetupComplete = { viewModel.processIntent(GameIntent.StartCoopConnection) },
-            onStartHosting = { viewModel.processIntent(GameIntent.StartHosting) },
-            onStopHosting = { viewModel.processIntent(GameIntent.StopHosting) },
-            onStartDiscovery = { viewModel.processIntent(GameIntent.StartDiscovery) },
-            onStopDiscovery = { viewModel.processIntent(GameIntent.StopDiscovery) },
-            onConnectToEndpoint = { viewModel.processIntent(GameIntent.ConnectToEndpoint(it)) },
-            onDisconnect = { viewModel.processIntent(GameIntent.DisconnectCoop) },
-            onStartGame = { viewModel.processIntent(GameIntent.StartCoopGame) },
-            onClose = { viewModel.processIntent(GameIntent.CloseCoopConnection) },
+            onPlayerNameChange = { viewModel.processIntent(CoopIntent.UpdateCoopPlayerName(it)) },
+            onColorSelected = { viewModel.processIntent(CoopIntent.UpdateCoopPlayerColor(it)) },
+            onPlayerSetupComplete = { viewModel.processIntent(CoopIntent.StartCoopConnection) },
+            onStartHosting = { viewModel.processIntent(CoopIntent.StartHosting) },
+            onStopHosting = { viewModel.processIntent(CoopIntent.StopHosting) },
+            onStartDiscovery = { viewModel.processIntent(CoopIntent.StartDiscovery) },
+            onStopDiscovery = { viewModel.processIntent(CoopIntent.StopDiscovery) },
+            onConnectToEndpoint = { viewModel.processIntent(CoopIntent.ConnectToEndpoint(it)) },
+            onDisconnect = { viewModel.processIntent(CoopIntent.DisconnectCoop) },
+            onStartGame = { viewModel.processIntent(CoopIntent.StartCoopGame) },
+            onClose = { viewModel.processIntent(CoopIntent.CloseCoopConnection) },
             modifier = Modifier.fillMaxSize()
         )
     }
