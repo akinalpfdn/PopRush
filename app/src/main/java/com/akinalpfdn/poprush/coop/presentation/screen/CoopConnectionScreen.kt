@@ -1,6 +1,7 @@
 package com.akinalpfdn.poprush.coop.presentation.screen
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,25 +10,35 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import timber.log.Timber
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.coop.domain.model.ConnectionState
 import com.akinalpfdn.poprush.coop.domain.model.EndpointInfo
+import com.akinalpfdn.poprush.coop.presentation.component.BubbleIconButton
+import com.akinalpfdn.poprush.coop.presentation.component.BubbleIconCircle
+import com.akinalpfdn.poprush.coop.presentation.component.ColoredCoopTitle
+import com.akinalpfdn.poprush.coop.presentation.component.CoopBubbleButton
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
 import com.akinalpfdn.poprush.ui.theme.AppColors
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,12 +59,10 @@ fun CoopConnectionScreen(
     onStartGame: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // Debug: Log connection state and discovered endpoints
     LaunchedEffect(connectionState, discoveredEndpoints) {
         Timber.d("CoopConnectionScreen: connectionState = $connectionState, isHost = $isHost")
         Timber.d("CoopConnectionScreen: discoveredEndpoints.size = ${discoveredEndpoints.size}")
     }
-    // Debug: Log when CoopConnectionScreen is rendered
     LaunchedEffect(Unit) {
         Timber.d("CoopConnectionScreen: isHost = $isHost, connectionState = $connectionState")
     }
@@ -61,7 +70,7 @@ fun CoopConnectionScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(AppColors.Background.Primary)
     ) {
         Column(
             modifier = Modifier
@@ -69,46 +78,33 @@ fun CoopConnectionScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // -- Top Bar --
+            // Top bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = onBackToMenu,
-                    modifier = Modifier
-                        .background(AppColors.LightGray, CircleShape)
-                        .size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = AppColors.DarkGray
-                    )
-                }
+                BubbleIconButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    baseColor = AppColors.Bubble.SkyBlue,
+                    onClick = onBackToMenu
+                )
                 Spacer(modifier = Modifier.weight(1f))
-                // Small Player Badge
                 PlayerBadge(playerName, playerColor)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // -- Dynamic Content --
+            // Dynamic content
             Box(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.Center
             ) {
                 when (connectionState) {
                     ConnectionState.DISCONNECTED -> {
-                        // FIX: Directly show loading.
-                        // This prevents the "middle part" (buttons) from ever appearing.
-                        // It also fixes the glitch because this view is neutral.
                         ConnectingView(message = "Initializing...")
                     }
                     ConnectionState.ADVERTISING -> {
-                        AdvertisingView(
-                            onStopHosting = onStopHosting
-                        )
+                        AdvertisingView(onStopHosting = onStopHosting)
                     }
                     ConnectionState.DISCOVERING -> {
                         DiscoveryView(
@@ -131,22 +127,37 @@ fun CoopConnectionScreen(
             }
         }
 
-        // -- Error Toast --
+        // Error toast
         errorMessage?.let { message ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = AppColors.RedError),
-                shape = RoundedCornerShape(16.dp),
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(24.dp)
                     .fillMaxWidth()
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(16.dp),
+                        ambientColor = AppColors.Bubble.Coral.withAlpha(0.3f),
+                        spotColor = AppColors.Bubble.Coral.withAlpha(0.3f)
+                    )
             ) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    drawRoundRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(AppColors.Bubble.Coral, AppColors.Bubble.CoralPressed),
+                            center = Offset(size.width * 0.3f, size.height * 0.3f),
+                            radius = size.width * 0.8f
+                        ),
+                        cornerRadius = CornerRadius(16.dp.toPx())
+                    )
+                }
                 Text(
                     text = message,
-                    color = Color.White,
+                    color = AppColors.Text.OnDark,
                     modifier = Modifier.padding(16.dp),
                     textAlign = TextAlign.Center,
                     fontFamily = NunitoFontFamily,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 14.sp
                 )
             }
@@ -164,38 +175,32 @@ private fun AdvertisingView(onStopHosting: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        PulseAnimation(color = AppColors.DarkGray)
+        BubblePulseAnimation(color = AppColors.Bubble.Grape)
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Text(
-            text = "Hosting...",
-            color = AppColors.DarkGray,
-            fontSize = 24.sp,
-            fontFamily = NunitoFontFamily,
-            fontWeight = FontWeight.Bold
-        )
+        ColoredCoopTitle(text = "HOSTING...", fontSize = 22)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Text(
             text = "Waiting for players to join",
-            color = Color.Gray,
-            fontSize = 16.sp,
+            color = AppColors.Text.Label,
+            fontSize = 14.sp,
             fontFamily = NunitoFontFamily,
-            modifier = Modifier.padding(top = 8.dp)
+            fontWeight = FontWeight.Medium
         )
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        Button(
+        CoopBubbleButton(
+            text = "CANCEL",
+            icon = Icons.Default.Close,
+            baseColor = AppColors.Bubble.Peach,
+            pressedColor = AppColors.Bubble.PeachPressed,
             onClick = onStopHosting,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AppColors.LightGray,
-                contentColor = AppColors.RedError
-            ),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.height(50.dp)
-        ) {
-            Text("Cancel Hosting", fontFamily = NunitoFontFamily, fontWeight = FontWeight.Bold)
-        }
+            isSmall = true
+        )
     }
 }
 
@@ -205,19 +210,13 @@ private fun DiscoveryView(
     onConnect: (String) -> Unit,
     onStopDiscovery: () -> Unit
 ) {
-    // Debug: Log when DiscoveryView receives endpoints
     LaunchedEffect(endpoints) {
         Timber.d("DiscoveryView: endpoints.size = ${endpoints.size}, endpoints = $endpoints")
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "NEARBY GAMES",
-            color = AppColors.DarkGray,
-            fontSize = 24.sp,
-            fontFamily = NunitoFontFamily,
-            fontWeight = FontWeight.ExtraBold
-        )
+        ColoredCoopTitle(text = "NEARBY GAMES", fontSize = 22)
+
         Spacer(modifier = Modifier.height(16.dp))
 
         if (endpoints.isEmpty()) {
@@ -225,16 +224,26 @@ private fun DiscoveryView(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .background(AppColors.LightGray, RoundedCornerShape(24.dp)),
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = AppColors.Bubble.SkyBlue.withAlpha(0.1f),
+                        spotColor = AppColors.Bubble.SkyBlue.withAlpha(0.1f)
+                    )
+                    .background(AppColors.Background.Secondary, RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = AppColors.DarkGray, strokeWidth = 3.dp)
+                    CircularProgressIndicator(
+                        color = AppColors.Bubble.SkyBlue,
+                        strokeWidth = 3.dp
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Scanning...",
-                        color = Color.Gray,
-                        fontFamily = NunitoFontFamily
+                        color = AppColors.Text.Label,
+                        fontFamily = NunitoFontFamily,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -251,17 +260,13 @@ private fun DiscoveryView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = onStopDiscovery,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AppColors.RedError,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().height(56.dp)
-        ) {
-            Text("Stop Searching", fontFamily = NunitoFontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        }
+        CoopBubbleButton(
+            text = "STOP SEARCHING",
+            icon = Icons.Default.Close,
+            baseColor = AppColors.Bubble.Coral,
+            pressedColor = AppColors.Bubble.CoralPressed,
+            onClick = onStopDiscovery
+        )
     }
 }
 
@@ -270,14 +275,14 @@ private fun ConnectingView(message: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(
             modifier = Modifier.size(60.dp),
-            color = AppColors.DarkGray,
-            strokeWidth = 6.dp
+            color = AppColors.Bubble.Grape,
+            strokeWidth = 5.dp
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = message,
-            color = AppColors.DarkGray,
-            fontSize = 20.sp,
+            color = AppColors.Text.Secondary,
+            fontSize = 18.sp,
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold
         )
@@ -286,58 +291,61 @@ private fun ConnectingView(message: String) {
 
 @Composable
 private fun ConnectedView(isHost: Boolean, onDisconnect: () -> Unit, onStartGame: () -> Unit) {
-    // Debug: Log isHost value when ConnectedView is rendered
     LaunchedEffect(isHost) {
-        Timber.tag("COOP_CONNECTION").d("🏠 CONNECTED_VIEW: isHost = $isHost")
+        Timber.tag("COOP_CONNECTION").d("CONNECTED_VIEW: isHost = $isHost")
     }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            imageVector = Icons.Default.CheckCircle,
-            contentDescription = null,
-            tint = AppColors.EmeraldSuccess,
-            modifier = Modifier.size(100.dp)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        BubbleIconCircle(
+            icon = Icons.Default.CheckCircle,
+            baseColor = AppColors.Bubble.Mint,
+            size = 88
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Connected!",
-            color = AppColors.DarkGray,
-            fontSize = 28.sp,
-            fontFamily = NunitoFontFamily,
-            fontWeight = FontWeight.ExtraBold
-        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        ColoredCoopTitle(text = "CONNECTED!", fontSize = 26)
 
         Spacer(modifier = Modifier.height(48.dp))
 
         // Start Game Button (Host only)
-        Timber.tag("COOP_CONNECTION").d("🏠 BUTTON_VISIBILITY: isHost = $isHost, shouldShowStartButton = ${isHost}")
+        Timber.tag("COOP_CONNECTION").d("BUTTON_VISIBILITY: isHost = $isHost, shouldShowStartButton = ${isHost}")
         if (isHost) {
-            Button(
+            CoopBubbleButton(
+                text = "START GAME",
+                icon = Icons.Default.PlayArrow,
+                baseColor = AppColors.Bubble.Mint,
+                pressedColor = AppColors.Bubble.MintPressed,
                 onClick = {
-                    Timber.tag("COOP_CONNECTION").d("🎮 START_GAME_CLICKED: Host clicked Start Game button")
+                    Timber.tag("COOP_CONNECTION").d("START_GAME_CLICKED: Host clicked Start Game button")
                     onStartGame()
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = AppColors.DarkGray),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            ) {
-                Text("Start Game", fontFamily = NunitoFontFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            }
+                }
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
         } else {
-            Timber.tag("COOP_CONNECTION").d("🏠 NO_START_BUTTON: Client device, isHost = $isHost")
+            Text(
+                text = "Waiting for host to start...",
+                color = AppColors.Text.Label,
+                fontFamily = NunitoFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Timber.tag("COOP_CONNECTION").d("NO_START_BUTTON: Client device, isHost = $isHost")
         }
 
-        // Disconnect Button (both players can disconnect)
-        Button(
+        CoopBubbleButton(
+            text = "DISCONNECT",
+            icon = Icons.Default.LinkOff,
+            baseColor = AppColors.Bubble.Coral,
+            pressedColor = AppColors.Bubble.CoralPressed,
             onClick = onDisconnect,
-            colors = ButtonDefaults.buttonColors(containerColor = AppColors.RedError),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().height(56.dp)
-        ) {
-            Text("Disconnect", fontFamily = NunitoFontFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        }
+            isSmall = true
+        )
     }
 }
 
@@ -347,23 +355,32 @@ private fun ConnectedView(isHost: Boolean, onDisconnect: () -> Unit, onStartGame
 
 @Composable
 private fun PlayerBadge(name: String, color: BubbleColor) {
+    val playerColor = PastelColors.getColor(color)
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .background(AppColors.LightGray, RoundedCornerShape(50))
+            .shadow(
+                elevation = 3.dp,
+                shape = RoundedCornerShape(50),
+                ambientColor = playerColor.withAlpha(0.2f),
+                spotColor = playerColor.withAlpha(0.2f)
+            )
+            .background(AppColors.Background.Secondary, RoundedCornerShape(50))
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(12.dp)
-                .background(PastelColors.getColor(color), CircleShape)
+                .size(14.dp)
+                .shadow(2.dp, CircleShape, ambientColor = playerColor, spotColor = playerColor)
+                .background(playerColor, CircleShape)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = name.ifEmpty { "Player" },
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Bold,
-            color = AppColors.DarkGray,
+            color = AppColors.Text.Primary,
             fontSize = 14.sp
         )
     }
@@ -371,7 +388,6 @@ private fun PlayerBadge(name: String, color: BubbleColor) {
 
 @Composable
 private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
-    // Debug: Log when endpoint item is clicked
     LaunchedEffect(Unit) {
         Timber.d("EndpointItem created for: ${endpoint.name} (${endpoint.id})")
     }
@@ -379,7 +395,13 @@ private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(AppColors.LightGray, RoundedCornerShape(16.dp))
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(18.dp),
+                ambientColor = AppColors.Bubble.SkyBlue.withAlpha(0.15f),
+                spotColor = AppColors.Bubble.SkyBlue.withAlpha(0.15f)
+            )
+            .background(AppColors.Background.Secondary, RoundedCornerShape(18.dp))
             .clickable(onClick = {
                 Timber.d("Endpoint clicked: ${endpoint.name} (${endpoint.id})")
                 onClick()
@@ -393,27 +415,41 @@ private fun EndpointItem(endpoint: EndpointInfo, onClick: () -> Unit) {
                 text = endpoint.getPlayerName(),
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold,
-                color = AppColors.DarkGray,
+                color = AppColors.Text.Primary,
                 fontSize = 16.sp
             )
             endpoint.getPlayerColor()?.let { color ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                    Box(modifier = Modifier.size(10.dp).background(PastelColors.getColor(color), CircleShape))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    val playerColor = PastelColors.getColor(color)
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .shadow(1.dp, CircleShape, ambientColor = playerColor, spotColor = playerColor)
+                            .background(playerColor, CircleShape)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Color", fontSize = 12.sp, color = Color.Gray, fontFamily = NunitoFontFamily)
+                    Text(
+                        "Color",
+                        fontSize = 12.sp,
+                        color = AppColors.Text.Label,
+                        fontFamily = NunitoFontFamily
+                    )
                 }
             }
         }
         Icon(
             imageVector = Icons.Default.NavigateNext,
             contentDescription = "Join",
-            tint = AppColors.DarkGray
+            tint = AppColors.Bubble.SkyBlue
         )
     }
 }
 
 @Composable
-private fun PulseAnimation(color: Color) {
+private fun BubblePulseAnimation(color: Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 0.8f, targetValue = 1.2f,
@@ -421,28 +457,61 @@ private fun PulseAnimation(color: Color) {
         label = "scale"
     )
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f, targetValue = 0.8f,
+        initialValue = 0.2f, targetValue = 0.6f,
         animationSpec = infiniteRepeatable(tween(1000, easing = EaseInOutCubic), RepeatMode.Reverse),
         label = "alpha"
     )
 
     Box(contentAlignment = Alignment.Center) {
-        Box(
+        // Outer pulse ring
+        Canvas(
             modifier = Modifier
                 .size(100.dp)
-                .scale(scale)
-                .background(color.copy(alpha = 0.1f), CircleShape)
-        )
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+        ) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(color.withAlpha(alpha * 0.5f), Color.Transparent),
+                    center = Offset(size.width / 2, size.height / 2),
+                    radius = size.width / 2
+                )
+            )
+        }
+
+        // Inner bubble
         Box(
-            modifier = Modifier
-                .size(60.dp)
-                .background(color.copy(alpha = alpha), CircleShape)
-        )
-        Icon(
-            imageVector = Icons.Default.WifiTethering,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(32.dp)
-        )
+            modifier = Modifier.size(60.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val lighterColor = color.withAlpha(0.85f).compositeOver(Color.White)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(lighterColor, color),
+                        center = Offset(size.width * 0.35f, size.height * 0.3f),
+                        radius = size.width * 0.7f
+                    )
+                )
+                // Glass highlight
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color.White.withAlpha(0.4f), Color.White.withAlpha(0f)),
+                        center = Offset(size.width * 0.3f, size.height * 0.25f),
+                        radius = size.width * 0.3f
+                    ),
+                    radius = size.width * 0.2f,
+                    center = Offset(size.width * 0.3f, size.height * 0.25f)
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.WifiTethering,
+                contentDescription = null,
+                tint = AppColors.Text.OnDark,
+                modifier = Modifier.size(28.dp)
+            )
+        }
     }
 }

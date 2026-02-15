@@ -1,36 +1,29 @@
 package com.akinalpfdn.poprush.coop.presentation.screen
 
-import android.graphics.Typeface
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import com.akinalpfdn.poprush.ui.theme.AppColors
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.Text
 import com.akinalpfdn.poprush.coop.domain.model.CoopGameState
+import com.akinalpfdn.poprush.coop.presentation.component.ColoredCoopTitle
+import com.akinalpfdn.poprush.coop.presentation.component.CoopBubbleButton
 import com.akinalpfdn.poprush.game.presentation.component.DurationPicker
+import com.akinalpfdn.poprush.ui.theme.AppColors
+import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 import kotlin.time.Duration
 
 /**
  * Setup screen for Coop Mode, shown to the host before starting the match.
  * Allows selecting game duration.
  */
-val NunitoFontFamily = FontFamily(
-    androidx.compose.ui.text.font.Typeface(
-        Typeface.create("sans-serif-rounded", Typeface.BOLD)
-    )
-)
-
 @Composable
 fun CoopSetupScreen(
     coopGameState: CoopGameState,
@@ -48,24 +41,19 @@ fun CoopSetupScreen(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
         ) {
-            // Title
-            Text(
-                text = "COOP SETUP",
-                color = AppColors.StoneGray,
-                fontSize = 36.sp,
-                fontFamily = NunitoFontFamily,
-                fontWeight = FontWeight.Bold
-            )
+            // Colored title
+            ColoredCoopTitle(text = "COOP SETUP", fontSize = 30)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Subtitle (Players)
+            // Player names
             Text(
                 text = "${coopGameState.localPlayerName} vs ${coopGameState.opponentPlayerName.ifEmpty { "Opponent" }}",
-                color = AppColors.GrayMedium,
-                fontSize = 20.sp,
+                color = AppColors.Text.Label,
+                fontSize = 16.sp,
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Medium
             )
@@ -81,63 +69,25 @@ fun CoopSetupScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Start Match button
-            PlayButton(
-                onClick = onStartMatch,
-                modifier = Modifier
-                    .defaultMinSize(minWidth = 160.dp)
-                    .height(56.dp)
+            // Start match button
+            CoopBubbleButton(
+                text = "START MATCH",
+                icon = Icons.Default.PlayArrow,
+                baseColor = AppColors.Bubble.Mint,
+                pressedColor = AppColors.Bubble.MintPressed,
+                onClick = onStartMatch
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Disconnect button
-            TextButton(onClick = onDisconnect) {
-                Text(
-                    text = "Disconnect",
-                    color = AppColors.RedError,
-                    fontSize = 16.sp,
-                    fontFamily = NunitoFontFamily,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlayButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .background(
-                color = AppColors.Button.Primary,
-                shape = CircleShape
-            )
-            .clickable { onClick() }
-            .padding(horizontal = 40.dp, vertical = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = "Start Match",
-                tint = AppColors.Button.Text,
-                modifier = Modifier.size(24.dp)
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = "START MATCH",
-                color = AppColors.Button.Text,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
+            CoopBubbleButton(
+                text = "DISCONNECT",
+                icon = Icons.Default.LinkOff,
+                baseColor = AppColors.Bubble.Coral,
+                pressedColor = AppColors.Bubble.CoralPressed,
+                onClick = onDisconnect,
+                isSmall = true
             )
         }
     }

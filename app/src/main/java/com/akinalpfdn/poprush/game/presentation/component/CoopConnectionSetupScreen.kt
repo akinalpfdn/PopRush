@@ -1,6 +1,9 @@
 package com.akinalpfdn.poprush.game.presentation.component
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,17 +17,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
 import com.akinalpfdn.poprush.ui.theme.AppColors
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 
 @Composable
 fun CoopConnectionSetupScreen(
@@ -42,97 +48,185 @@ fun CoopConnectionSetupScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
+            // Icon in bubble circle
+            BubbleHeaderIcon(
+                icon = Icons.Default.WifiTethering,
+                baseColor = AppColors.Bubble.Grape
+            )
 
-            // Header Section
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                // Main Icon
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .background(AppColors.LightGray, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.WifiTethering,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = AppColors.DarkGray
-                    )
-                }
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // Colored title
+            ColoredLobbyTitle(text = "CO-OP LOBBY")
 
-                Text(
-                    text = "CO-OP LOBBY",
-                    color = AppColors.DarkGray,
-                    fontSize = 32.sp,
-                    fontFamily = NunitoFontFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.sp
-                )
+            Spacer(modifier = Modifier.height(4.dp))
 
-                Text(
-                    text = "Connect with nearby friends",
-                    color = Color.Gray,
-                    fontSize = 16.sp,
-                    fontFamily = NunitoFontFamily,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+            Text(
+                text = "Connect with nearby friends",
+                color = AppColors.Text.Label,
+                fontSize = 14.sp,
+                fontFamily = NunitoFontFamily,
+                fontWeight = FontWeight.Medium
+            )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // Compact Features List
+            // Feature list with bubble icons
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                CompactFeatureRow(Icons.Default.Bluetooth, "Offline Multiplayer")
-                CompactFeatureRow(Icons.Default.Timer, "Time-Based Gameplay")
-                CompactFeatureRow(Icons.Default.EmojiEvents, "Competitive Fun")
+                BubbleFeatureRow(Icons.Default.Bluetooth, "Offline Multiplayer", AppColors.Bubble.SkyBlue)
+                BubbleFeatureRow(Icons.Default.Timer, "Time-Based Gameplay", AppColors.Bubble.Mint)
+                BubbleFeatureRow(Icons.Default.EmojiEvents, "Competitive Fun", AppColors.Bubble.Lemon)
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // Start Button (Styled like ModeSelection)
+            // Start button
             CoopActionButton(
                 text = "Start Scanning",
                 icon = Icons.Default.PlayArrow,
+                baseColor = AppColors.Bubble.Coral,
+                pressedColor = AppColors.Bubble.CoralPressed,
                 onClick = onShowConnectionDialog
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-private fun CompactFeatureRow(
+private fun BubbleHeaderIcon(
     icon: ImageVector,
-    text: String
+    baseColor: Color
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start,
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.Transparent)
-            .padding(horizontal = 16.dp)
+            .size(100.dp)
+            .shadow(
+                elevation = 10.dp,
+                shape = CircleShape,
+                ambientColor = baseColor.withAlpha(0.3f),
+                spotColor = baseColor.withAlpha(0.3f)
+            ),
+        contentAlignment = Alignment.Center
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val lighterColor = baseColor.withAlpha(0.85f).compositeOver(Color.White)
+            val darkerColor = baseColor.withAlpha(0.95f).compositeOver(Color.Black.withAlpha(0.05f))
+
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(lighterColor, baseColor, darkerColor),
+                    center = Offset(size.width * 0.35f, size.height * 0.3f),
+                    radius = size.width * 0.7f
+                )
+            )
+            // Glass highlight
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White.withAlpha(0.45f), Color.White.withAlpha(0f)),
+                    center = Offset(size.width * 0.3f, size.height * 0.28f),
+                    radius = size.width * 0.35f
+                ),
+                radius = size.width * 0.25f,
+                center = Offset(size.width * 0.3f, size.height * 0.28f)
+            )
+        }
+
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = AppColors.DarkGray,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(48.dp),
+            tint = AppColors.Text.OnDark
         )
+    }
+}
+
+@Composable
+private fun ColoredLobbyTitle(text: String) {
+    val colors = listOf(
+        AppColors.Bubble.Coral,
+        AppColors.Bubble.SkyBlue,
+        AppColors.Bubble.Mint,
+        AppColors.Bubble.Grape,
+        AppColors.Bubble.Lemon,
+        AppColors.Bubble.Peach,
+        AppColors.Bubble.SkyBlue,
+        AppColors.Bubble.Coral,
+        AppColors.Bubble.Mint,
+        AppColors.Bubble.Grape,
+        AppColors.Bubble.Lemon
+    )
+
+    Row {
+        text.forEachIndexed { index, char ->
+            if (char != ' ') {
+                Text(
+                    text = char.toString(),
+                    color = colors[index % colors.size],
+                    fontSize = 30.sp,
+                    fontFamily = NunitoFontFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 2.sp
+                )
+            } else {
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun BubbleFeatureRow(
+    icon: ImageVector,
+    text: String,
+    accentColor: Color
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        // Small bubble icon
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .shadow(
+                    elevation = 3.dp,
+                    shape = CircleShape,
+                    ambientColor = accentColor.withAlpha(0.2f),
+                    spotColor = accentColor.withAlpha(0.2f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val lighterColor = accentColor.withAlpha(0.85f).compositeOver(Color.White)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(lighterColor, accentColor),
+                        center = Offset(size.width * 0.35f, size.height * 0.3f),
+                        radius = size.width * 0.7f
+                    )
+                )
+            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = AppColors.Text.OnDark,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
         Spacer(modifier = Modifier.width(16.dp))
+
         Text(
             text = text,
-            color = AppColors.DarkGray.copy(alpha = 0.8f),
+            color = AppColors.Text.Secondary,
             fontFamily = NunitoFontFamily,
             fontWeight = FontWeight.Medium,
             fontSize = 16.sp
@@ -144,33 +238,73 @@ private fun CompactFeatureRow(
 private fun CoopActionButton(
     text: String,
     icon: ImageVector,
+    baseColor: Color,
+    pressedColor: Color,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Bounce animation
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        label = "buttonScale"
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "actionBtnScale"
     )
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
-            .scale(scale)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = if (isPressed) 4.dp else 10.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = baseColor.withAlpha(0.3f),
+                spotColor = baseColor.withAlpha(0.3f)
+            )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
-            ),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = AppColors.DarkGray
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            )
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            val lighterColor = baseColor.withAlpha(0.85f).compositeOver(Color.White)
+            val darkerColor = if (isPressed) pressedColor
+            else baseColor.withAlpha(0.95f).compositeOver(Color.Black.withAlpha(0.05f))
+
+            drawRoundRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(lighterColor, baseColor, darkerColor),
+                    center = Offset(width * 0.25f, height * 0.3f),
+                    radius = width * 0.9f
+                ),
+                cornerRadius = CornerRadius(24.dp.toPx())
+            )
+
+            // Glass highlight
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.withAlpha(0.35f),
+                        Color.White.withAlpha(0f)
+                    ),
+                    center = Offset(width * 0.15f, height * 0.25f),
+                    radius = height * 0.5f
+                ),
+                radius = height * 0.35f,
+                center = Offset(width * 0.15f, height * 0.25f)
+            )
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -180,21 +314,26 @@ private fun CoopActionButton(
         ) {
             Text(
                 text = text,
-                color = AppColors.Background.Primary,
+                color = AppColors.Text.OnDark,
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
+                fontSize = 20.sp,
+                letterSpacing = 0.5.sp
             )
 
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = AppColors.Background.Primary,
+            Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .background(AppColors.Background.Primary.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                    .padding(6.dp)
-            )
+                    .size(40.dp)
+                    .background(Color.White.withAlpha(0.2f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = AppColors.Text.OnDark,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

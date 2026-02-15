@@ -1,26 +1,38 @@
 package com.akinalpfdn.poprush.coop.presentation.screen
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.coop.domain.model.CoopGameState
 import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
+import com.akinalpfdn.poprush.coop.presentation.component.BubbleIconCircle
+import com.akinalpfdn.poprush.coop.presentation.component.ColoredCoopTitle
+import com.akinalpfdn.poprush.coop.presentation.component.CoopBubbleButton
 import com.akinalpfdn.poprush.coop.presentation.extensions.*
 import com.akinalpfdn.poprush.core.ui.component.BubbleGrid
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
@@ -28,6 +40,7 @@ import com.akinalpfdn.poprush.core.domain.model.BubbleShape
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
 import com.akinalpfdn.poprush.ui.theme.AppColors
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 
 /**
  * Main coop gameplay screen showing the bubble grid and player scores
@@ -44,12 +57,10 @@ fun CoopGameplayScreen(
     onPlayAgain: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Handle back press logic
     androidx.activity.compose.BackHandler {
         if (coopGameState.currentPhase == CoopGamePhase.FINISHED) {
             onDisconnect()
         } else {
-            // In other phases, back might act as disconnect or pause
             onDisconnect()
         }
     }
@@ -57,11 +68,9 @@ fun CoopGameplayScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(AppColors.SoftWhite)
+            .background(AppColors.Background.Primary)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-
-            // Content Area
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -104,18 +113,17 @@ fun CoopGameplayScreen(
                         )
                     }
                     CoopGamePhase.PAUSED -> {
-                        // Show gameplay in background, overlaid by Pause menu
                         Box(modifier = Modifier.fillMaxSize()) {
                             PlayingPhaseContent(
                                 coopGameState = coopGameState,
-                                onBubbleClick = { }, // Disable clicks
+                                onBubbleClick = { },
                                 onPause = { },
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .alpha(0.3f) // Dimmed
+                                    .alpha(0.3f)
                             )
                             PausedPhaseContent(
-                                onResume = onPause, // Re-using pause toggle as resume
+                                onResume = onPause,
                                 onDisconnect = onDisconnect
                             )
                         }
@@ -149,7 +157,6 @@ private fun PlayingPhaseContent(
             .padding(16.dp)
             .statusBarsPadding()
     ) {
-        // Compact HUD (Heads Up Display)
         CompactGameHUD(
             localName = coopGameState.localPlayerName,
             localScore = coopGameState.localPlayerScore,
@@ -157,14 +164,12 @@ private fun PlayingPhaseContent(
             remoteName = coopGameState.remotePlayerName,
             remoteScore = coopGameState.remotePlayerScore,
             remoteColor = coopGameState.remotePlayerColor,
-            // Convert Duration to Long (seconds) here
             timeRemaining = coopGameState.timeRemaining,
             onPause = onPause
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Game Grid Container - Removed Card Background
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -201,28 +206,24 @@ private fun WaitingPhaseContent(
             verticalArrangement = Arrangement.Center
         ) {
             CircularProgressIndicator(
-                color = AppColors.DarkGray,
-                strokeWidth = 6.dp,
-                modifier = Modifier.size(64.dp)
+                color = AppColors.Bubble.Grape,
+                strokeWidth = 5.dp,
+                modifier = Modifier.size(60.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                color = AppColors.DarkGray,
-                fontWeight = FontWeight.ExtraBold,
-                fontFamily = NunitoFontFamily
-            )
+            ColoredCoopTitle(text = title, fontSize = 20)
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = AppColors.Text.Label,
                 textAlign = TextAlign.Center,
                 fontFamily = NunitoFontFamily,
-                modifier = Modifier.padding(top = 8.dp)
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -246,9 +247,14 @@ private fun WaitingPhaseContent(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            TextButton(onClick = onDisconnect) {
-                Text("Cancel", color = Color.Gray, fontFamily = NunitoFontFamily)
-            }
+            CoopBubbleButton(
+                text = "CANCEL",
+                icon = Icons.Default.Close,
+                baseColor = AppColors.Bubble.Peach,
+                pressedColor = AppColors.Bubble.PeachPressed,
+                onClick = onDisconnect,
+                isSmall = true
+            )
         }
     }
 }
@@ -261,60 +267,85 @@ private fun PausedPhaseContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.4f)),
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Card(
+        // Bubble-style card
+        Box(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
-                .padding(16.dp),
-            shape = RoundedCornerShape(32.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(16.dp)
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(28.dp),
+                    ambientColor = AppColors.Bubble.Grape.withAlpha(0.2f),
+                    spotColor = AppColors.Bubble.Grape.withAlpha(0.2f)
+                )
         ) {
+            // Gradient card background
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawRoundRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            AppColors.Background.Primary,
+                            AppColors.Background.Secondary,
+                            AppColors.Background.Primary
+                        ),
+                        center = Offset(size.width * 0.5f, size.height * 0.3f),
+                        radius = size.width * 1.2f
+                    ),
+                    cornerRadius = CornerRadius(28.dp.toPx())
+                )
+
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            AppColors.Bubble.SkyBlueGlow.withAlpha(0.08f),
+                            Color.Transparent
+                        ),
+                        center = Offset(size.width * 0.2f, size.height * 0.15f),
+                        radius = size.width * 0.6f
+                    ),
+                    radius = size.width * 0.5f,
+                    center = Offset(size.width * 0.2f, size.height * 0.15f)
+                )
+            }
+
             Column(
                 modifier = Modifier.padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.PauseCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = AppColors.DarkGray
+                BubbleIconCircle(
+                    icon = Icons.Default.PauseCircle,
+                    baseColor = AppColors.Bubble.Grape,
+                    size = 72
                 )
 
-                Text(
-                    text = "PAUSED",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    color = AppColors.DarkGray,
-                    fontFamily = NunitoFontFamily
+                ColoredCoopTitle(text = "PAUSED")
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                CoopBubbleButton(
+                    text = "RESUME",
+                    icon = Icons.Default.PlayArrow,
+                    baseColor = AppColors.Bubble.Mint,
+                    pressedColor = AppColors.Bubble.MintPressed,
+                    onClick = onResume
                 )
 
-                Button(
-                    onClick = onResume,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.DarkGray),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        "Resume",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = NunitoFontFamily
-                    )
-                }
-
-                TextButton(onClick = onDisconnect) {
-                    Text(
-                        "Quit Game",
-                        color = Color.Red.copy(alpha = 0.8f),
-                        fontFamily = NunitoFontFamily
-                    )
-                }
+                CoopBubbleButton(
+                    text = "QUIT GAME",
+                    icon = Icons.Default.Close,
+                    baseColor = AppColors.Bubble.Coral,
+                    pressedColor = AppColors.Bubble.CoralPressed,
+                    onClick = onDisconnect,
+                    isSmall = true
+                )
             }
         }
     }
@@ -329,37 +360,36 @@ private fun FinishedPhaseContent(
     val isLocalWinner = coopGameState.localPlayerScore > coopGameState.remotePlayerScore
     val isDraw = coopGameState.localPlayerScore == coopGameState.remotePlayerScore
 
+    val resultTitle = if (isDraw) "DRAW!" else if (isLocalWinner) "YOU WON!" else "YOU LOST!"
+    val trophyColor = when {
+        isDraw -> AppColors.Bubble.Lemon
+        isLocalWinner -> AppColors.Bubble.Mint
+        else -> AppColors.Bubble.Coral
+    }
+    val trophyIcon = if (isDraw) Icons.Default.Handshake else Icons.Default.EmojiEvents
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.SoftWhite)
+            .background(AppColors.Background.Primary)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(32.dp)
+            verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
-            // Result Header
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = if (isDraw) Icons.Default.Handshake else Icons.Default.EmojiEvents,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = if (isDraw) AppColors.DarkGray else PastelColors.getColor(if (isLocalWinner) coopGameState.localPlayerColor else coopGameState.remotePlayerColor)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = if (isDraw) "DRAW!" else if (isLocalWinner) "YOU WON!" else "YOU LOST!",
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Black,
-                    color = AppColors.DarkGray,
-                    fontFamily = NunitoFontFamily,
-                    letterSpacing = 2.sp
-                )
-            }
+            // Trophy bubble
+            BubbleIconCircle(
+                icon = trophyIcon,
+                baseColor = trophyColor,
+                size = 88
+            )
 
-            // Scores Row
+            // Colored result title
+            ColoredCoopTitle(text = resultTitle, fontSize = 30)
+
+            // Scores row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -374,9 +404,9 @@ private fun FinishedPhaseContent(
 
                 Text(
                     "VS",
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
+                    color = AppColors.Text.Label,
                     fontFamily = NunitoFontFamily
                 )
 
@@ -388,42 +418,29 @@ private fun FinishedPhaseContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Actions
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Button(
-                    onClick = onPlayAgain,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.DarkGray),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text(
-                        "Play Again",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = NunitoFontFamily
-                    )
-                }
+            // Action buttons
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                CoopBubbleButton(
+                    text = "PLAY AGAIN",
+                    icon = Icons.Default.Refresh,
+                    baseColor = AppColors.Bubble.Mint,
+                    pressedColor = AppColors.Bubble.MintPressed,
+                    onClick = onPlayAgain
+                )
 
-                OutlinedButton(
+                CoopBubbleButton(
+                    text = "EXIT",
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    baseColor = AppColors.Bubble.SkyBlue,
+                    pressedColor = AppColors.Bubble.SkyBluePressed,
                     onClick = onExit,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.DarkGray),
-                    border = androidx.compose.foundation.BorderStroke(2.dp, AppColors.LightGray),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text(
-                        "Exit to Menu",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = NunitoFontFamily
-                    )
-                }
+                    isSmall = true
+                )
             }
         }
     }
@@ -441,40 +458,42 @@ private fun CompactGameHUD(
     remoteName: String,
     remoteScore: Int,
     remoteColor: BubbleColor,
-    timeRemaining: Long, // Changed to Long as requested
+    timeRemaining: Long,
     onPause: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(AppColors.LightGray, RoundedCornerShape(24.dp))
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = AppColors.Bubble.Grape.withAlpha(0.1f),
+                spotColor = AppColors.Bubble.Grape.withAlpha(0.1f)
+            )
+            .background(AppColors.Background.Secondary, RoundedCornerShape(24.dp))
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Local Player
         CompactScorePill(localName, localScore, localColor)
 
-        // Timer (Center)
+        // Timer bubble
         Box(
             modifier = Modifier
-                .background(Color.White, RoundedCornerShape(16.dp))
+                .shadow(2.dp, RoundedCornerShape(16.dp))
+                .background(AppColors.Background.Primary, RoundedCornerShape(16.dp))
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Text(
-                text = "${timeRemaining}s", // Displaying raw long as seconds
+                text = "${timeRemaining}s",
                 fontWeight = FontWeight.Black,
                 fontSize = 20.sp,
-                color = AppColors.DarkGray,
+                color = if (timeRemaining <= 10) AppColors.Bubble.Coral else AppColors.Text.Primary,
                 fontFamily = NunitoFontFamily
             )
         }
 
-        // Remote Player (or Pause)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CompactScorePill(remoteName, remoteScore, remoteColor)
-
-        }
+        CompactScorePill(remoteName, remoteScore, remoteColor)
     }
 }
 
@@ -484,16 +503,25 @@ private fun CompactScorePill(
     score: Int,
     color: BubbleColor
 ) {
+    val playerColor = PastelColors.getColor(color)
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .background(Color.White, RoundedCornerShape(50))
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(50),
+                ambientColor = playerColor.withAlpha(0.2f),
+                spotColor = playerColor.withAlpha(0.2f)
+            )
+            .background(AppColors.Background.Primary, RoundedCornerShape(50))
             .padding(start = 6.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(12.dp)
-                .background(PastelColors.getColor(color), CircleShape)
+                .size(14.dp)
+                .shadow(1.dp, CircleShape, ambientColor = playerColor, spotColor = playerColor)
+                .background(playerColor, CircleShape)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column {
@@ -501,7 +529,7 @@ private fun CompactScorePill(
                 text = name.ifEmpty { "Player" }.take(8),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Gray,
+                color = AppColors.Text.Label,
                 lineHeight = 10.sp,
                 fontFamily = NunitoFontFamily
             )
@@ -509,7 +537,7 @@ private fun CompactScorePill(
                 text = "$score",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = AppColors.DarkGray,
+                color = AppColors.Text.Primary,
                 lineHeight = 16.sp,
                 fontFamily = NunitoFontFamily
             )
@@ -519,27 +547,55 @@ private fun CompactScorePill(
 
 @Composable
 private fun PlayerStatusPill(name: String, color: BubbleColor, isReady: Boolean) {
+    val playerColor = PastelColors.getColor(color)
+    val displayColor = if (isReady) playerColor else AppColors.StonePale
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .background(
-                    color = if (isReady) PastelColors.getColor(color) else AppColors.LightGray,
-                    shape = CircleShape
+                .shadow(
+                    elevation = if (isReady) 6.dp else 2.dp,
+                    shape = CircleShape,
+                    ambientColor = displayColor.withAlpha(0.3f),
+                    spotColor = displayColor.withAlpha(0.3f)
                 ),
             contentAlignment = Alignment.Center
         ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val lighterColor = displayColor.withAlpha(0.85f).compositeOver(Color.White)
+                val darkerColor = displayColor.withAlpha(0.95f).compositeOver(Color.Black.withAlpha(0.05f))
+
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(lighterColor, displayColor, darkerColor),
+                        center = Offset(size.width * 0.35f, size.height * 0.3f),
+                        radius = size.width * 0.7f
+                    )
+                )
+                // Glass highlight
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color.White.withAlpha(0.4f), Color.White.withAlpha(0f)),
+                        center = Offset(size.width * 0.3f, size.height * 0.25f),
+                        radius = size.width * 0.3f
+                    ),
+                    radius = size.width * 0.2f,
+                    center = Offset(size.width * 0.3f, size.height * 0.25f)
+                )
+            }
+
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
-                tint = Color.White,
+                tint = AppColors.Text.OnDark,
                 modifier = Modifier.size(28.dp)
             )
             if (isReady) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = AppColors.Text.OnDark,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .size(20.dp)
@@ -552,7 +608,7 @@ private fun PlayerStatusPill(name: String, color: BubbleColor, isReady: Boolean)
             text = if (isReady) name else "Waiting...",
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            color = AppColors.DarkGray,
+            color = AppColors.Text.Primary,
             fontFamily = NunitoFontFamily
         )
     }
@@ -560,40 +616,77 @@ private fun PlayerStatusPill(name: String, color: BubbleColor, isReady: Boolean)
 
 @Composable
 private fun ScoreResultItem(name: String, score: Int, color: BubbleColor, isWinner: Boolean) {
-    val scale = if (isWinner) 1.2f else 1f
+    val playerColor = PastelColors.getColor(color)
+    val scale = if (isWinner) 1.15f else 1f
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.scale(scale)
+        modifier = Modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
     ) {
+        // Score in bubble circle
         Box(
             modifier = Modifier
-                .size(60.dp)
-                .background(PastelColors.getColor(color), CircleShape),
+                .size(64.dp)
+                .shadow(
+                    elevation = if (isWinner) 10.dp else 4.dp,
+                    shape = CircleShape,
+                    ambientColor = playerColor.withAlpha(0.3f),
+                    spotColor = playerColor.withAlpha(0.3f)
+                ),
             contentAlignment = Alignment.Center
         ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val lighterColor = playerColor.withAlpha(0.85f).compositeOver(Color.White)
+                val darkerColor = playerColor.withAlpha(0.95f).compositeOver(Color.Black.withAlpha(0.05f))
+
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(lighterColor, playerColor, darkerColor),
+                        center = Offset(size.width * 0.35f, size.height * 0.3f),
+                        radius = size.width * 0.7f
+                    )
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color.White.withAlpha(0.4f), Color.White.withAlpha(0f)),
+                        center = Offset(size.width * 0.3f, size.height * 0.25f),
+                        radius = size.width * 0.3f
+                    ),
+                    radius = size.width * 0.2f,
+                    center = Offset(size.width * 0.3f, size.height * 0.25f)
+                )
+            }
+
             Text(
                 text = "$score",
                 fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
+                fontWeight = FontWeight.Black,
+                color = AppColors.Text.OnDark,
                 fontFamily = NunitoFontFamily
             )
         }
+
         Spacer(modifier = Modifier.height(8.dp))
+
         Text(
             text = name,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = AppColors.DarkGray,
+            color = AppColors.Text.Primary,
             fontFamily = NunitoFontFamily
         )
+
         if (isWinner) {
             Text(
                 text = "WINNER",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Black,
-                color = PastelColors.getColor(color),
-                fontFamily = NunitoFontFamily
+                color = playerColor,
+                fontFamily = NunitoFontFamily,
+                letterSpacing = 1.sp
             )
         }
     }

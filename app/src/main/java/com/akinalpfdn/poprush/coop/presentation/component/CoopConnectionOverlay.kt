@@ -2,6 +2,7 @@ package com.akinalpfdn.poprush.coop.presentation.component
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,9 +16,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,8 +34,8 @@ import com.akinalpfdn.poprush.coop.presentation.screen.CoopConnectionScreen
 import com.akinalpfdn.poprush.coop.presentation.screen.CoopPlayerSetupScreen
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
 import com.akinalpfdn.poprush.ui.theme.NunitoFontFamily
-import timber.log.Timber
 import com.akinalpfdn.poprush.ui.theme.AppColors
+import com.akinalpfdn.poprush.ui.theme.withAlpha
 
 private enum class CoopConnectionStep {
     HOST_JOIN_SELECTION,
@@ -61,13 +67,10 @@ fun CoopConnectionOverlay(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 1. Hoist state to Overlay level to handle Back Gesture
     var currentStep by remember { mutableStateOf(CoopConnectionStep.HOST_JOIN_SELECTION) }
 
-    // Reset to start when overlay re-opens
     LaunchedEffect(isVisible) {
         if (isVisible) {
-            // Only reset if completely disconnected, otherwise we might want to return to active state
             if (connectionState == ConnectionState.DISCONNECTED) {
                 currentStep = CoopConnectionStep.HOST_JOIN_SELECTION
             } else {
@@ -76,21 +79,18 @@ fun CoopConnectionOverlay(
         }
     }
 
-    // Auto-forward to Connection screen if state changes externally (e.g. connected)
     LaunchedEffect(connectionState) {
         if (connectionState != ConnectionState.DISCONNECTED && currentStep == CoopConnectionStep.HOST_JOIN_SELECTION) {
             currentStep = CoopConnectionStep.CONNECTION
         }
     }
 
-    // 2. Define Back Navigation Logic
     val handleBackNavigation = {
         when (currentStep) {
             CoopConnectionStep.PLAYER_SETUP -> {
                 currentStep = CoopConnectionStep.HOST_JOIN_SELECTION
             }
             CoopConnectionStep.CONNECTION -> {
-                // If active, stop operations before going back
                 when (connectionState) {
                     ConnectionState.ADVERTISING -> onStopHosting()
                     ConnectionState.DISCOVERING -> onStopDiscovery()
@@ -107,32 +107,61 @@ fun CoopConnectionOverlay(
 
     if (isVisible) {
         Dialog(
-            onDismissRequest = {
-                // 3. Intercept System Back Gesture
-                handleBackNavigation()
-            },
+            onDismissRequest = { handleBackNavigation() },
             properties = DialogProperties(
                 usePlatformDefaultWidth = false,
                 dismissOnBackPress = true,
                 dismissOnClickOutside = false
             )
         ) {
-            // Dimmed Background
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
-                // Compact Card Container
-                Card(
+                // Bubble-style card container
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.92f) // Compact width
-                        .fillMaxHeight(0.85f), // Compact height
-                    shape = RoundedCornerShape(32.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+                        .fillMaxWidth(0.92f)
+                        .fillMaxHeight(0.85f)
+                        .shadow(
+                            elevation = 16.dp,
+                            shape = RoundedCornerShape(32.dp),
+                            ambientColor = AppColors.Bubble.Grape.withAlpha(0.2f),
+                            spotColor = AppColors.Bubble.Grape.withAlpha(0.2f)
+                        )
                 ) {
+                    // Gradient card background
+                    Canvas(modifier = Modifier.matchParentSize()) {
+                        drawRoundRect(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    AppColors.Background.Primary,
+                                    AppColors.Background.Secondary,
+                                    AppColors.Background.Primary
+                                ),
+                                center = Offset(size.width * 0.5f, size.height * 0.2f),
+                                radius = size.width * 1.4f
+                            ),
+                            cornerRadius = CornerRadius(32.dp.toPx())
+                        )
+
+                        // Subtle glass highlight
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    AppColors.Bubble.SkyBlueGlow.withAlpha(0.06f),
+                                    Color.Transparent
+                                ),
+                                center = Offset(size.width * 0.2f, size.height * 0.1f),
+                                radius = size.width * 0.6f
+                            ),
+                            radius = size.width * 0.5f,
+                            center = Offset(size.width * 0.2f, size.height * 0.1f)
+                        )
+                    }
+
                     CoopConnectionDialogContent(
                         currentStep = currentStep,
                         onStepChange = { currentStep = it },
@@ -184,7 +213,6 @@ private fun CoopConnectionDialogContent(
         AnimatedContent(
             targetState = currentStep,
             transitionSpec = {
-                // Fixed: Removed sliding, using simple fade to avoid glitches
                 fadeIn(animationSpec = tween(200)) togetherWith
                         fadeOut(animationSpec = tween(200))
             },
@@ -196,12 +224,10 @@ private fun CoopConnectionDialogContent(
                         playerName = playerName,
                         playerColor = playerColor,
                         onHostSelected = {
-                            // Auto-start Hosting logic: Switch step AND trigger action
                             onStepChange(CoopConnectionStep.CONNECTION)
                             onStartHosting()
                         },
                         onJoinSelected = {
-                            // Auto-start Join logic
                             onStepChange(CoopConnectionStep.CONNECTION)
                             onStartDiscovery()
                         },
@@ -231,9 +257,7 @@ private fun CoopConnectionDialogContent(
                         discoveredEndpoints = discoveredEndpoints,
                         errorMessage = errorMessage,
                         onStartHosting = onStartHosting,
-                        onStopHosting = {
-                            onBack()
-                        },
+                        onStopHosting = { onBack() },
                         onStartDiscovery = onStartDiscovery,
                         onStopDiscovery = { onBack() },
                         onConnectToEndpoint = onConnectToEndpoint,
@@ -263,45 +287,35 @@ private fun HostJoinSelectionStep(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // -- Close Button --
+        // Close button
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
         ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .background(AppColors.LightGray, CircleShape)
-                    .size(48.dp)
-            ) {
-                Icon(Icons.Default.Close, "Close", tint = AppColors.DarkGray)
-            }
+            BubbleIconButton(
+                icon = Icons.Default.Close,
+                baseColor = AppColors.Bubble.SkyBlue,
+                onClick = onBack
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // -- Header --
-        Icon(
-            imageVector = Icons.Default.Groups,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = AppColors.DarkGray
+        // Header icon in bubble circle
+        BubbleIconCircle(
+            icon = Icons.Default.Groups,
+            baseColor = AppColors.Bubble.Grape,
+            size = 72
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "MULTIPLAYER",
-            style = MaterialTheme.typography.headlineMedium,
-            color = AppColors.DarkGray,
-            fontFamily = NunitoFontFamily,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp
-        )
+        // Colored title
+        ColoredCoopTitle(text = "MULTIPLAYER")
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // -- Profile Pill --
+        // Profile pill
         ProfileSummaryPill(
             name = playerName,
             color = playerColor,
@@ -310,20 +324,25 @@ private fun HostJoinSelectionStep(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // -- Actions --
+        // Host action card
         CoopActionCard(
             title = "Host Game",
             subtitle = "Create a room",
             icon = Icons.Default.WifiTethering,
+            baseColor = AppColors.Bubble.Coral,
+            pressedColor = AppColors.Bubble.CoralPressed,
             onClick = onHostSelected
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Join action card
         CoopActionCard(
             title = "Join Game",
             subtitle = "Search nearby",
             icon = Icons.Default.Search,
+            baseColor = AppColors.Bubble.SkyBlue,
+            pressedColor = AppColors.Bubble.SkyBluePressed,
             onClick = onJoinSelected
         )
 
@@ -337,34 +356,40 @@ private fun ProfileSummaryPill(
     color: com.akinalpfdn.poprush.core.domain.model.BubbleColor,
     onClick: () -> Unit
 ) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(50),
-        colors = CardDefaults.cardColors(containerColor = AppColors.LightGray),
-        elevation = CardDefaults.cardElevation(0.dp)
+    val playerColor = PastelColors.getColor(color)
+
+    Box(
+        modifier = Modifier
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(50),
+                ambientColor = playerColor.withAlpha(0.2f),
+                spotColor = playerColor.withAlpha(0.2f)
+            )
+            .background(AppColors.Background.Secondary, RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(16.dp)
-                    .background(PastelColors.getColor(color), CircleShape)
+                    .size(18.dp)
+                    .shadow(2.dp, CircleShape, ambientColor = playerColor, spotColor = playerColor)
+                    .background(playerColor, CircleShape)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = name.ifEmpty { "Player" },
                 fontFamily = NunitoFontFamily,
                 fontWeight = FontWeight.Bold,
-                color = AppColors.DarkGray,
+                color = AppColors.Text.Primary,
                 fontSize = 14.sp
             )
             Spacer(modifier = Modifier.width(8.dp))
             Icon(
                 imageVector = Icons.Default.Edit,
                 contentDescription = "Edit",
-                tint = Color.Gray,
+                tint = AppColors.Text.Label,
                 modifier = Modifier.size(14.dp)
             )
         }
@@ -375,27 +400,74 @@ private fun ProfileSummaryPill(
 private fun CoopActionCard(
     title: String,
     subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
+    baseColor: Color,
+    pressedColor: Color,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "scale")
 
-    Card(
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "actionCardScale"
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(90.dp)
-            .scale(scale)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = if (isPressed) 4.dp else 10.dp,
+                shape = RoundedCornerShape(22.dp),
+                ambientColor = baseColor.withAlpha(0.3f),
+                spotColor = baseColor.withAlpha(0.3f)
+            )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
-            ),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = AppColors.DarkGray),
-        elevation = CardDefaults.cardElevation(8.dp)
+            )
     ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            val lighterColor = baseColor.withAlpha(0.85f).compositeOver(Color.White)
+            val darkerColor = if (isPressed) pressedColor
+            else baseColor.withAlpha(0.95f).compositeOver(Color.Black.withAlpha(0.05f))
+
+            drawRoundRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(lighterColor, baseColor, darkerColor),
+                    center = Offset(width * 0.25f, height * 0.3f),
+                    radius = width * 0.9f
+                ),
+                cornerRadius = CornerRadius(22.dp.toPx())
+            )
+
+            // Glass highlight
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.withAlpha(0.35f),
+                        Color.White.withAlpha(0f)
+                    ),
+                    center = Offset(width * 0.15f, height * 0.25f),
+                    radius = height * 0.5f
+                ),
+                radius = height * 0.35f,
+                center = Offset(width * 0.15f, height * 0.25f)
+            )
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -406,26 +478,273 @@ private fun CoopActionCard(
             Column(verticalArrangement = Arrangement.Center) {
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = AppColors.Text.OnDark,
                     fontFamily = NunitoFontFamily,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    fontSize = 18.sp,
+                    letterSpacing = 0.5.sp
                 )
                 Text(
                     text = subtitle,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = AppColors.Text.OnDark.withAlpha(0.7f),
                     fontFamily = NunitoFontFamily,
                     fontSize = 14.sp
                 )
             }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.withAlpha(0.2f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = AppColors.Text.OnDark,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+}
+
+// --- Shared bubbly helper composables for coop screens ---
+
+@Composable
+internal fun BubbleIconButton(
+    icon: ImageVector,
+    baseColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .shadow(
+                elevation = 4.dp,
+                shape = CircleShape,
+                ambientColor = baseColor.withAlpha(0.2f),
+                spotColor = baseColor.withAlpha(0.2f)
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val lighterColor = baseColor.withAlpha(0.85f).compositeOver(Color.White)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(lighterColor, baseColor),
+                    center = Offset(size.width * 0.35f, size.height * 0.3f),
+                    radius = size.width * 0.7f
+                )
+            )
+            // Glass highlight
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White.withAlpha(0.4f), Color.White.withAlpha(0f)),
+                    center = Offset(size.width * 0.3f, size.height * 0.25f),
+                    radius = size.width * 0.3f
+                ),
+                radius = size.width * 0.2f,
+                center = Offset(size.width * 0.3f, size.height * 0.25f)
+            )
+        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = AppColors.Text.OnDark,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
+internal fun BubbleIconCircle(
+    icon: ImageVector,
+    baseColor: Color,
+    size: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(size.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = CircleShape,
+                ambientColor = baseColor.withAlpha(0.3f),
+                spotColor = baseColor.withAlpha(0.3f)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val lighterColor = baseColor.withAlpha(0.85f).compositeOver(Color.White)
+            val darkerColor = baseColor.withAlpha(0.95f).compositeOver(Color.Black.withAlpha(0.05f))
+
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(lighterColor, baseColor, darkerColor),
+                    center = Offset(this.size.width * 0.35f, this.size.height * 0.3f),
+                    radius = this.size.width * 0.7f
+                )
+            )
+            // Glass highlight
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White.withAlpha(0.45f), Color.White.withAlpha(0f)),
+                    center = Offset(this.size.width * 0.3f, this.size.height * 0.28f),
+                    radius = this.size.width * 0.35f
+                ),
+                radius = this.size.width * 0.25f,
+                center = Offset(this.size.width * 0.3f, this.size.height * 0.28f)
+            )
+        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = AppColors.Text.OnDark,
+            modifier = Modifier.size((size * 0.45f).dp)
+        )
+    }
+}
+
+@Composable
+internal fun ColoredCoopTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    fontSize: Int = 26
+) {
+    val colors = listOf(
+        AppColors.Bubble.Coral,
+        AppColors.Bubble.SkyBlue,
+        AppColors.Bubble.Mint,
+        AppColors.Bubble.Grape,
+        AppColors.Bubble.Lemon,
+        AppColors.Bubble.Peach,
+        AppColors.Bubble.SkyBlue,
+        AppColors.Bubble.Coral,
+        AppColors.Bubble.Mint,
+        AppColors.Bubble.Grape,
+        AppColors.Bubble.Lemon
+    )
+
+    Row(modifier = modifier) {
+        text.forEachIndexed { index, char ->
+            if (char != ' ') {
+                Text(
+                    text = char.toString(),
+                    color = colors[index % colors.size],
+                    fontSize = fontSize.sp,
+                    fontFamily = NunitoFontFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 2.sp
+                )
+            } else {
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+internal fun CoopBubbleButton(
+    text: String,
+    icon: ImageVector,
+    baseColor: Color,
+    pressedColor: Color,
+    onClick: () -> Unit,
+    isSmall: Boolean = false,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.93f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "coopBtnScale"
+    )
+
+    val buttonHeight = if (isSmall) 46.dp else 54.dp
+    val textSize = if (isSmall) 14.sp else 16.sp
+    val iconSize = if (isSmall) 18.dp else 22.dp
+    val actualBaseColor = if (enabled) baseColor else AppColors.StonePale
+    val actualPressedColor = if (enabled) pressedColor else AppColors.StonePale
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = if (!enabled) 2.dp else if (isPressed) 4.dp else 8.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = actualBaseColor.withAlpha(0.3f),
+                spotColor = actualBaseColor.withAlpha(0.3f)
+            )
+            .fillMaxWidth()
+            .height(buttonHeight)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            val lighterColor = actualBaseColor.withAlpha(0.85f).compositeOver(Color.White)
+            val darkerColor = if (isPressed) actualPressedColor
+            else actualBaseColor.withAlpha(0.95f).compositeOver(Color.Black.withAlpha(0.05f))
+
+            drawRoundRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(lighterColor, actualBaseColor, darkerColor),
+                    center = Offset(width * 0.3f, height * 0.3f),
+                    radius = width * 0.85f
+                ),
+                cornerRadius = CornerRadius(24.dp.toPx())
+            )
+
+            // Glass highlight
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.withAlpha(0.4f),
+                        Color.White.withAlpha(0f)
+                    ),
+                    center = Offset(width * 0.2f, height * 0.3f),
+                    radius = height * 0.45f
+                ),
+                radius = height * 0.3f,
+                center = Offset(width * 0.2f, height * 0.3f)
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                    .padding(6.dp)
+                tint = AppColors.Text.OnDark,
+                modifier = Modifier.size(iconSize)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = text,
+                color = AppColors.Text.OnDark,
+                fontFamily = NunitoFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = textSize,
+                letterSpacing = 1.sp
             )
         }
     }
