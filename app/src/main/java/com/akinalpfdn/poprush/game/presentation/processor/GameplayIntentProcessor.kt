@@ -9,6 +9,7 @@ import com.akinalpfdn.poprush.game.presentation.strategy.GameModeStrategy
 import com.akinalpfdn.poprush.game.presentation.strategy.PausableGameMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -102,9 +103,9 @@ class GameplayIntentProcessor(
     private fun handleLoadGameData() {
         scope.launch {
             try {
-                val highScore = gameRepository.getHighScore()
-                gameStateFlow.update { it.copy(highScore = highScore) }
-                Timber.d("Game data loaded. High score: $highScore")
+                val highScores = gameRepository.getAllHighScores().first()
+                gameStateFlow.update { it.copy(highScores = highScores) }
+                Timber.d("Game data loaded. High scores: $highScores")
             } catch (e: Exception) {
                 Timber.e(e, "Error loading game data")
             }
@@ -128,6 +129,9 @@ class GameplayIntentProcessor(
     }
 
     private fun handleUpdateHighScore(newHighScore: Int) {
-        scope.launch { gameRepository.updateHighScore(newHighScore) }
+        scope.launch {
+            val modKey = gameStateFlow.value.selectedMod.modKey
+            gameRepository.updateHighScore(modKey, newHighScore)
+        }
     }
 }

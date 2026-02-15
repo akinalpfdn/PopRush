@@ -5,14 +5,14 @@ import com.akinalpfdn.poprush.core.domain.model.GameResult
 import com.akinalpfdn.poprush.core.domain.model.GameStatistics
 import com.akinalpfdn.poprush.core.domain.repository.GameRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Implementation of GameRepository using DataStore for persistence.
- * Handles high scores and game statistics.
+ * Handles per-mode high scores and game statistics.
  */
 @Singleton
 class GameRepositoryImpl @Inject constructor(
@@ -20,24 +20,22 @@ class GameRepositoryImpl @Inject constructor(
 ) : GameRepository {
 
     override suspend fun saveGameResult(result: GameResult) {
-        // In a full implementation, this would save detailed game statistics
-        // For now, we'll just handle high score tracking
         gamePreferences.incrementGamesPlayed()
     }
 
-    override suspend fun getHighScore(): Int {
+    override suspend fun getHighScore(modKey: String): Int {
         return try {
-            gamePreferences.getHighScore().first()
+            gamePreferences.getHighScore(modKey).first()
         } catch (e: Exception) {
             0
         }
     }
 
-    override suspend fun updateHighScore(newScore: Int): Boolean {
+    override suspend fun updateHighScore(modKey: String, newScore: Int): Boolean {
         return try {
-            val currentHighScore = getHighScore()
+            val currentHighScore = getHighScore(modKey)
             if (newScore > currentHighScore) {
-                gamePreferences.saveHighScore(newScore)
+                gamePreferences.saveHighScore(modKey, newScore)
                 true
             } else {
                 false
@@ -47,31 +45,38 @@ class GameRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getHighScoreFlow(): Flow<Int> {
-        return gamePreferences.getHighScore().map { it ?: 0 }
+    override fun getHighScoreFlow(modKey: String): Flow<Int> {
+        return gamePreferences.getHighScore(modKey)
+    }
+
+    override fun getAllHighScores(): Flow<Map<String, Int>> {
+        return combine(
+            gamePreferences.getHighScore("classic"),
+            gamePreferences.getHighScore("speed")
+        ) { classic, speed ->
+            mapOf("classic" to classic, "speed" to speed)
+        }
     }
 
     override suspend fun getRecentGameResults(limit: Int): List<GameResult> {
-        // In a full implementation, this would query a database for recent results
-        // For now, return empty list as we're not persisting detailed results
         return emptyList()
     }
 
     override suspend fun getGameStatistics(): GameStatistics {
         return try {
             val totalGames = gamePreferences.getTotalGamesPlayed().first()
-            val highScore = gamePreferences.getHighScore().first()
+            val classicHighScore = gamePreferences.getHighScore("classic").first()
 
             GameStatistics(
                 totalGamesPlayed = totalGames,
-                totalScore = 0, // Would sum all scores from database
-                averageScore = 0f, // Would calculate from database
-                highestScore = highScore,
-                totalBubblesPressed = 0, // Would sum from database
-                averageAccuracy = 0f, // Would calculate from database
-                bestPerformanceRating = "NEEDS_PRACTICE", // Would determine from database
-                totalTimePlayed = kotlin.time.Duration.ZERO, // Would sum from database
-                averageGameDuration = kotlin.time.Duration.ZERO // Would calculate from database
+                totalScore = 0,
+                averageScore = 0f,
+                highestScore = classicHighScore,
+                totalBubblesPressed = 0,
+                averageAccuracy = 0f,
+                bestPerformanceRating = "NEEDS_PRACTICE",
+                totalTimePlayed = kotlin.time.Duration.ZERO,
+                averageGameDuration = kotlin.time.Duration.ZERO
             )
         } catch (e: Exception) {
             GameStatistics(0, 0, 0f, 0, 0, 0f, "NEEDS_PRACTICE", kotlin.time.Duration.ZERO, kotlin.time.Duration.ZERO)
@@ -80,8 +85,8 @@ class GameRepositoryImpl @Inject constructor(
 
     override suspend fun clearAllGameData() {
         try {
-            gamePreferences.saveHighScore(0)
-            // Reset other game data as needed
+            gamePreferences.saveHighScore("classic", 0)
+            gamePreferences.saveHighScore("speed", 0)
         } catch (e: Exception) {
             // Handle error
         }
@@ -96,7 +101,6 @@ class GameRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getBestPerformanceRating(): String? {
-        // In a full implementation, this would query database for best rating
         return null
     }
 }

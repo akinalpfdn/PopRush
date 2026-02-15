@@ -244,7 +244,7 @@ class ClassicModeStrategyTest {
             isPlaying = true,
             score = 10,
             currentLevel = 5,
-            highScore = 8
+            highScores = mapOf("classic" to 8)
         )
 
         strategy.initialize(TestScope(testDispatcher), gameStateFlow)
@@ -263,13 +263,13 @@ class ClassicModeStrategyTest {
         gameStateFlow.value = GameState(
             isPlaying = true,
             score = 15,
-            highScore = 10
+            highScores = mapOf("classic" to 10)
         )
 
         strategy.initialize(TestScope(testDispatcher), gameStateFlow)
         strategy.endGame()
 
-        coVerify { gameRepository.updateHighScore(15) }
+        coVerify { gameRepository.updateHighScore("classic", 15) }
     }
 
     @Test

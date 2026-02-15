@@ -297,6 +297,7 @@ private fun BubbleModCard(
                     fontSize = 14.sp,
                     lineHeight = 20.sp
                 )
+
             }
 
             Spacer(modifier = Modifier.width(8.dp))

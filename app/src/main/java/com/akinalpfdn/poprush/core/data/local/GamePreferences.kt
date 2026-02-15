@@ -150,16 +150,34 @@ class GamePreferences @Inject constructor(
         }
     }
 
-    // High Score
-    suspend fun saveHighScore(score: Int) {
+    // High Score (per-mode)
+    suspend fun saveHighScore(modKey: String, score: Int) {
+        val key = intPreferencesKey("high_score_$modKey")
         dataStore.edit { preferences ->
-            preferences[HIGH_SCORE_KEY] = score
+            preferences[key] = score
         }
     }
 
-    fun getHighScore(): Flow<Int> {
+    fun getHighScore(modKey: String): Flow<Int> {
+        val key = intPreferencesKey("high_score_$modKey")
         return dataStore.data.map { preferences ->
-            preferences[HIGH_SCORE_KEY] ?: 0
+            preferences[key] ?: 0
+        }
+    }
+
+    /**
+     * Migrates the legacy single high score to the classic mode key.
+     * Should be called once on app startup.
+     */
+    suspend fun migrateHighScoreIfNeeded() {
+        dataStore.edit { preferences ->
+            val legacyScore = preferences[HIGH_SCORE_KEY] ?: 0
+            val classicKey = intPreferencesKey("high_score_classic")
+            val classicScore = preferences[classicKey] ?: 0
+            if (legacyScore > 0 && classicScore == 0) {
+                preferences[classicKey] = legacyScore
+                preferences.remove(HIGH_SCORE_KEY)
+            }
         }
     }
 
@@ -242,7 +260,8 @@ class GamePreferences @Inject constructor(
             "zoom_level" to (preferences[ZOOM_LEVEL_KEY] ?: 1.0f),
             "haptic_feedback" to (preferences[HAPTIC_FEEDBACK_KEY] ?: true),
             "game_difficulty" to (preferences[GAME_DIFFICULTY_KEY] ?: GameDifficulty.NORMAL.name),
-            "high_score" to (preferences[HIGH_SCORE_KEY] ?: 0),
+            "high_score_classic" to (preferences[intPreferencesKey("high_score_classic")] ?: 0),
+            "high_score_speed" to (preferences[intPreferencesKey("high_score_speed")] ?: 0),
             "total_games_played" to (preferences[TOTAL_GAMES_PLAYED_KEY] ?: 0),
             "player_name" to (preferences[PLAYER_NAME_KEY] ?: "Player"),
             "player_color" to (preferences[PLAYER_COLOR_KEY] ?: "ROSE")

@@ -38,7 +38,7 @@ fun DurationPicker(
     onDurationChange: (Duration) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val secondsList = (10..60).toList()
+    val secondsList = listOf(15, 30, 45, 60)
     // Reduced height for compactness
     val itemHeight = 40.dp
     val visibleItemsCount = 3

@@ -90,7 +90,7 @@ fun CoopGameState.toGameState(): GameState {
         isGameOver = currentPhase == CoopGamePhase.FINISHED,
         isPaused = currentPhase == CoopGamePhase.PAUSED,
         score = localScore, // Use local player's score as primary score
-        highScore = maxOf(localScore, opponentScore),
+        highScores = mapOf("classic" to maxOf(localScore, opponentScore)),
         timeRemaining = timeRemainingDuration,
         currentLevel = 1,
         bubbles = convertedBubbles,

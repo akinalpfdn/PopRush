@@ -35,7 +35,7 @@ data class GameState(
     val isGameOver: Boolean = false,
     val isPaused: Boolean = false,
     val score: Int = 0,
-    val highScore: Int = 0,
+    val highScores: Map<String, Int> = emptyMap(),
     val timeRemaining: Duration = GAME_DURATION,
     val currentLevel: Int = 1,
     val bubbles: List<Bubble> = emptyList(),
@@ -74,6 +74,10 @@ data class GameState(
     /** Game mode and coop state grouped together. */
     val modeState: ModeState
         get() = ModeState(gameMode, selectedMod, speedModeState, isCoopMode, coopState, showCoopConnectionDialog, coopErrorMessage)
+
+    /** High score for the currently selected game mod. */
+    val highScore: Int
+        get() = highScores[selectedMod.modKey] ?: 0
 
     // --- Computed gameplay properties ---
 

@@ -18,26 +18,36 @@ interface GameRepository {
     suspend fun saveGameResult(result: GameResult)
 
     /**
-     * Retrieves the current high score.
+     * Retrieves the high score for a specific game mode.
      *
-     * @return The highest score achieved, or 0 if no games played
+     * @param modKey The mode key (e.g., "classic", "speed")
+     * @return The highest score achieved for that mode, or 0 if no games played
      */
-    suspend fun getHighScore(): Int
+    suspend fun getHighScore(modKey: String): Int
 
     /**
-     * Updates the high score if the new score is higher.
+     * Updates the high score for a specific game mode if the new score is higher.
      *
+     * @param modKey The mode key (e.g., "classic", "speed")
      * @param newScore The new score to potentially set as high score
      * @return True if high score was updated, false otherwise
      */
-    suspend fun updateHighScore(newScore: Int): Boolean
+    suspend fun updateHighScore(modKey: String, newScore: Int): Boolean
 
     /**
-     * Gets a stream of high score updates.
+     * Gets a stream of high score updates for a specific game mode.
      *
+     * @param modKey The mode key (e.g., "classic", "speed")
      * @return Flow that emits high score changes
      */
-    fun getHighScoreFlow(): Flow<Int>
+    fun getHighScoreFlow(modKey: String): Flow<Int>
+
+    /**
+     * Gets all high scores for all game modes as a reactive map.
+     *
+     * @return Flow emitting map of modKey to highScore
+     */
+    fun getAllHighScores(): Flow<Map<String, Int>>
 
     /**
      * Retrieves the last N game results for statistics.

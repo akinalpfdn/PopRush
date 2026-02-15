@@ -200,7 +200,8 @@ class SpeedModeStrategyTest {
         gameStateFlow.value = GameState(
             isPlaying = true,
             timeRemaining = 45.seconds,
-            highScore = 100
+            highScores = mapOf("speed" to 100),
+            selectedMod = com.akinalpfdn.poprush.core.domain.model.GameMod.SPEED
         )
         every { speedModeUseCase.speedModeState } returns MutableStateFlow(SpeedModeState(isGameOver = true))
 
@@ -252,7 +253,7 @@ class SpeedModeStrategyTest {
         gameStateFlow.value = GameState(
             isPlaying = true,
             timeRemaining = 30.seconds,
-            highScore = 0
+            selectedMod = com.akinalpfdn.poprush.core.domain.model.GameMod.SPEED
         )
         every { speedModeUseCase.speedModeState } returns MutableStateFlow(SpeedModeState(isGameOver = true))
 

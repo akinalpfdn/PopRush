@@ -13,8 +13,8 @@ enum class GameMode(val displayName: String) {
  * @param displayName The display name for the mod
  * @param durationRequired Whether this mod requires duration selection
  */
-enum class GameMod(val displayName: String, val durationRequired: Boolean) {
-    CLASSIC("Classic Mode", true),      // Mod 1 - requires duration picker
-    SPEED("Speed Mode", false)          // Mod 2 - no duration needed
+enum class GameMod(val displayName: String, val durationRequired: Boolean, val modKey: String) {
+    CLASSIC("Classic Mode", true, "classic"),
+    SPEED("Speed Mode", false, "speed")
 }
 

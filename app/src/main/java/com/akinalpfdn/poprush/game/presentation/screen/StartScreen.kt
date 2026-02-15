@@ -123,6 +123,19 @@ fun StartScreen(
                 glowColor = AppColors.Bubble.MintGlow
             )
 
+            if (gameState.highScore > 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Best: ${gameState.highScore}",
+                    color = AppColors.Text.Secondary,
+                    fontFamily = NunitoFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    letterSpacing = 0.5.sp
+                )
+            }
+
             Spacer(modifier = Modifier.height(48.dp))
 
             // Duration picker - only show for Classic mode

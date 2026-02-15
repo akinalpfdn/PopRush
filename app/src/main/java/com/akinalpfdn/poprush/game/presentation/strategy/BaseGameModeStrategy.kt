@@ -44,8 +44,12 @@ abstract class BaseGameModeStrategy(
     protected suspend fun saveAndAnnounceResult(gameResult: GameResult) {
         dependencies.gameRepository.saveGameResult(gameResult)
 
+        val modKey = stateFlow.value.selectedMod.modKey
         if (gameResult.isHighScore) {
-            dependencies.gameRepository.updateHighScore(gameResult.finalScore)
+            dependencies.gameRepository.updateHighScore(modKey, gameResult.finalScore)
+            stateFlow.update { state ->
+                state.copy(highScores = state.highScores + (modKey to gameResult.finalScore))
+            }
             dependencies.audioRepository.playSound(SoundType.HIGH_SCORE)
         } else {
             dependencies.audioRepository.playSound(SoundType.GAME_OVER)
