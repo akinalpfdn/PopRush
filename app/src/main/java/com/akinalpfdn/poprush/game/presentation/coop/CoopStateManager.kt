@@ -6,6 +6,7 @@ import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.repository.PlayerProfileRepository
 import com.akinalpfdn.poprush.core.domain.util.Clock
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -21,19 +22,22 @@ class CoopStateManager(
     private val scope: CoroutineScope,
     private val gameStateFlow: MutableStateFlow<GameState>
 ) {
-    private var _cachedInitialCoopState: CoopGameState? = null
+    private val _cachedInitialCoopState = CompletableDeferred<CoopGameState>()
 
     fun initializeCache() {
         scope.launch {
             try {
-                _cachedInitialCoopState = createInitialCoopState()
+                val state = createInitialCoopState()
+                _cachedInitialCoopState.complete(state)
             } catch (e: Exception) {
                 Timber.e(e, "Failed to initialize cached coop state")
-                _cachedInitialCoopState = CoopGameState(
-                    localPlayerId = "player_${clock.currentTimeMillis()}",
-                    localPlayerName = "Player",
-                    localPlayerColor = BubbleColor.ROSE,
-                    bubbles = generateInitialCoopBubbles()
+                _cachedInitialCoopState.complete(
+                    CoopGameState(
+                        localPlayerId = "player_${clock.currentTimeMillis()}",
+                        localPlayerName = "Player",
+                        localPlayerColor = BubbleColor.ROSE,
+                        bubbles = generateInitialCoopBubbles()
+                    )
                 )
             }
         }
@@ -59,10 +63,11 @@ class CoopStateManager(
         scope.launch {
             try {
                 playerProfileRepository.savePlayerName(playerName)
+                val initial = getCachedInitialCoopState()
                 gameStateFlow.update { currentState ->
                     val updatedCoopState = currentState.coopState?.copy(
                         localPlayerName = playerName
-                    ) ?: getCachedInitialCoopState().copy(localPlayerName = playerName)
+                    ) ?: initial.copy(localPlayerName = playerName)
                     currentState.copy(coopState = updatedCoopState)
                 }
             } catch (e: Exception) {
@@ -78,10 +83,11 @@ class CoopStateManager(
         scope.launch {
             try {
                 playerProfileRepository.savePlayerColor(playerColor)
+                val initial = getCachedInitialCoopState()
                 gameStateFlow.update { currentState ->
                     val updatedCoopState = currentState.coopState?.copy(
                         localPlayerColor = playerColor
-                    ) ?: getCachedInitialCoopState().copy(localPlayerColor = playerColor)
+                    ) ?: initial.copy(localPlayerColor = playerColor)
                     currentState.copy(coopState = updatedCoopState)
                 }
             } catch (e: Exception) {
@@ -120,13 +126,8 @@ class CoopStateManager(
         bubbles = generateInitialCoopBubbles()
     )
 
-    fun getCachedInitialCoopState(): CoopGameState {
-        return _cachedInitialCoopState ?: CoopGameState(
-            localPlayerId = "player_${clock.currentTimeMillis()}",
-            localPlayerName = "Player",
-            localPlayerColor = BubbleColor.ROSE,
-            bubbles = generateInitialCoopBubbles()
-        )
+    suspend fun getCachedInitialCoopState(): CoopGameState {
+        return _cachedInitialCoopState.await()
     }
 
     fun generateInitialCoopBubbles(): List<CoopBubble> {

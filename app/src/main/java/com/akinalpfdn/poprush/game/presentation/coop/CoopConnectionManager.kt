@@ -8,6 +8,7 @@ import com.akinalpfdn.poprush.core.domain.model.GameMode
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -24,6 +25,52 @@ class CoopConnectionManager(
     private val scope: CoroutineScope,
     private val gameStateFlow: MutableStateFlow<GameState>
 ) {
+    private var stateCollectionJob: Job? = null
+    private var messageCollectionJob: Job? = null
+    private var errorCollectionJob: Job? = null
+
+    private fun ensureCollectorsRunning() {
+        if (stateCollectionJob?.isActive != true) {
+            stateCollectionJob = scope.launch {
+                try {
+                    collectConnectionState()
+                } catch (e: Exception) {
+                    Timber.e(e, "Connection state collection failed")
+                }
+            }
+        }
+        if (messageCollectionJob?.isActive != true) {
+            messageCollectionJob = scope.launch {
+                try {
+                    messageHandler.collectCoopMessages()
+                } catch (e: Exception) {
+                    Timber.e(e, "Message collection failed")
+                }
+            }
+        }
+        if (errorCollectionJob?.isActive != true) {
+            errorCollectionJob = scope.launch {
+                try {
+                    coopUseCase.errorMessages.collect { errorMessage ->
+                        gameStateFlow.update {
+                            it.copy(coopErrorMessage = errorMessage)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Error collection failed")
+                }
+            }
+        }
+    }
+
+    private fun cancelAllCollectors() {
+        stateCollectionJob?.cancel()
+        stateCollectionJob = null
+        messageCollectionJob?.cancel()
+        messageCollectionJob = null
+        errorCollectionJob?.cancel()
+        errorCollectionJob = null
+    }
 
     fun handleStartCoopConnection() {
         scope.launch {
@@ -42,25 +89,19 @@ class CoopConnectionManager(
         Timber.tag("COOP_CONNECTION").d("HANDLE_START_HOSTING: called")
         scope.launch {
             try {
+                val initialState = stateManager.getCachedInitialCoopState()
                 gameStateFlow.update { currentState ->
-                    currentState.copy(coopState = (currentState.coopState ?: stateManager.getCachedInitialCoopState()).copy(isHost = true))
+                    currentState.copy(coopState = (currentState.coopState ?: initialState).copy(isHost = true))
                 }
                 val coopState = gameStateFlow.value.coopState!!
                 Timber.tag("COOP_CONNECTION").d("HOST_STATE: isHost=${coopState.isHost}, name=${coopState.localPlayerName}, color=${coopState.localPlayerColor}")
+
                 coopUseCase.startHosting(coopState.localPlayerName, coopState.localPlayerColor)
-                    .collect { result ->
-                        result.onSuccess {
-                            collectCoopConnectionState()
-                        }.onFailure { exception ->
-                            gameStateFlow.update {
-                                it.copy(coopErrorMessage = "Hosting failed: ${exception.message}")
-                            }
-                        }
-                    }
+                ensureCollectorsRunning()
             } catch (e: Exception) {
                 Timber.e(e, "Failed to start hosting")
                 gameStateFlow.update {
-                    it.copy(coopErrorMessage = "Failed to start hosting: ${e.message}")
+                    it.copy(coopErrorMessage = "Hosting failed: ${e.message}")
                 }
             }
         }
@@ -92,27 +133,17 @@ class CoopConnectionManager(
                     return@launch
                 }
 
+                val initialState = stateManager.getCachedInitialCoopState()
                 gameStateFlow.update { state ->
-                    state.copy(coopState = (state.coopState ?: stateManager.getCachedInitialCoopState()).copy(isHost = false))
+                    state.copy(coopState = (state.coopState ?: initialState).copy(isHost = false))
                 }
+
                 coopUseCase.startDiscovering()
-                    .collect { result ->
-                        result.onSuccess {
-                            collectCoopConnectionState()
-                        }.onFailure { exception ->
-                            if (exception.message?.contains("8002") == true) {
-                                Timber.w("Ignored STATUS_ALREADY_DISCOVERING error")
-                            } else {
-                                gameStateFlow.update {
-                                    it.copy(coopErrorMessage = "Discovery failed: ${exception.message}")
-                                }
-                            }
-                        }
-                    }
+                ensureCollectorsRunning()
             } catch (e: Exception) {
                 Timber.e(e, "Failed to start discovery")
                 gameStateFlow.update {
-                    it.copy(coopErrorMessage = "Failed to start discovery: ${e.message}")
+                    it.copy(coopErrorMessage = "Discovery failed: ${e.message}")
                 }
             }
         }
@@ -138,15 +169,7 @@ class CoopConnectionManager(
                 if (coopState != null) {
                     val localEndpointName = "${coopState.localPlayerName}:${coopState.localPlayerColor.name}"
                     coopUseCase.requestConnection(endpointId, localEndpointName)
-                        .collect { result ->
-                            result.onSuccess {
-                                collectCoopConnectionState()
-                            }.onFailure { exception ->
-                                gameStateFlow.update {
-                                    it.copy(coopErrorMessage = "Connection failed: ${exception.message}")
-                                }
-                            }
-                        }
+                    ensureCollectorsRunning()
                 } else {
                     gameStateFlow.update {
                         it.copy(coopErrorMessage = "Cannot connect: Coop state not initialized")
@@ -155,20 +178,22 @@ class CoopConnectionManager(
             } catch (e: Exception) {
                 Timber.e(e, "Failed to connect to endpoint")
                 gameStateFlow.update {
-                    it.copy(coopErrorMessage = "Failed to connect: ${e.message}")
+                    it.copy(coopErrorMessage = "Connection failed: ${e.message}")
                 }
             }
         }
     }
 
     fun handleDisconnectCoop() {
+        cancelAllCollectors()
         gameManager.cancelTimer()
         scope.launch {
             try {
                 coopUseCase.disconnect()
+                val initialState = stateManager.getCachedInitialCoopState()
                 gameStateFlow.update { currentState ->
                     currentState.copy(
-                        coopState = stateManager.getCachedInitialCoopState(),
+                        coopState = initialState,
                         showCoopConnectionDialog = false
                     )
                 }
@@ -182,7 +207,9 @@ class CoopConnectionManager(
     }
 
     fun handleCloseCoopConnection() {
+        cancelAllCollectors()
         gameManager.cancelTimer()
+        coopUseCase.disconnect()
         gameStateFlow.update {
             it.copy(
                 showCoopConnectionDialog = false,
@@ -194,85 +221,64 @@ class CoopConnectionManager(
         }
     }
 
-    private fun collectCoopConnectionState() {
-        scope.launch {
-            try {
-                coopUseCase.connectionState
-                    .collect { connectionState ->
-                        gameStateFlow.update { currentState ->
-                            val currentCoopState = currentState.coopState
+    private suspend fun collectConnectionState() {
+        coopUseCase.connectionState.collect { connectionState ->
+            val initialState = stateManager.getCachedInitialCoopState()
 
-                            val connectionPhase = when (connectionState) {
-                                ConnectionState.DISCONNECTED -> CoopConnectionPhase.DISCONNECTED
-                                ConnectionState.ADVERTISING -> CoopConnectionPhase.ADVERTISING
-                                ConnectionState.DISCOVERING -> CoopConnectionPhase.DISCOVERING
-                                ConnectionState.CONNECTING -> CoopConnectionPhase.CONNECTING
-                                ConnectionState.CONNECTED -> CoopConnectionPhase.CONNECTED
-                            }
+            gameStateFlow.update { currentState ->
+                val currentCoopState = currentState.coopState
 
-                            val updatedCoopState = if (currentCoopState != null) {
-                                currentCoopState.copy(
-                                    isConnectionEstablished = connectionState == ConnectionState.CONNECTED,
-                                    connectionPhase = connectionPhase
-                                )
-                            } else {
-                                stateManager.getCachedInitialCoopState().copy(
-                                    isConnectionEstablished = connectionState == ConnectionState.CONNECTED,
-                                    connectionPhase = connectionPhase
-                                )
-                            }
-
-                            if (connectionState == ConnectionState.CONNECTED && !updatedCoopState.isHost) {
-                                val clientProfile = updatedCoopState
-                                Timber.tag("COOP_CONNECTION").d("CLIENT_CONNECTED: Sending profile to host - name=${clientProfile.localPlayerName}, color=${clientProfile.localPlayerColor.name}")
-
-                                scope.launch {
-                                    coopUseCase.sendPlayerProfile(
-                                        playerName = clientProfile.localPlayerName,
-                                        playerColor = clientProfile.localPlayerColor.name
-                                    ).collect { result ->
-                                        result.onSuccess {
-                                            Timber.tag("COOP_CONNECTION").d("CLIENT_PROFILE_SENT: Profile sent to host")
-                                        }.onFailure { e ->
-                                            Timber.tag("COOP_CONNECTION").e(e, "CLIENT_PROFILE_FAILED: Failed to send profile to host")
-                                        }
-                                    }
-                                }
-                            }
-
-                            currentState.copy(coopState = updatedCoopState)
-                        }
-
-                        val currentState = gameStateFlow.value
-                        val isHost = currentState.coopState?.isHost == true
-                        val gamePhase = currentState.coopState?.gamePhase
-
-                        Timber.tag("COOP_CONNECTION").d("AUTO_START_CHECK: State=$connectionState, isHost=$isHost, Phase=$gamePhase")
-
-                        if (connectionState == ConnectionState.CONNECTED &&
-                            isHost &&
-                            gamePhase == CoopGamePhase.WAITING
-                        ) {
-                            Timber.tag("COOP_CONNECTION").d("AUTO_START_TRIGGERED: Starting game setup automatically")
-                            gameManager.handleStartCoopGame()
-                        }
-
-                        if (connectionState == ConnectionState.CONNECTED) {
-                            messageHandler.collectCoopMessages()
-                        }
-                    }
-
-                coopUseCase.errorMessages
-                    .collect { errorMessage ->
-                        gameStateFlow.update {
-                            it.copy(coopErrorMessage = errorMessage)
-                        }
-                    }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to collect coop connection state")
-                gameStateFlow.update {
-                    it.copy(coopErrorMessage = "Connection error: ${e.message}")
+                val connectionPhase = when (connectionState) {
+                    ConnectionState.DISCONNECTED -> CoopConnectionPhase.DISCONNECTED
+                    ConnectionState.ADVERTISING -> CoopConnectionPhase.ADVERTISING
+                    ConnectionState.DISCOVERING -> CoopConnectionPhase.DISCOVERING
+                    ConnectionState.CONNECTING -> CoopConnectionPhase.CONNECTING
+                    ConnectionState.CONNECTED -> CoopConnectionPhase.CONNECTED
                 }
+
+                val updatedCoopState = if (currentCoopState != null) {
+                    currentCoopState.copy(
+                        isConnectionEstablished = connectionState == ConnectionState.CONNECTED,
+                        connectionPhase = connectionPhase
+                    )
+                } else {
+                    initialState.copy(
+                        isConnectionEstablished = connectionState == ConnectionState.CONNECTED,
+                        connectionPhase = connectionPhase
+                    )
+                }
+
+                currentState.copy(coopState = updatedCoopState)
+            }
+
+            // Send profile when client connects
+            val currentState = gameStateFlow.value
+            if (connectionState == ConnectionState.CONNECTED && currentState.coopState?.isHost == false) {
+                val coopState = currentState.coopState!!
+                Timber.tag("COOP_CONNECTION").d("CLIENT_CONNECTED: Sending profile - name=${coopState.localPlayerName}")
+                try {
+                    coopUseCase.sendPlayerProfile(
+                        playerName = coopState.localPlayerName,
+                        playerColor = coopState.localPlayerColor.name
+                    )
+                    Timber.tag("COOP_CONNECTION").d("CLIENT_PROFILE_SENT")
+                } catch (e: Exception) {
+                    Timber.tag("COOP_CONNECTION").e(e, "CLIENT_PROFILE_FAILED")
+                }
+            }
+
+            // Auto-start game setup when host connects
+            val isHost = currentState.coopState?.isHost == true
+            val gamePhase = currentState.coopState?.gamePhase
+
+            Timber.tag("COOP_CONNECTION").d("AUTO_START_CHECK: State=$connectionState, isHost=$isHost, Phase=$gamePhase")
+
+            if (connectionState == ConnectionState.CONNECTED &&
+                isHost &&
+                gamePhase == CoopGamePhase.WAITING
+            ) {
+                Timber.tag("COOP_CONNECTION").d("AUTO_START_TRIGGERED: Starting game setup automatically")
+                gameManager.handleStartCoopGame()
             }
         }
     }

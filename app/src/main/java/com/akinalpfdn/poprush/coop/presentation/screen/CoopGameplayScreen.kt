@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import com.akinalpfdn.poprush.coop.domain.model.CoopGameState
 import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
 import com.akinalpfdn.poprush.coop.presentation.component.BubbleIconCircle
@@ -57,10 +58,26 @@ fun CoopGameplayScreen(
     onPlayAgain: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Time's Up transition state
+    var showTimesUp by remember { mutableStateOf(false) }
+    var showResults by remember { mutableStateOf(false) }
+
+    LaunchedEffect(coopGameState.currentPhase) {
+        if (coopGameState.currentPhase == CoopGamePhase.FINISHED && !showResults) {
+            showTimesUp = true
+            delay(2500)
+            showTimesUp = false
+            showResults = true
+        } else if (coopGameState.currentPhase != CoopGamePhase.FINISHED) {
+            showTimesUp = false
+            showResults = false
+        }
+    }
+
     androidx.activity.compose.BackHandler {
-        if (coopGameState.currentPhase == CoopGamePhase.FINISHED) {
+        if (showResults) {
             onDisconnect()
-        } else {
+        } else if (!showTimesUp) {
             onDisconnect()
         }
     }
@@ -76,8 +93,8 @@ fun CoopGameplayScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                when (coopGameState.currentPhase) {
-                    CoopGamePhase.SETUP -> {
+                when {
+                    coopGameState.currentPhase == CoopGamePhase.SETUP -> {
                         if (coopGameState.isHost) {
                             CoopSetupScreen(
                                 coopGameState = coopGameState,
@@ -96,7 +113,7 @@ fun CoopGameplayScreen(
                             )
                         }
                     }
-                    CoopGamePhase.WAITING -> {
+                    coopGameState.currentPhase == CoopGamePhase.WAITING -> {
                         WaitingPhaseContent(
                             title = "WAITING FOR PLAYERS",
                             message = "Game will start automatically...",
@@ -104,15 +121,22 @@ fun CoopGameplayScreen(
                             coopGameState = coopGameState
                         )
                     }
-                    CoopGamePhase.PLAYING -> {
-                        PlayingPhaseContent(
-                            coopGameState = coopGameState,
-                            onBubbleClick = onBubbleClick,
-                            onPause = onPause,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                    coopGameState.currentPhase == CoopGamePhase.PLAYING || showTimesUp -> {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            PlayingPhaseContent(
+                                coopGameState = coopGameState,
+                                onBubbleClick = { id -> if (!showTimesUp) onBubbleClick(id) },
+                                onPause = { if (!showTimesUp) onPause() },
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            // Time's Up overlay
+                            if (showTimesUp) {
+                                TimesUpOverlay()
+                            }
+                        }
                     }
-                    CoopGamePhase.PAUSED -> {
+                    coopGameState.currentPhase == CoopGamePhase.PAUSED -> {
                         Box(modifier = Modifier.fillMaxSize()) {
                             PlayingPhaseContent(
                                 coopGameState = coopGameState,
@@ -128,7 +152,7 @@ fun CoopGameplayScreen(
                             )
                         }
                     }
-                    CoopGamePhase.FINISHED -> {
+                    coopGameState.currentPhase == CoopGamePhase.FINISHED && showResults -> {
                         FinishedPhaseContent(
                             coopGameState = coopGameState,
                             onPlayAgain = onPlayAgain,
@@ -137,6 +161,59 @@ fun CoopGameplayScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TimesUpOverlay() {
+    val scale by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "timesUpScale"
+    )
+
+    val pulseAlpha by rememberInfiniteTransition(label = "timesUpPulse").animateFloat(
+        initialValue = 0.7f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "timesUpAlpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.6f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                alpha = pulseAlpha
+            }
+        ) {
+            BubbleIconCircle(
+                icon = Icons.Default.Timer,
+                baseColor = AppColors.Bubble.Coral,
+                size = 80
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            ColoredCoopTitle(text = "TIME'S UP!", fontSize = 36)
         }
     }
 }
@@ -484,11 +561,12 @@ private fun CompactGameHUD(
                 .background(AppColors.Background.Primary, RoundedCornerShape(16.dp))
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
+            val seconds = (timeRemaining / 1000).coerceAtLeast(0)
             Text(
-                text = "${timeRemaining}s",
+                text = "${seconds}s",
                 fontWeight = FontWeight.Black,
                 fontSize = 20.sp,
-                color = if (timeRemaining <= 10) AppColors.Bubble.Coral else AppColors.Text.Primary,
+                color = if (timeRemaining <= 10_000) AppColors.Bubble.Coral else AppColors.Text.Primary,
                 fontFamily = NunitoFontFamily
             )
         }

@@ -63,6 +63,9 @@ data class CoopMessage(
     @SerializedName("remoteScore")
     val remoteScore: Int? = null,
 
+    @SerializedName("gameDuration")
+    val gameDuration: Long? = null,
+
     @SerializedName("timestamp")
     val timestamp: Long = System.currentTimeMillis()
 ) {
@@ -98,11 +101,12 @@ data class CoopMessage(
         /**
          * Create a game start message
          */
-        fun gameStart(playerName: String? = null, playerColor: String? = null): CoopMessage {
+        fun gameStart(playerName: String? = null, playerColor: String? = null, gameDuration: Long? = null): CoopMessage {
             return CoopMessage(
                 type = CoopMessageType.GAME_START,
                 playerName = playerName,
-                playerColor = playerColor
+                playerColor = playerColor,
+                gameDuration = gameDuration
             )
         }
 

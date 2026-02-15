@@ -47,10 +47,10 @@ class CoopGameManager(
 
             gameStateFlow.update { it.copy(coopState = updatedCoopState) }
 
-            coopUseCase.sendBubbleClaim(bubbleId, coopState.localPlayerColor).collect { result ->
-                result.onFailure { e ->
-                    Timber.e(e, "Failed to send bubble claim")
-                }
+            try {
+                coopUseCase.sendBubbleClaim(bubbleId, coopState.localPlayerColor)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to send bubble claim")
             }
         }
     }
@@ -85,10 +85,10 @@ class CoopGameManager(
             }
 
             if (coopState.isHost) {
-                coopUseCase.sendGameEnd(localScore, opponentScore).collect { result ->
-                    result.onFailure { e ->
-                        Timber.e(e, "Failed to send game end message")
-                    }
+                try {
+                    coopUseCase.sendGameEnd(localScore, opponentScore)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to send game end message")
                 }
             }
         }
@@ -107,13 +107,8 @@ class CoopGameManager(
                     } ?: currentState
                 }
 
-                coopUseCase.sendGameSetup().collect { result ->
-                    result.onSuccess {
-                        Timber.tag("COOP_CONNECTION").d("GAME_SETUP message sent successfully")
-                    }.onFailure { e ->
-                        Timber.tag("COOP_CONNECTION").e(e, "Failed to send GAME_SETUP message")
-                    }
-                }
+                coopUseCase.sendGameSetup()
+                Timber.tag("COOP_CONNECTION").d("GAME_SETUP message sent successfully")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to enter coop setup")
                 gameStateFlow.update {
@@ -145,14 +140,10 @@ class CoopGameManager(
 
                 coopUseCase.sendGameStart(
                     playerName = currentCoopState?.localPlayerName,
-                    playerColor = currentCoopState?.localPlayerColor?.name
-                ).collect { result ->
-                    result.onSuccess {
-                        Timber.tag("COOP_CONNECTION").d("GAME_START message sent successfully")
-                    }.onFailure { e ->
-                        Timber.tag("COOP_CONNECTION").e(e, "Failed to send GAME_START message")
-                    }
-                }
+                    playerColor = currentCoopState?.localPlayerColor?.name,
+                    gameDuration = currentCoopState?.gameDuration
+                )
+                Timber.tag("COOP_CONNECTION").d("GAME_START message sent successfully")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to start coop game")
                 gameStateFlow.update {

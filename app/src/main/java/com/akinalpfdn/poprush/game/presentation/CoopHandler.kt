@@ -35,7 +35,7 @@ class CoopHandler @Inject constructor(
     fun init(scope: CoroutineScope, gameStateFlow: MutableStateFlow<GameState>) {
         stateManager = CoopStateManager(playerProfileRepository, clock, scope, gameStateFlow)
         gameManager = CoopGameManager(coopUseCase, stateManager, clock, scope, gameStateFlow)
-        messageHandler = CoopMessageHandler(coopUseCase, gameManager, clock, scope, gameStateFlow)
+        messageHandler = CoopMessageHandler(coopUseCase, gameManager, clock, gameStateFlow)
         connectionManager = CoopConnectionManager(coopUseCase, stateManager, gameManager, messageHandler, scope, gameStateFlow)
         stateManager.initializeCache()
         Timber.d("CoopHandler initialized with sub-managers")

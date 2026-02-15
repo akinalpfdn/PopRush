@@ -131,7 +131,7 @@ interface NearbyConnectionsManager {
     /**
      * Start advertising this device for discovery
      */
-    fun startAdvertising(playerName: String, playerColor: BubbleColor): Flow<Result<Unit>>
+    suspend fun startAdvertising(playerName: String, playerColor: BubbleColor)
 
     /**
      * Stop advertising this device
@@ -141,7 +141,7 @@ interface NearbyConnectionsManager {
     /**
      * Start discovering nearby devices
      */
-    fun startDiscovery(): Flow<Result<Unit>>
+    suspend fun startDiscovery()
 
     /**
      * Stop discovering nearby devices
@@ -151,22 +151,22 @@ interface NearbyConnectionsManager {
     /**
      * Request connection to a discovered endpoint
      */
-    fun requestConnection(endpointId: String, localEndpointName: String): Flow<Result<Unit>>
+    suspend fun requestConnection(endpointId: String, localEndpointName: String)
 
     /**
      * Accept an incoming connection request
      */
-    fun acceptConnection(endpointId: String): Flow<Result<Unit>>
+    suspend fun acceptConnection(endpointId: String)
 
     /**
      * Reject an incoming connection request
      */
-    fun rejectConnection(endpointId: String): Flow<Result<Unit>>
+    suspend fun rejectConnection(endpointId: String)
 
     /**
      * Send a message to the connected device
      */
-    fun sendMessage(message: String): Flow<Result<Unit>>
+    suspend fun sendMessage(message: String)
 
     /**
      * Disconnect from the current connection

@@ -45,22 +45,16 @@ class CoopUseCase @Inject constructor(
     val connectionInfo: Flow<ConnectionInfo?> = nearbyConnectionsManager.connectionInfo
 
     /**
-     * Combined flow of all coop messages (both incoming and outgoing)
+     * Combined flow of all coop messages
      */
-    val coopMessages: Flow<CoopMessage> = merge(
-        // Incoming messages
-        nearbyConnectionsManager.messageFlow.map { message ->
-            try {
-                gson.fromJson(message, CoopMessage::class.java)
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to parse coop message: $message")
-                null
-            }
-        }.flatMapLatest { flowOf(it) }.filterNotNull(),
-
-        // Local messages will be added when we implement message sending
-        flowOf<CoopMessage>() // Empty flow for now
-    )
+    val coopMessages: Flow<CoopMessage> = nearbyConnectionsManager.messageFlow.map { message ->
+        try {
+            gson.fromJson(message, CoopMessage::class.java)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to parse coop message: $message")
+            null
+        }
+    }.filterNotNull()
 
     /**
      * Error messages from connection manager
@@ -70,9 +64,9 @@ class CoopUseCase @Inject constructor(
     /**
      * Start advertising this device as host
      */
-    fun startHosting(playerName: String, playerColor: BubbleColor): Flow<Result<Unit>> {
-        Timber.tag("COOP_CONNECTION").d("🏠 USECASE_START_HOSTING: $playerName, $playerColor")
-        return nearbyConnectionsManager.startAdvertising(playerName, playerColor)
+    suspend fun startHosting(playerName: String, playerColor: BubbleColor) {
+        Timber.tag("COOP_CONNECTION").d("USECASE_START_HOSTING: $playerName, $playerColor")
+        nearbyConnectionsManager.startAdvertising(playerName, playerColor)
     }
 
     /**
@@ -85,8 +79,8 @@ class CoopUseCase @Inject constructor(
     /**
      * Start discovering nearby hosts
      */
-    fun startDiscovering(): Flow<Result<Unit>> {
-        return nearbyConnectionsManager.startDiscovery()
+    suspend fun startDiscovering() {
+        nearbyConnectionsManager.startDiscovery()
     }
 
     /**
@@ -99,22 +93,8 @@ class CoopUseCase @Inject constructor(
     /**
      * Request connection to a specific host
      */
-    fun requestConnection(endpointId: String, localEndpointName: String): Flow<Result<Unit>> {
-        return nearbyConnectionsManager.requestConnection(endpointId, localEndpointName)
-    }
-
-    /**
-     * Accept an incoming connection request
-     */
-    fun acceptConnection(endpointId: String): Flow<Result<Unit>> {
-        return nearbyConnectionsManager.acceptConnection(endpointId)
-    }
-
-    /**
-     * Reject an incoming connection request
-     */
-    fun rejectConnection(endpointId: String): Flow<Result<Unit>> {
-        return nearbyConnectionsManager.rejectConnection(endpointId)
+    suspend fun requestConnection(endpointId: String, localEndpointName: String) {
+        nearbyConnectionsManager.requestConnection(endpointId, localEndpointName)
     }
 
     /**
@@ -134,112 +114,108 @@ class CoopUseCase @Inject constructor(
     /**
      * Send a chat message to the connected device
      */
-    fun sendChatMessage(message: String): Flow<Result<Unit>> {
+    suspend fun sendChatMessage(message: String) {
         val coopMessage = CoopMessage(
             type = CoopMessageType.CHAT,
             content = message
         )
-        return sendMessage(coopMessage)
+        sendMessage(coopMessage)
     }
 
     /**
      * Send bubble claim message
      */
-    fun sendBubbleClaim(bubbleId: Int, playerColor: BubbleColor): Flow<Result<Unit>> {
+    suspend fun sendBubbleClaim(bubbleId: Int, playerColor: BubbleColor) {
         val coopMessage = CoopMessage(
             type = CoopMessageType.BUBBLE_CLAIM,
             bubbleId = bubbleId,
             playerColor = playerColor.name
         )
-        return sendMessage(coopMessage)
+        sendMessage(coopMessage)
     }
 
     /**
      * Send game setup message
      */
-    fun sendGameSetup(): Flow<Result<Unit>> {
+    suspend fun sendGameSetup() {
         val coopMessage = CoopMessage(
             type = CoopMessageType.GAME_SETUP
         )
-        return sendMessage(coopMessage)
+        sendMessage(coopMessage)
     }
 
     /**
      * Send game start message
      */
-    fun sendGameStart(playerName: String? = null, playerColor: String? = null): Flow<Result<Unit>> {
+    suspend fun sendGameStart(playerName: String? = null, playerColor: String? = null, gameDuration: Long? = null) {
         val coopMessage = CoopMessage.gameStart(
             playerName = playerName,
-            playerColor = playerColor
+            playerColor = playerColor,
+            gameDuration = gameDuration
         )
-        return sendMessage(coopMessage)
+        sendMessage(coopMessage)
     }
 
     /**
      * Send player profile message
      */
-    fun sendPlayerProfile(playerName: String, playerColor: String): Flow<Result<Unit>> {
+    suspend fun sendPlayerProfile(playerName: String, playerColor: String) {
         val coopMessage = CoopMessage.playerProfile(playerName, playerColor)
-        return sendMessage(coopMessage)
+        sendMessage(coopMessage)
     }
 
     /**
      * Send game end message with scores
      */
-    fun sendGameEnd(localScore: Int, remoteScore: Int): Flow<Result<Unit>> {
+    suspend fun sendGameEnd(localScore: Int, remoteScore: Int) {
         val coopMessage = CoopMessage(
             type = CoopMessageType.GAME_END,
             localScore = localScore,
             remoteScore = remoteScore
         )
-        return sendMessage(coopMessage)
+        sendMessage(coopMessage)
     }
 
     /**
      * Send score synchronization message
      */
-    fun sendScoreUpdate(localScore: Int, remoteScore: Int): Flow<Result<Unit>> {
+    suspend fun sendScoreUpdate(localScore: Int, remoteScore: Int) {
         val coopMessage = CoopMessage(
             type = CoopMessageType.SCORE_UPDATE,
             localScore = localScore,
             remoteScore = remoteScore
         )
-        return sendMessage(coopMessage)
+        sendMessage(coopMessage)
     }
 
     /**
      * Send color selection message
      */
-    fun sendColorSelection(playerColor: BubbleColor): Flow<Result<Unit>> {
+    suspend fun sendColorSelection(playerColor: BubbleColor) {
         val coopMessage = CoopMessage(
             type = CoopMessageType.COLOR_SELECTION,
             playerColor = playerColor.name
         )
-        return sendMessage(coopMessage)
+        sendMessage(coopMessage)
     }
 
     /**
      * Send ready state message
      */
-    fun sendReadyState(isReady: Boolean): Flow<Result<Unit>> {
+    suspend fun sendReadyState(isReady: Boolean) {
         val coopMessage = CoopMessage(
             type = CoopMessageType.READY_STATE,
             content = isReady.toString()
         )
-        return sendMessage(coopMessage)
+        sendMessage(coopMessage)
     }
 
     /**
      * Send a generic coop message
      */
-    private fun sendMessage(coopMessage: CoopMessage): Flow<Result<Unit>> {
-        return try {
-            val messageJson = gson.toJson(coopMessage)
-            nearbyConnectionsManager.sendMessage(messageJson)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to serialize coop message")
-            flowOf(Result.failure(e))
-        }
+    private suspend fun sendMessage(coopMessage: CoopMessage) {
+        val messageJson = gson.toJson(coopMessage)
+        nearbyConnectionsManager.sendMessage(messageJson)
     }
 
     /**
@@ -273,11 +249,8 @@ class CoopUseCase @Inject constructor(
         isHost: Boolean
     ): Boolean {
         return when {
-            // No opponent yet, any color is fine
             opponentColor == null -> true
-            // Host has priority, can choose any color
             isHost -> true
-            // Client cannot choose host's color
             else -> selectedColor != opponentColor
         }
     }
