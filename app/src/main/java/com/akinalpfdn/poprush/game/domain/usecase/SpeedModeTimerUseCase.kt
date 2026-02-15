@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import timber.log.Timber
+import com.akinalpfdn.poprush.core.domain.util.Clock
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
@@ -48,7 +49,8 @@ sealed class SpeedModeTimerEvent {
  */
 @Singleton
 class SpeedModeTimerUseCase @Inject constructor(
-    private val speedModeUseCase: SpeedModeUseCase
+    private val speedModeUseCase: SpeedModeUseCase,
+    private val clock: Clock
 ) {
 
     companion object {
@@ -85,15 +87,15 @@ class SpeedModeTimerUseCase @Inject constructor(
             timerJob = null
 
             _timerState.value = SpeedModeTimerState.RUNNING
-            lastUpdateTime.set(System.currentTimeMillis())
+            lastUpdateTime.set(clock.currentTimeMillis())
 
             // Only reset elapsed time if this is a fresh start (not a resume)
             if (resetElapsed) {
                 elapsedTimeMs.set(0L)
-                lastActivationTime.set(System.currentTimeMillis() + INITIAL_DELAY_MS)
+                lastActivationTime.set(clock.currentTimeMillis() + INITIAL_DELAY_MS)
             } else {
                 // When resuming, set lastActivationTime to trigger soon
-                lastActivationTime.set(System.currentTimeMillis())
+                lastActivationTime.set(clock.currentTimeMillis())
             }
 
             timerJob = timerScope.launch {
@@ -113,7 +115,7 @@ class SpeedModeTimerUseCase @Inject constructor(
 
                 // Main timer loop
                 while (isActive && isTimerRunning.get()) {
-                    val currentTime = System.currentTimeMillis()
+                    val currentTime = clock.currentTimeMillis()
                     val deltaTime = currentTime - lastUpdateTime.get()
                     lastUpdateTime.set(currentTime)
 
@@ -191,7 +193,7 @@ class SpeedModeTimerUseCase @Inject constructor(
 
         // Emit request for random bubble activation
         _timerEvents.emit(SpeedModeTimerEvent.ActivateBubble(-1))
-        lastActivationTime.set(System.currentTimeMillis())
+        lastActivationTime.set(clock.currentTimeMillis())
     }
 
     /**
@@ -209,7 +211,7 @@ class SpeedModeTimerUseCase @Inject constructor(
 
         // Trigger random activation request
         _timerEvents.emit(SpeedModeTimerEvent.ActivateBubble(-1))
-        lastActivationTime.set(System.currentTimeMillis())
+        lastActivationTime.set(clock.currentTimeMillis())
     }
 
     /**
@@ -218,7 +220,7 @@ class SpeedModeTimerUseCase @Inject constructor(
     fun triggerManualActivation(bubbleId: Int) {
         if (isTimerRunning.get()) {
             _timerEvents.tryEmit(SpeedModeTimerEvent.ActivateBubble(bubbleId))
-            lastActivationTime.set(System.currentTimeMillis())
+            lastActivationTime.set(clock.currentTimeMillis())
         }
     }
 
@@ -246,7 +248,7 @@ class SpeedModeTimerUseCase @Inject constructor(
     fun getTimeUntilNextActivation(): Duration {
         if (!isTimerRunning.get()) return Duration.ZERO
 
-        val currentTime = System.currentTimeMillis()
+        val currentTime = clock.currentTimeMillis()
         val nextActivationTime = lastActivationTime.get() + speedModeUseCase.getCurrentIntervalMs()
         val timeUntil = (nextActivationTime - currentTime).coerceAtLeast(0L)
         return timeUntil.milliseconds

@@ -3,6 +3,7 @@ package com.akinalpfdn.poprush.game.presentation.coop
 import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.core.domain.util.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ import timber.log.Timber
 class CoopGameManager(
     private val coopUseCase: CoopUseCase,
     private val stateManager: CoopStateManager,
+    private val clock: Clock,
     private val scope: CoroutineScope,
     private val gameStateFlow: MutableStateFlow<GameState>
 ) {
@@ -129,7 +131,7 @@ class CoopGameManager(
                     currentState.coopState?.let { coopState ->
                         val updatedCoopState = coopState.copy(
                             gamePhase = CoopGamePhase.PLAYING,
-                            gameStartTime = System.currentTimeMillis(),
+                            gameStartTime = clock.currentTimeMillis(),
                             gameDuration = currentState.selectedDuration.inWholeMilliseconds
                         )
                         currentState.copy(coopState = updatedCoopState)
@@ -172,7 +174,7 @@ class CoopGameManager(
                 gameStateFlow.update { it.copy(coopState = coopState.copy()) }
 
                 if (coopState.gameStartTime > 0) {
-                    val elapsed = System.currentTimeMillis() - coopState.gameStartTime
+                    val elapsed = clock.currentTimeMillis() - coopState.gameStartTime
                     if (elapsed >= coopState.gameDuration) {
                         handleCoopGameFinished(null)
                         break

@@ -13,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import timber.log.Timber
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import com.akinalpfdn.poprush.core.domain.util.Clock
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
@@ -36,7 +37,9 @@ enum class TimerState {
  * Handles countdown, pause/resume, and timer state management.
  */
 @Singleton
-class TimerUseCase @Inject constructor() {
+class TimerUseCase @Inject constructor(
+    private val clock: Clock
+) {
 
     companion object {
         private const val TICK_INTERVAL_MS = 100L // Update every 100ms for smooth countdown
@@ -75,7 +78,7 @@ class TimerUseCase @Inject constructor() {
             _timeRemaining.value = duration
             _timerState.value = TimerState.RUNNING
             isRunning.set(true)
-            startTime.set(System.currentTimeMillis())
+            startTime.set(clock.currentTimeMillis())
             pausedTime.set(0L)
 
             timerJob = timerScope.launch {
@@ -83,7 +86,7 @@ class TimerUseCase @Inject constructor() {
                     delay(TICK_INTERVAL_MS)
 
                     if (isRunning.get()) {
-                        val elapsed = System.currentTimeMillis() - startTime.get()
+                        val elapsed = clock.currentTimeMillis() - startTime.get()
                         val remaining = (totalDuration.inWholeMilliseconds - elapsed).coerceAtLeast(0)
 
                         _timeRemaining.value = remaining.milliseconds
@@ -135,7 +138,7 @@ class TimerUseCase @Inject constructor() {
                 isRunning.set(false)
                 _timerState.value = TimerState.PAUSED
                 // Store the pause time to adjust startTime when resuming
-                pauseStartTime.set(System.currentTimeMillis())
+                pauseStartTime.set(clock.currentTimeMillis())
                 Timber.d("Timer paused at: ${_timeRemaining.value}")
             }
         } catch (e: Exception) {
@@ -152,7 +155,7 @@ class TimerUseCase @Inject constructor() {
                 isRunning.set(true)
                 _timerState.value = TimerState.RUNNING
                 // Adjust startTime to account for the pause duration
-                val pauseDuration = System.currentTimeMillis() - pauseStartTime.get()
+                val pauseDuration = clock.currentTimeMillis() - pauseStartTime.get()
                 startTime.addAndGet(pauseDuration)
                 pauseStartTime.set(0L)
                 Timber.d("Timer resumed from: ${_timeRemaining.value}, pauseDuration: ${pauseDuration}ms")
@@ -262,7 +265,7 @@ class TimerUseCase @Inject constructor() {
     val elapsedTime: Duration
         get() {
             val elapsed = if (isRunning.get()) {
-                System.currentTimeMillis() - startTime.get() - pausedTime.get()
+                clock.currentTimeMillis() - startTime.get() - pausedTime.get()
             } else {
                 pausedTime.get()
             }

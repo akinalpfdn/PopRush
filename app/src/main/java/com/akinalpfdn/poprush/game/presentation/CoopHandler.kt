@@ -5,6 +5,7 @@ import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.repository.PlayerProfileRepository
+import com.akinalpfdn.poprush.core.domain.util.Clock
 import com.akinalpfdn.poprush.game.presentation.coop.CoopConnectionManager
 import com.akinalpfdn.poprush.game.presentation.coop.CoopGameManager
 import com.akinalpfdn.poprush.game.presentation.coop.CoopMessageHandler
@@ -21,7 +22,8 @@ import javax.inject.Inject
  */
 class CoopHandler @Inject constructor(
     private val coopUseCase: CoopUseCase,
-    private val playerProfileRepository: PlayerProfileRepository
+    private val playerProfileRepository: PlayerProfileRepository,
+    private val clock: Clock
 ) {
     private lateinit var stateManager: CoopStateManager
     private lateinit var connectionManager: CoopConnectionManager
@@ -31,9 +33,9 @@ class CoopHandler @Inject constructor(
     val discoveredEndpoints = coopUseCase.discoveredEndpoints
 
     fun init(scope: CoroutineScope, gameStateFlow: MutableStateFlow<GameState>) {
-        stateManager = CoopStateManager(playerProfileRepository, scope, gameStateFlow)
-        gameManager = CoopGameManager(coopUseCase, stateManager, scope, gameStateFlow)
-        messageHandler = CoopMessageHandler(coopUseCase, gameManager, scope, gameStateFlow)
+        stateManager = CoopStateManager(playerProfileRepository, clock, scope, gameStateFlow)
+        gameManager = CoopGameManager(coopUseCase, stateManager, clock, scope, gameStateFlow)
+        messageHandler = CoopMessageHandler(coopUseCase, gameManager, clock, scope, gameStateFlow)
         connectionManager = CoopConnectionManager(coopUseCase, stateManager, gameManager, messageHandler, scope, gameStateFlow)
         stateManager.initializeCache()
         Timber.d("CoopHandler initialized with sub-managers")

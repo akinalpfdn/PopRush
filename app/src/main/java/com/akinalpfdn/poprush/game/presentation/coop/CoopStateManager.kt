@@ -5,6 +5,7 @@ import com.akinalpfdn.poprush.coop.domain.model.CoopGameState
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.repository.PlayerProfileRepository
+import com.akinalpfdn.poprush.core.domain.util.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -16,6 +17,7 @@ import timber.log.Timber
  */
 class CoopStateManager(
     private val playerProfileRepository: PlayerProfileRepository,
+    private val clock: Clock,
     private val scope: CoroutineScope,
     private val gameStateFlow: MutableStateFlow<GameState>
 ) {
@@ -28,7 +30,7 @@ class CoopStateManager(
             } catch (e: Exception) {
                 Timber.e(e, "Failed to initialize cached coop state")
                 _cachedInitialCoopState = CoopGameState(
-                    localPlayerId = "player_${System.currentTimeMillis()}",
+                    localPlayerId = "player_${clock.currentTimeMillis()}",
                     localPlayerName = "Player",
                     localPlayerColor = BubbleColor.ROSE,
                     bubbles = generateInitialCoopBubbles()
@@ -112,7 +114,7 @@ class CoopStateManager(
     }
 
     suspend fun createInitialCoopState() = CoopGameState(
-        localPlayerId = "player_${System.currentTimeMillis()}",
+        localPlayerId = "player_${clock.currentTimeMillis()}",
         localPlayerName = playerProfileRepository.getPlayerName(),
         localPlayerColor = playerProfileRepository.getPlayerColor(),
         bubbles = generateInitialCoopBubbles()
@@ -120,7 +122,7 @@ class CoopStateManager(
 
     fun getCachedInitialCoopState(): CoopGameState {
         return _cachedInitialCoopState ?: CoopGameState(
-            localPlayerId = "player_${System.currentTimeMillis()}",
+            localPlayerId = "player_${clock.currentTimeMillis()}",
             localPlayerName = "Player",
             localPlayerColor = BubbleColor.ROSE,
             bubbles = generateInitialCoopBubbles()

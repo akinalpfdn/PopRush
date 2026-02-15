@@ -21,9 +21,9 @@ data class LevelGenerationResult(
  * Handles difficulty scaling and ensures fair level generation.
  */
 @Singleton
-class GenerateLevelUseCase @Inject constructor() {
-
-    private val random = Random(System.currentTimeMillis())
+class GenerateLevelUseCase @Inject constructor(
+    private val random: Random
+) {
 
     /**
      * Generates a new level by randomly selecting bubbles to activate.

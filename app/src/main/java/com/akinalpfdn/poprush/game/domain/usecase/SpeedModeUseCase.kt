@@ -5,11 +5,12 @@ import com.akinalpfdn.poprush.core.domain.model.SpeedModeState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.akinalpfdn.poprush.core.domain.util.Clock
 import timber.log.Timber
+import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-import kotlin.random.Random
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,7 +19,10 @@ import javax.inject.Singleton
  * Handles bubble activation, interval management, and speed mode state.
  */
 @Singleton
-class SpeedModeUseCase @Inject constructor() {
+class SpeedModeUseCase @Inject constructor(
+    private val clock: Clock,
+    private val random: Random
+) {
 
     // Speed mode state
     private val _speedModeState = MutableStateFlow(SpeedModeState())
@@ -66,10 +70,10 @@ class SpeedModeUseCase @Inject constructor() {
             return null to gameOverState
         }
 
-        val selectedBubble = inactiveBubbles.random()
+        val selectedBubble = inactiveBubbles.random(random)
         val updatedState = _speedModeState.value.copy(
             nextBubbleId = selectedBubble.id,
-            lastActivationTime = System.currentTimeMillis()
+            lastActivationTime = clock.currentTimeMillis()
         )
         _speedModeState.value = updatedState
 
@@ -108,7 +112,7 @@ class SpeedModeUseCase @Inject constructor() {
      * Checks if it's time to activate a new bubble based on the current interval.
      */
     fun shouldActivateBubble(lastActivationTime: Long): Boolean {
-        val currentTime = System.currentTimeMillis()
+        val currentTime = clock.currentTimeMillis()
         val timeSinceLastActivation = currentTime - lastActivationTime
         val currentInterval = _speedModeState.value.currentInterval
         return timeSinceLastActivation >= (currentInterval * 1000) // Convert to milliseconds

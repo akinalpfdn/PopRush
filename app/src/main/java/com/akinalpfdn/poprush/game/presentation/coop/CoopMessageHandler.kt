@@ -5,6 +5,7 @@ import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.core.domain.util.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -17,6 +18,7 @@ import timber.log.Timber
 class CoopMessageHandler(
     private val coopUseCase: CoopUseCase,
     private val gameManager: CoopGameManager,
+    private val clock: Clock,
     private val scope: CoroutineScope,
     private val gameStateFlow: MutableStateFlow<GameState>
 ) {
@@ -61,7 +63,7 @@ class CoopMessageHandler(
                             currentState.coopState?.let { coopState ->
                                 val updatedCoopState = coopState.copy(
                                     gamePhase = CoopGamePhase.PLAYING,
-                                    gameStartTime = System.currentTimeMillis(),
+                                    gameStartTime = clock.currentTimeMillis(),
                                     opponentPlayerName = message.playerName ?: coopState.opponentPlayerName,
                                     opponentPlayerColor = message.playerColor?.let { colorName ->
                                         try {

@@ -1,5 +1,6 @@
 package com.akinalpfdn.poprush.di
 
+import com.akinalpfdn.poprush.core.domain.util.Clock
 import com.akinalpfdn.poprush.game.domain.usecase.GenerateLevelUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.HandleBubblePressUseCase
 import com.akinalpfdn.poprush.game.domain.usecase.InitializeGameUseCase
@@ -9,6 +10,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import kotlin.random.Random
 
 /**
  * Dependency Injection module for game use cases.
@@ -18,39 +20,27 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object UseCaseModule {
 
-    /**
-     * Provides use case for initializing the game.
-     */
     @Provides
     @Singleton
     fun provideInitializeGameUseCase(): InitializeGameUseCase {
         return InitializeGameUseCase()
     }
 
-    /**
-     * Provides use case for generating new levels.
-     */
     @Provides
     @Singleton
-    fun provideGenerateLevelUseCase(): GenerateLevelUseCase {
-        return GenerateLevelUseCase()
+    fun provideGenerateLevelUseCase(random: Random): GenerateLevelUseCase {
+        return GenerateLevelUseCase(random)
     }
 
-    /**
-     * Provides use case for handling bubble press events.
-     */
     @Provides
     @Singleton
     fun provideHandleBubblePressUseCase(): HandleBubblePressUseCase {
         return HandleBubblePressUseCase()
     }
 
-    /**
-     * Provides use case for managing game timer.
-     */
     @Provides
     @Singleton
-    fun provideTimerUseCase(): TimerUseCase {
-        return TimerUseCase()
+    fun provideTimerUseCase(clock: Clock): TimerUseCase {
+        return TimerUseCase(clock)
     }
 }

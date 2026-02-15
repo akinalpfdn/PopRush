@@ -15,6 +15,8 @@ import com.akinalpfdn.poprush.core.domain.repository.GameSettingsRepository
 import com.akinalpfdn.poprush.core.domain.repository.PlayerProfileRepository
 import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
 import com.akinalpfdn.poprush.core.domain.repository.VisualSettingsRepository
+import com.akinalpfdn.poprush.core.domain.util.Clock
+import com.akinalpfdn.poprush.core.domain.util.SystemClock
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -108,6 +110,20 @@ object RepositoryModule {
     fun providePlayerProfileRepository(
         settingsRepository: SettingsRepository
     ): PlayerProfileRepository = settingsRepository
+
+    /**
+     * Provides Clock implementation for time-dependent use cases.
+     */
+    @Provides
+    @Singleton
+    fun provideClock(): Clock = SystemClock()
+
+    /**
+     * Provides Random instance for use cases requiring randomness.
+     */
+    @Provides
+    @Singleton
+    fun provideRandom(): kotlin.random.Random = kotlin.random.Random.Default
 
     /**
      * Provides AudioRepository implementation.
