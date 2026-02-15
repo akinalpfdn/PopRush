@@ -9,8 +9,12 @@ import com.akinalpfdn.poprush.core.data.local.GamePreferences
 import com.akinalpfdn.poprush.core.data.repository.GameRepositoryImpl
 import com.akinalpfdn.poprush.core.data.repository.SettingsRepositoryImpl
 import com.akinalpfdn.poprush.core.domain.repository.AudioRepository
+import com.akinalpfdn.poprush.core.domain.repository.AudioSettingsRepository
 import com.akinalpfdn.poprush.core.domain.repository.GameRepository
+import com.akinalpfdn.poprush.core.domain.repository.GameSettingsRepository
+import com.akinalpfdn.poprush.core.domain.repository.PlayerProfileRepository
 import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
+import com.akinalpfdn.poprush.core.domain.repository.VisualSettingsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -70,14 +74,51 @@ object RepositoryModule {
     }
 
     /**
+     * Provides AudioSettingsRepository binding.
+     */
+    @Provides
+    @Singleton
+    fun provideAudioSettingsRepository(
+        settingsRepository: SettingsRepository
+    ): AudioSettingsRepository = settingsRepository
+
+    /**
+     * Provides VisualSettingsRepository binding.
+     */
+    @Provides
+    @Singleton
+    fun provideVisualSettingsRepository(
+        settingsRepository: SettingsRepository
+    ): VisualSettingsRepository = settingsRepository
+
+    /**
+     * Provides GameSettingsRepository binding.
+     */
+    @Provides
+    @Singleton
+    fun provideGameSettingsRepository(
+        settingsRepository: SettingsRepository
+    ): GameSettingsRepository = settingsRepository
+
+    /**
+     * Provides PlayerProfileRepository binding.
+     */
+    @Provides
+    @Singleton
+    fun providePlayerProfileRepository(
+        settingsRepository: SettingsRepository
+    ): PlayerProfileRepository = settingsRepository
+
+    /**
      * Provides AudioRepository implementation.
      */
     @Provides
     @Singleton
     fun provideAudioRepository(
         @ApplicationContext context: Context,
-        settingsRepository: SettingsRepository
+        audioSettingsRepository: AudioSettingsRepository,
+        visualSettingsRepository: VisualSettingsRepository
     ): AudioRepository {
-        return AudioRepositoryImpl(context, settingsRepository)
+        return AudioRepositoryImpl(context, audioSettingsRepository, visualSettingsRepository)
     }
 }

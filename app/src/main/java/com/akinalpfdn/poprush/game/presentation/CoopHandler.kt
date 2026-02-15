@@ -7,7 +7,7 @@ import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
-import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
+import com.akinalpfdn.poprush.core.domain.repository.PlayerProfileRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +19,7 @@ import javax.inject.Inject
 
 class CoopHandler @Inject constructor(
     private val coopUseCase: CoopUseCase,
-    private val settingsRepository: SettingsRepository
+    private val playerProfileRepository: PlayerProfileRepository
 ) {
     private lateinit var scope: CoroutineScope
     private lateinit var gameStateFlow: MutableStateFlow<GameState>
@@ -163,7 +163,7 @@ class CoopHandler @Inject constructor(
     fun handleUpdateCoopPlayerName(playerName: String) {
         scope.launch {
             try {
-                settingsRepository.savePlayerName(playerName)
+                playerProfileRepository.savePlayerName(playerName)
                 gameStateFlow.update { currentState ->
                     val updatedCoopState = currentState.coopState?.copy(
                         localPlayerName = playerName
@@ -182,7 +182,7 @@ class CoopHandler @Inject constructor(
     fun handleUpdateCoopPlayerColor(playerColor: BubbleColor) {
         scope.launch {
             try {
-                settingsRepository.savePlayerColor(playerColor)
+                playerProfileRepository.savePlayerColor(playerColor)
                 gameStateFlow.update { currentState ->
                     val updatedCoopState = currentState.coopState?.copy(
                         localPlayerColor = playerColor
@@ -577,8 +577,8 @@ class CoopHandler @Inject constructor(
 
     private suspend fun createInitialCoopState() = CoopGameState(
         localPlayerId = "player_${System.currentTimeMillis()}",
-        localPlayerName = settingsRepository.getPlayerName(),
-        localPlayerColor = settingsRepository.getPlayerColor(),
+        localPlayerName = playerProfileRepository.getPlayerName(),
+        localPlayerColor = playerProfileRepository.getPlayerColor(),
         bubbles = generateInitialCoopBubbles()
     )
 

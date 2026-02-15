@@ -10,7 +10,8 @@ import com.akinalpfdn.poprush.core.domain.model.SoundType
 import com.akinalpfdn.poprush.core.domain.model.AudioState
 import com.akinalpfdn.poprush.core.domain.model.AudioSystemInfo
 import com.akinalpfdn.poprush.core.domain.repository.AudioRepository
-import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
+import com.akinalpfdn.poprush.core.domain.repository.AudioSettingsRepository
+import com.akinalpfdn.poprush.core.domain.repository.VisualSettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +32,8 @@ import javax.inject.Singleton
 @Singleton
 class AudioRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val settingsRepository: SettingsRepository
+    private val audioSettingsRepository: AudioSettingsRepository,
+    private val visualSettingsRepository: VisualSettingsRepository
 ) : AudioRepository {
 
     private var soundPool: SoundPool? = null
@@ -63,10 +65,10 @@ class AudioRepositoryImpl @Inject constructor(
         try {
             if (!_audioState.value.isAudioSupported) return
 
-            val soundEnabled = settingsRepository.isSoundEnabled()
+            val soundEnabled = audioSettingsRepository.isSoundEnabled()
             if (!soundEnabled) return
 
-            val soundVolume = volume ?: settingsRepository.getSoundVolume()
+            val soundVolume = volume ?: audioSettingsRepository.getSoundVolume()
             val finalVolume = (soundVolume * _masterVolume.value).coerceIn(0f, 1f)
 
             soundPool?.play(
@@ -89,7 +91,7 @@ class AudioRepositoryImpl @Inject constructor(
         playSound(soundType)
         if (enableHaptic) {
             // Trigger haptic feedback if enabled in settings
-            val hapticEnabled = settingsRepository.isHapticFeedbackEnabled()
+            val hapticEnabled = visualSettingsRepository.isHapticFeedbackEnabled()
             if (hapticEnabled) {
                 // In a full implementation, would trigger device vibration
                 Timber.d("Haptic feedback triggered for sound: $soundType")
@@ -113,7 +115,7 @@ class AudioRepositoryImpl @Inject constructor(
         try {
             if (!_audioState.value.isAudioSupported) return
 
-            val musicEnabled = settingsRepository.isMusicEnabled()
+            val musicEnabled = audioSettingsRepository.isMusicEnabled()
             if (!musicEnabled) return
 
             _musicPlaying.value = true
@@ -147,7 +149,7 @@ class AudioRepositoryImpl @Inject constructor(
 
     override suspend fun resumeMusic() {
         try {
-            val musicEnabled = settingsRepository.isMusicEnabled()
+            val musicEnabled = audioSettingsRepository.isMusicEnabled()
             if (musicEnabled && _currentMusicTrack.value != null) {
                 _musicPlaying.value = true
                 Timber.d("Music resumed")
