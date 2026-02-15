@@ -240,11 +240,10 @@ private fun CoopConnectionDialogContent(
                         playerName = playerName,
                         playerColor = playerColor,
                         opponentColor = opponentColor,
-                        isHost = isHost,
                         onPlayerNameChange = onPlayerNameChange,
                         onColorSelected = onColorSelected,
                         onContinue = { onStepChange(CoopConnectionStep.HOST_JOIN_SELECTION) },
-                        onBack = onBack,
+                        onBack = { onStepChange(CoopConnectionStep.HOST_JOIN_SELECTION) },
                         modifier = Modifier.fillMaxSize()
                     )
                 }

@@ -347,7 +347,8 @@ fun GameScreen(
             isVisible = gameState.showCoopConnectionDialog,
             playerName = gameState.coopState?.localPlayerName ?: "Player",
             playerColor = gameState.coopState?.localPlayerColor ?: com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE,
-            opponentColor = gameState.coopState?.opponentPlayerColor,
+            opponentColor = if (gameState.coopState?.isConnectionEstablished == true)
+                gameState.coopState?.opponentPlayerColor else null,
             connectionState = gameState.coopState?.let {
                 when (it.connectionPhase) {
                     com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase.DISCONNECTED -> com.akinalpfdn.poprush.coop.domain.model.ConnectionState.DISCONNECTED
@@ -470,13 +471,6 @@ private fun GameContent(
                                     gameState = gameState,
                                     onStartGame = onStartGame,
                                     onDurationChange = onDurationChange,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                            StartScreenFlow.COOP_CONNECTION -> {
-                                CoopConnectionSetupScreen(
-                                    onShowConnectionDialog = { onStartCoopConnection() },
-                                    onBack = { onGameModeSelected(com.akinalpfdn.poprush.core.domain.model.GameMode.SINGLE) },
                                     modifier = Modifier.fillMaxSize()
                                 )
                             }

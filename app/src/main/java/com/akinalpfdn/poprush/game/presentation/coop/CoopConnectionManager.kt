@@ -4,7 +4,9 @@ import com.akinalpfdn.poprush.coop.domain.model.ConnectionState
 import com.akinalpfdn.poprush.coop.domain.model.CoopConnectionPhase
 import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
+import com.akinalpfdn.poprush.core.domain.model.GameMode
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.core.domain.model.StartScreenFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -184,7 +186,10 @@ class CoopConnectionManager(
         gameStateFlow.update {
             it.copy(
                 showCoopConnectionDialog = false,
-                coopErrorMessage = null
+                coopErrorMessage = null,
+                currentScreen = StartScreenFlow.MODE_SELECTION,
+                isCoopMode = false,
+                gameMode = GameMode.SINGLE
             )
         }
     }

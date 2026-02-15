@@ -6,6 +6,5 @@ package com.akinalpfdn.poprush.core.domain.model
 enum class StartScreenFlow {
     MODE_SELECTION,     // Single vs Co-op selection
     MOD_PICKER,         // Classic vs Speed selection
-    GAME_SETUP,         // Duration picker and play button
-    COOP_CONNECTION     // Co-op connection (hosting/joining)
+    GAME_SETUP          // Duration picker and play button
 }

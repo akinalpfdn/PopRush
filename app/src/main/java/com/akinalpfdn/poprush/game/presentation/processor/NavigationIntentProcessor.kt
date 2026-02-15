@@ -49,7 +49,6 @@ class NavigationIntentProcessor(
         val newScreen = when (currentScreen) {
             StartScreenFlow.GAME_SETUP -> StartScreenFlow.MOD_PICKER
             StartScreenFlow.MOD_PICKER -> StartScreenFlow.MODE_SELECTION
-            StartScreenFlow.COOP_CONNECTION -> StartScreenFlow.MODE_SELECTION
             StartScreenFlow.MODE_SELECTION -> StartScreenFlow.MODE_SELECTION
         }
         gameStateFlow.update { it.copy(currentScreen = newScreen) }
@@ -123,8 +122,8 @@ class NavigationIntentProcessor(
                 gameStateFlow.update {
                     it.copy(
                         gameMode = mode,
-                        currentScreen = StartScreenFlow.COOP_CONNECTION,
-                        isCoopMode = true
+                        isCoopMode = true,
+                        showCoopConnectionDialog = true
                     )
                 }
             } else {

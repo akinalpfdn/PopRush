@@ -2,6 +2,8 @@ package com.akinalpfdn.poprush.coop.presentation.screen
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -16,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -28,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.coop.presentation.component.BubbleIconButton
 import com.akinalpfdn.poprush.coop.presentation.component.CoopBubbleButton
-import com.akinalpfdn.poprush.coop.presentation.component.CoopColorPicker
 import com.akinalpfdn.poprush.coop.presentation.component.ColoredCoopTitle
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.ui.theme.PastelColors
@@ -41,7 +43,6 @@ fun CoopPlayerSetupScreen(
     playerName: String,
     playerColor: BubbleColor,
     opponentColor: BubbleColor? = null,
-    isHost: Boolean = false,
     onPlayerNameChange: (String) -> Unit,
     onColorSelected: (BubbleColor) -> Unit,
     onContinue: () -> Unit,
@@ -79,12 +80,10 @@ fun CoopPlayerSetupScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Colored title
-            ColoredCoopTitle(
-                text = if (isHost) "CREATE LOBBY" else "JOIN LOBBY"
-            )
+            // Title
+            ColoredCoopTitle(text = "PROFILE")
 
             Spacer(modifier = Modifier.height(4.dp))
 
@@ -96,47 +95,26 @@ fun CoopPlayerSetupScreen(
                 fontSize = 14.sp
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // Avatar preview with bubble style
-            BubbleAvatar(playerColor = playerColor)
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Input forms
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                StyledNameInput(
-                    playerName = playerName,
-                    onNameChange = onPlayerNameChange,
-                    onDone = { focusManager.clearFocus() }
-                )
-
-                CoopColorPicker(
-                    availableColors = BubbleColor.values().toList(),
-                    selectedColor = playerColor,
-                    opponentColor = opponentColor,
-                    onColorSelected = onColorSelected,
-                    title = "CHOOSE COLOR",
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // Info pill
-            InfoPill(isHost)
+            // Compact profile card
+            ProfileSetupCard(
+                playerName = playerName,
+                playerColor = playerColor,
+                opponentColor = opponentColor,
+                onNameChange = onPlayerNameChange,
+                onColorSelected = onColorSelected,
+                onDone = { focusManager.clearFocus() }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Action button
             CoopBubbleButton(
-                text = if (isHost) "START HOSTING" else "SEARCH GAMES",
-                icon = if (isHost) Icons.Default.WifiTethering else Icons.Default.Search,
-                baseColor = AppColors.Bubble.Coral,
-                pressedColor = AppColors.Bubble.CoralPressed,
+                text = "DONE",
+                icon = Icons.Default.Check,
+                baseColor = AppColors.Bubble.Mint,
+                pressedColor = AppColors.Bubble.MintPressed,
                 enabled = isNameValid,
                 onClick = onContinue
             )
@@ -147,14 +125,87 @@ fun CoopPlayerSetupScreen(
 }
 
 @Composable
-private fun BubbleAvatar(playerColor: BubbleColor) {
+private fun ProfileSetupCard(
+    playerName: String,
+    playerColor: BubbleColor,
+    opponentColor: BubbleColor?,
+    onNameChange: (String) -> Unit,
+    onColorSelected: (BubbleColor) -> Unit,
+    onDone: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(20.dp),
+                ambientColor = AppColors.Bubble.SkyBlue.withAlpha(0.1f),
+                spotColor = AppColors.Bubble.SkyBlue.withAlpha(0.1f)
+            )
+            .background(AppColors.Background.Secondary, RoundedCornerShape(20.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // Name row: color preview bubble + text input
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            CompactBubbleAvatar(playerColor = playerColor)
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            CompactNameInput(
+                playerName = playerName,
+                onNameChange = onNameChange,
+                onDone = onDone,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        HorizontalDivider(
+            color = AppColors.Text.Muted.withAlpha(0.12f),
+            thickness = 1.dp
+        )
+
+        // Color selection
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = "COLOR",
+                color = AppColors.Text.Label,
+                fontFamily = NunitoFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp,
+                letterSpacing = 1.sp
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BubbleColor.values().forEach { bubbleColor ->
+                    CompactColorOption(
+                        color = bubbleColor,
+                        isSelected = bubbleColor == playerColor,
+                        isOpponent = bubbleColor == opponentColor,
+                        onClick = { onColorSelected(bubbleColor) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactBubbleAvatar(playerColor: BubbleColor) {
     val color = PastelColors.getColor(playerColor)
 
     Box(
         modifier = Modifier
-            .size(120.dp)
+            .size(48.dp)
             .shadow(
-                elevation = 10.dp,
+                elevation = 4.dp,
                 shape = CircleShape,
                 ambientColor = color.withAlpha(0.3f),
                 spotColor = color.withAlpha(0.3f)
@@ -172,7 +223,6 @@ private fun BubbleAvatar(playerColor: BubbleColor) {
                     radius = size.width * 0.7f
                 )
             )
-            // Glass highlight
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(Color.White.withAlpha(0.45f), Color.White.withAlpha(0f)),
@@ -187,115 +237,108 @@ private fun BubbleAvatar(playerColor: BubbleColor) {
         Icon(
             imageVector = Icons.Default.Person,
             contentDescription = null,
-            modifier = Modifier.size(60.dp),
+            modifier = Modifier.size(24.dp),
             tint = AppColors.Text.OnDark
         )
-
-        // Edit badge
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = (-4).dp, y = (-4).dp)
-                .size(32.dp)
-                .shadow(4.dp, CircleShape)
-                .background(AppColors.Background.Primary, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = AppColors.Text.Secondary
-            )
-        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StyledNameInput(
+private fun CompactNameInput(
     playerName: String,
     onNameChange: (String) -> Unit,
-    onDone: () -> Unit
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "DISPLAY NAME",
-            color = AppColors.Text.Label,
-            fontFamily = NunitoFontFamily,
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
-            letterSpacing = 1.sp
-        )
-
-        OutlinedTextField(
-            value = playerName,
-            onValueChange = onNameChange,
-            placeholder = {
-                Text(
-                    "Enter name...",
-                    fontFamily = NunitoFontFamily,
-                    color = AppColors.Text.Muted
-                )
-            },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = AppColors.Background.Secondary,
-                unfocusedContainerColor = AppColors.Background.Secondary,
-                disabledContainerColor = AppColors.Background.Secondary,
-                focusedBorderColor = AppColors.Bubble.SkyBlue,
-                unfocusedBorderColor = Color.Transparent,
-                cursorColor = AppColors.Bubble.Grape,
-                focusedTextColor = AppColors.Text.Primary,
-                unfocusedTextColor = AppColors.Text.Primary
-            ),
-            shape = RoundedCornerShape(16.dp),
-            textStyle = MaterialTheme.typography.titleMedium.copy(
+    OutlinedTextField(
+        value = playerName,
+        onValueChange = onNameChange,
+        placeholder = {
+            Text(
+                "Enter name...",
                 fontFamily = NunitoFontFamily,
-                fontWeight = FontWeight.Bold
-            ),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onDone() }),
-            trailingIcon = if (playerName.isNotEmpty()) {
-                {
-                    IconButton(onClick = { onNameChange("") }) {
-                        Icon(Icons.Default.Cancel, null, tint = AppColors.Text.Muted)
-                    }
+                color = AppColors.Text.Muted
+            )
+        },
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = AppColors.Background.Primary,
+            unfocusedContainerColor = AppColors.Background.Primary,
+            disabledContainerColor = AppColors.Background.Primary,
+            focusedBorderColor = AppColors.Bubble.SkyBlue,
+            unfocusedBorderColor = Color.Transparent,
+            cursorColor = AppColors.Bubble.Grape,
+            focusedTextColor = AppColors.Text.Primary,
+            unfocusedTextColor = AppColors.Text.Primary
+        ),
+        shape = RoundedCornerShape(14.dp),
+        textStyle = MaterialTheme.typography.bodyLarge.copy(
+            fontFamily = NunitoFontFamily,
+            fontWeight = FontWeight.Bold
+        ),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onDone() }),
+        trailingIcon = if (playerName.isNotEmpty()) {
+            {
+                IconButton(onClick = { onNameChange("") }) {
+                    Icon(Icons.Default.Cancel, null, tint = AppColors.Text.Muted)
                 }
-            } else null,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
+            }
+        } else null,
+        modifier = modifier
+    )
 }
 
 @Composable
-private fun InfoPill(isHost: Boolean) {
-    Row(
+private fun CompactColorOption(
+    color: BubbleColor,
+    isSelected: Boolean,
+    isOpponent: Boolean,
+    onClick: () -> Unit
+) {
+    val pastelColor = PastelColors.getColor(color)
+
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(14.dp),
-                ambientColor = AppColors.Bubble.SkyBlue.withAlpha(0.1f),
-                spotColor = AppColors.Bubble.SkyBlue.withAlpha(0.1f)
+            .size(40.dp)
+            .then(
+                if (isSelected) {
+                    Modifier.border(2.5.dp, AppColors.Text.Primary, CircleShape)
+                } else {
+                    Modifier
+                }
             )
-            .background(AppColors.Background.Secondary, RoundedCornerShape(14.dp))
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clip(CircleShape)
+            .clickable(enabled = !isOpponent, onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = Icons.Default.Info,
-            contentDescription = null,
-            tint = AppColors.Bubble.SkyBlue,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = if (isHost) "Bluetooth & Location required to host." else "Bluetooth & Location required to join.",
-            color = AppColors.Text.Label,
-            fontFamily = NunitoFontFamily,
-            fontWeight = FontWeight.Medium,
-            fontSize = 13.sp
-        )
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val lighterColor = pastelColor.withAlpha(0.85f).compositeOver(Color.White)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(lighterColor, pastelColor),
+                    center = Offset(size.width * 0.35f, size.height * 0.3f),
+                    radius = size.width * 0.7f
+                )
+            )
+        }
+
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = AppColors.Text.OnDark,
+                modifier = Modifier.size(20.dp)
+            )
+        } else if (isOpponent) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = AppColors.Text.OnDark.withAlpha(0.7f),
+                modifier = Modifier.size(14.dp)
+            )
+        }
     }
 }
+
