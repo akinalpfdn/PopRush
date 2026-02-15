@@ -27,4 +27,5 @@ sealed interface CoopIntent : GameIntent {
     data object StartCoopMatch : CoopIntent
     data object DisconnectCoop : CoopIntent
     data object CloseCoopConnection : CoopIntent
+    data object PlayAgain : CoopIntent
 }

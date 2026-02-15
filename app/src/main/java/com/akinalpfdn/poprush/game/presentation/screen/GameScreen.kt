@@ -205,6 +205,7 @@ fun GameScreen(
             onDisconnectCoop = { viewModel.processIntent(CoopIntent.DisconnectCoop) },
             onStartCoopConnection = { viewModel.processIntent(CoopIntent.StartCoopConnection) },
             onStartMatch = { viewModel.processIntent(CoopIntent.StartCoopMatch) },
+            onPlayAgain = { viewModel.processIntent(CoopIntent.PlayAgain) },
             permissionManager = permissionManager,
             showPermissionsDialog = showPermissionsDialog,
             onShowPermissionsDialog = { showPermissionsDialog = true },
@@ -397,6 +398,7 @@ private fun GameContent(
     onDisconnectCoop: () -> Unit,
     onStartCoopConnection: () -> Unit,
     onStartMatch: () -> Unit,
+    onPlayAgain: () -> Unit,
     permissionManager: com.akinalpfdn.poprush.coop.presentation.permission.CoopPermissionManager,
     showPermissionsDialog: Boolean,
     onShowPermissionsDialog: () -> Unit,
@@ -488,11 +490,7 @@ private fun GameContent(
                             onDisconnect = onDisconnectCoop,
                             onStartMatch = onStartMatch,
                             onDurationChange = onDurationChange,
-                            onPlayAgain = {
-                                Timber.tag("GAME_SCREEN").d("🔄 PLAY_AGAIN_CLICKED: Resetting coop game")
-                                onDisconnectCoop()
-                                onStartCoopConnection()
-                            },
+                            onPlayAgain = onPlayAgain,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {

@@ -164,6 +164,7 @@ class GameViewModel @Inject constructor(
             is CoopIntent.StartCoopGame -> coopHandler.handleStartCoopGame()
             is CoopIntent.StartCoopMatch -> coopHandler.handleStartCoopMatch()
             is CoopIntent.CloseCoopConnection -> coopHandler.handleCloseCoopConnection()
+            is CoopIntent.PlayAgain -> coopHandler.handlePlayAgain()
         }
     }
 

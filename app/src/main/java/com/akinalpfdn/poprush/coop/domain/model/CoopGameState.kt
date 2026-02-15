@@ -88,6 +88,7 @@ data class CoopGameState(
     val connectionStartTime: Long = 0L,
     val gameStartTime: Long = 0L,
     val gameDuration: Long = 60_000L, // Default 60 seconds
+    val lastTimerTick: Long = 0L,
     val errorMessage: String? = null
 ) {
     /**

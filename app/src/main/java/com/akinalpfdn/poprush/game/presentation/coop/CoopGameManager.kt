@@ -153,6 +153,40 @@ class CoopGameManager(
         }
     }
 
+    fun handlePlayAgain() {
+        coopTimerJob?.cancel()
+        coopTimerJob = null
+        scope.launch {
+            try {
+                val freshBubbles = stateManager.generateInitialCoopBubbles()
+                gameStateFlow.update { currentState ->
+                    currentState.coopState?.let { coopState ->
+                        val updatedCoopState = coopState.copy(
+                            gamePhase = CoopGamePhase.SETUP,
+                            bubbles = freshBubbles,
+                            localScore = 0,
+                            opponentScore = 0,
+                            gameStartTime = 0L,
+                            lastTimerTick = 0L
+                        )
+                        currentState.copy(coopState = updatedCoopState)
+                    } ?: currentState
+                }
+
+                val isHost = gameStateFlow.value.coopState?.isHost == true
+                if (isHost) {
+                    coopUseCase.sendGameSetup()
+                    Timber.tag("COOP_CONNECTION").d("PLAY_AGAIN: Host sent GAME_SETUP")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to restart coop game")
+                gameStateFlow.update {
+                    it.copy(coopErrorMessage = "Failed to restart: ${e.message}")
+                }
+            }
+        }
+    }
+
     fun startCoopTimer() {
         coopTimerJob?.cancel()
         coopTimerJob = scope.launch {
@@ -162,7 +196,8 @@ class CoopGameManager(
 
                 if (coopState.gamePhase != CoopGamePhase.PLAYING) break
 
-                gameStateFlow.update { it.copy(coopState = coopState.copy()) }
+                val now = clock.currentTimeMillis()
+                gameStateFlow.update { it.copy(coopState = coopState.copy(lastTimerTick = now)) }
 
                 if (coopState.gameStartTime > 0) {
                     val elapsed = clock.currentTimeMillis() - coopState.gameStartTime
