@@ -2,6 +2,7 @@ package com.akinalpfdn.poprush.game.presentation.coop
 
 import com.akinalpfdn.poprush.coop.domain.model.CoopBubble
 import com.akinalpfdn.poprush.coop.domain.model.CoopGameState
+import com.akinalpfdn.poprush.coop.domain.model.CoopMod
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.repository.PlayerProfileRepository
@@ -96,6 +97,14 @@ class CoopStateManager(
                     it.copy(coopErrorMessage = "Failed to update player color: ${e.message}")
                 }
             }
+        }
+    }
+
+    fun handleSelectCoopMod(coopMod: CoopMod) {
+        gameStateFlow.update { currentState ->
+            currentState.coopState?.let { coopState ->
+                currentState.copy(coopState = coopState.copy(selectedCoopMod = coopMod))
+            } ?: currentState
         }
     }
 

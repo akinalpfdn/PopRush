@@ -66,6 +66,9 @@ data class CoopMessage(
     @SerializedName("gameDuration")
     val gameDuration: Long? = null,
 
+    @SerializedName("coopMod")
+    val coopMod: String? = null,
+
     @SerializedName("timestamp")
     val timestamp: Long = System.currentTimeMillis()
 ) {
@@ -101,12 +104,13 @@ data class CoopMessage(
         /**
          * Create a game start message
          */
-        fun gameStart(playerName: String? = null, playerColor: String? = null, gameDuration: Long? = null): CoopMessage {
+        fun gameStart(playerName: String? = null, playerColor: String? = null, gameDuration: Long? = null, coopMod: String? = null): CoopMessage {
             return CoopMessage(
                 type = CoopMessageType.GAME_START,
                 playerName = playerName,
                 playerColor = playerColor,
-                gameDuration = gameDuration
+                gameDuration = gameDuration,
+                coopMod = coopMod
             )
         }
 

@@ -2,6 +2,7 @@ package com.akinalpfdn.poprush.game.presentation.coop
 
 import com.akinalpfdn.poprush.coop.data.model.CoopMessageType
 import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
+import com.akinalpfdn.poprush.coop.domain.model.CoopMod
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
@@ -61,6 +62,9 @@ class CoopMessageHandler(
                                 gamePhase = CoopGamePhase.PLAYING,
                                 gameStartTime = clock.currentTimeMillis(),
                                 gameDuration = message.gameDuration ?: coopState.gameDuration,
+                                selectedCoopMod = message.coopMod?.let { modName ->
+                                    try { CoopMod.valueOf(modName) } catch (_: IllegalArgumentException) { null }
+                                } ?: coopState.selectedCoopMod,
                                 opponentPlayerName = message.playerName ?: coopState.opponentPlayerName,
                                 opponentPlayerColor = message.playerColor?.let { colorName ->
                                     try {

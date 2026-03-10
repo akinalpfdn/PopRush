@@ -141,7 +141,8 @@ class CoopGameManager(
                 coopUseCase.sendGameStart(
                     playerName = currentCoopState?.localPlayerName,
                     playerColor = currentCoopState?.localPlayerColor?.name,
-                    gameDuration = currentCoopState?.gameDuration
+                    gameDuration = currentCoopState?.gameDuration,
+                    coopMod = currentCoopState?.selectedCoopMod?.name
                 )
                 Timber.tag("COOP_CONNECTION").d("GAME_START message sent successfully")
             } catch (e: Exception) {

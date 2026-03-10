@@ -1,6 +1,7 @@
 package com.akinalpfdn.poprush.game.presentation
 
 import com.akinalpfdn.poprush.coop.domain.model.CoopBubble
+import com.akinalpfdn.poprush.coop.domain.model.CoopMod
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
@@ -53,6 +54,7 @@ class CoopHandler @Inject constructor(
     fun handleStopCoopConnection() = stateManager.handleStopCoopConnection()
     fun handleCoopSyncBubbles(bubbles: List<CoopBubble>) = stateManager.handleCoopSyncBubbles(bubbles)
     fun handleCoopSyncScores(localScore: Int, opponentScore: Int) = stateManager.handleCoopSyncScores(localScore, opponentScore)
+    fun handleSelectCoopMod(coopMod: CoopMod) = stateManager.handleSelectCoopMod(coopMod)
 
     // Game management
     fun handleCoopClaimBubble(bubbleId: Int) = gameManager.handleCoopClaimBubble(bubbleId)

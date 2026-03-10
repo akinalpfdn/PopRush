@@ -56,6 +56,7 @@ fun CoopGameplayScreen(
     onStartMatch: () -> Unit,
     onDurationChange: (kotlin.time.Duration) -> Unit,
     onPlayAgain: () -> Unit,
+    onCoopModSelected: (com.akinalpfdn.poprush.coop.domain.model.CoopMod) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Time's Up transition state
@@ -102,6 +103,7 @@ fun CoopGameplayScreen(
                                 onStartMatch = onStartMatch,
                                 onDurationChange = onDurationChange,
                                 onDisconnect = onDisconnect,
+                                onCoopModSelected = onCoopModSelected,
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {

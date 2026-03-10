@@ -147,11 +147,12 @@ class CoopUseCase @Inject constructor(
     /**
      * Send game start message
      */
-    suspend fun sendGameStart(playerName: String? = null, playerColor: String? = null, gameDuration: Long? = null) {
+    suspend fun sendGameStart(playerName: String? = null, playerColor: String? = null, gameDuration: Long? = null, coopMod: String? = null) {
         val coopMessage = CoopMessage.gameStart(
             playerName = playerName,
             playerColor = playerColor,
-            gameDuration = gameDuration
+            gameDuration = gameDuration,
+            coopMod = coopMod
         )
         sendMessage(coopMessage)
     }

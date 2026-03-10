@@ -1,6 +1,7 @@
 package com.akinalpfdn.poprush.coop.domain.model
 
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
+import com.akinalpfdn.poprush.coop.domain.model.CoopMod
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -84,6 +85,7 @@ data class CoopGameState(
     val localPlayerColor: BubbleColor = BubbleColor.ROSE,
     val opponentPlayerColor: BubbleColor = BubbleColor.SKY,
     val bubbles: List<CoopBubble> = emptyList(),
+    val selectedCoopMod: CoopMod = CoopMod.BUBBLE_POP,
     val gamePhase: CoopGamePhase = CoopGamePhase.WAITING,
     val connectionStartTime: Long = 0L,
     val gameStartTime: Long = 0L,
