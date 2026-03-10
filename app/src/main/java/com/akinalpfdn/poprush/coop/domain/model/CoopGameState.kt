@@ -23,6 +23,7 @@ enum class CoopConnectionPhase {
  */
 enum class CoopGamePhase {
     WAITING,
+    MODE_SELECTION,
     SETUP,
     PLAYING,
     PAUSED,

@@ -95,7 +95,19 @@ class CoopGameManager(
     }
 
     fun handleStartCoopGame() {
-        Timber.tag("COOP_CONNECTION").d("HANDLE_START_COOP_GAME: Entering setup phase")
+        Timber.tag("COOP_CONNECTION").d("HANDLE_START_COOP_GAME: Entering mode selection phase")
+        gameStateFlow.update { currentState ->
+            currentState.coopState?.let { coopState ->
+                val updatedCoopState = coopState.copy(
+                    gamePhase = CoopGamePhase.MODE_SELECTION
+                )
+                currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
+            } ?: currentState
+        }
+    }
+
+    fun handleConfirmCoopMod() {
+        Timber.tag("COOP_CONNECTION").d("HANDLE_CONFIRM_COOP_MOD: Entering setup phase")
         scope.launch {
             try {
                 gameStateFlow.update { currentState ->
@@ -103,7 +115,7 @@ class CoopGameManager(
                         val updatedCoopState = coopState.copy(
                             gamePhase = CoopGamePhase.SETUP
                         )
-                        currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
+                        currentState.copy(coopState = updatedCoopState)
                     } ?: currentState
                 }
 
@@ -163,7 +175,7 @@ class CoopGameManager(
                 gameStateFlow.update { currentState ->
                     currentState.coopState?.let { coopState ->
                         val updatedCoopState = coopState.copy(
-                            gamePhase = CoopGamePhase.SETUP,
+                            gamePhase = CoopGamePhase.MODE_SELECTION,
                             bubbles = freshBubbles,
                             localScore = 0,
                             opponentScore = 0,
@@ -174,11 +186,7 @@ class CoopGameManager(
                     } ?: currentState
                 }
 
-                val isHost = gameStateFlow.value.coopState?.isHost == true
-                if (isHost) {
-                    coopUseCase.sendGameSetup()
-                    Timber.tag("COOP_CONNECTION").d("PLAY_AGAIN: Host sent GAME_SETUP")
-                }
+                Timber.tag("COOP_CONNECTION").d("PLAY_AGAIN: Returning to mode selection")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to restart coop game")
                 gameStateFlow.update {

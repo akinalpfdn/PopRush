@@ -62,6 +62,7 @@ class CoopHandler @Inject constructor(
     fun handleStartCoopGame() = gameManager.handleStartCoopGame()
     fun handleStartCoopMatch() = gameManager.handleStartCoopMatch()
     fun handlePlayAgain() = gameManager.handlePlayAgain()
+    fun handleConfirmCoopMod() = gameManager.handleConfirmCoopMod()
 
     // Connection management
     fun handleStartCoopConnection() = connectionManager.handleStartCoopConnection()

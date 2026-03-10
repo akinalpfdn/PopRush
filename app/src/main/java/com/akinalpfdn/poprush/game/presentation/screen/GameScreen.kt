@@ -207,6 +207,7 @@ fun GameScreen(
             onStartMatch = { viewModel.processIntent(CoopIntent.StartCoopMatch) },
             onPlayAgain = { viewModel.processIntent(CoopIntent.PlayAgain) },
             onCoopModSelected = { mod -> viewModel.processIntent(CoopIntent.SelectCoopMod(mod)) },
+            onConfirmCoopMod = { viewModel.processIntent(CoopIntent.ConfirmCoopMod) },
             permissionManager = permissionManager,
             showPermissionsDialog = showPermissionsDialog,
             onShowPermissionsDialog = { showPermissionsDialog = true },
@@ -401,6 +402,7 @@ private fun GameContent(
     onStartMatch: () -> Unit,
     onPlayAgain: () -> Unit,
     onCoopModSelected: (com.akinalpfdn.poprush.coop.domain.model.CoopMod) -> Unit,
+    onConfirmCoopMod: () -> Unit,
     permissionManager: com.akinalpfdn.poprush.coop.presentation.permission.CoopPermissionManager,
     showPermissionsDialog: Boolean,
     onShowPermissionsDialog: () -> Unit,
@@ -494,6 +496,7 @@ private fun GameContent(
                             onDurationChange = onDurationChange,
                             onPlayAgain = onPlayAgain,
                             onCoopModSelected = onCoopModSelected,
+                            onConfirmCoopMod = onConfirmCoopMod,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {

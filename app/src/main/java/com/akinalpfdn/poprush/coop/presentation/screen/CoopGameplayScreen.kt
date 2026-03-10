@@ -57,6 +57,7 @@ fun CoopGameplayScreen(
     onDurationChange: (kotlin.time.Duration) -> Unit,
     onPlayAgain: () -> Unit,
     onCoopModSelected: (com.akinalpfdn.poprush.coop.domain.model.CoopMod) -> Unit,
+    onConfirmCoopMod: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Time's Up transition state
@@ -95,6 +96,24 @@ fun CoopGameplayScreen(
                     .fillMaxWidth()
             ) {
                 when {
+                    coopGameState.currentPhase == CoopGamePhase.MODE_SELECTION -> {
+                        if (coopGameState.isHost) {
+                            CoopModSelectionScreen(
+                                coopGameState = coopGameState,
+                                onCoopModSelected = onCoopModSelected,
+                                onConfirm = onConfirmCoopMod,
+                                onDisconnect = onDisconnect,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            WaitingPhaseContent(
+                                title = "SETTING UP",
+                                message = "Host is selecting the game mode...",
+                                onDisconnect = onDisconnect,
+                                coopGameState = coopGameState
+                            )
+                        }
+                    }
                     coopGameState.currentPhase == CoopGamePhase.SETUP -> {
                         if (coopGameState.isHost) {
                             CoopSetupScreen(
@@ -103,7 +122,6 @@ fun CoopGameplayScreen(
                                 onStartMatch = onStartMatch,
                                 onDurationChange = onDurationChange,
                                 onDisconnect = onDisconnect,
-                                onCoopModSelected = onCoopModSelected,
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {

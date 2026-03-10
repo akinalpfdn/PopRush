@@ -194,7 +194,10 @@ class CoopConnectionManager(
                 gameStateFlow.update { currentState ->
                     currentState.copy(
                         coopState = initialState,
-                        showCoopConnectionDialog = false
+                        showCoopConnectionDialog = false,
+                        isCoopMode = false,
+                        gameMode = com.akinalpfdn.poprush.core.domain.model.GameMode.SINGLE,
+                        currentScreen = com.akinalpfdn.poprush.core.domain.model.StartScreenFlow.MODE_SELECTION
                     )
                 }
             } catch (e: Exception) {
@@ -224,6 +227,7 @@ class CoopConnectionManager(
     private suspend fun collectConnectionState() {
         coopUseCase.connectionState.collect { connectionState ->
             val initialState = stateManager.getCachedInitialCoopState()
+            val previousConnectionPhase = gameStateFlow.value.coopState?.connectionPhase
 
             gameStateFlow.update { currentState ->
                 val currentCoopState = currentState.coopState
@@ -265,6 +269,26 @@ class CoopConnectionManager(
                 } catch (e: Exception) {
                     Timber.tag("COOP_CONNECTION").e(e, "CLIENT_PROFILE_FAILED")
                 }
+            }
+
+            // Handle unexpected disconnection from the other side
+            val wasConnected = previousConnectionPhase == CoopConnectionPhase.CONNECTED ||
+                previousConnectionPhase == CoopConnectionPhase.CONNECTING
+            if (connectionState == ConnectionState.DISCONNECTED && wasConnected) {
+                Timber.tag("COOP_CONNECTION").d("PEER_DISCONNECTED: Was $previousConnectionPhase, now DISCONNECTED")
+                gameManager.cancelTimer()
+                val resetState = stateManager.getCachedInitialCoopState()
+                gameStateFlow.update { state ->
+                    state.copy(
+                        coopState = resetState,
+                        showCoopConnectionDialog = false,
+                        isCoopMode = false,
+                        gameMode = com.akinalpfdn.poprush.core.domain.model.GameMode.SINGLE,
+                        currentScreen = com.akinalpfdn.poprush.core.domain.model.StartScreenFlow.MODE_SELECTION,
+                        coopErrorMessage = "Opponent disconnected"
+                    )
+                }
+                return@collect
             }
 
             // Auto-start game setup when host connects

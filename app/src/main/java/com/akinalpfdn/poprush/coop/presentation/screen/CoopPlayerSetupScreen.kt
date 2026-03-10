@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akinalpfdn.poprush.coop.presentation.component.BubbleIconButton
@@ -251,9 +252,14 @@ private fun CompactNameInput(
     onDone: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var textFieldValue by remember(Unit) { mutableStateOf(TextFieldValue(playerName)) }
+
     OutlinedTextField(
-        value = playerName,
-        onValueChange = onNameChange,
+        value = textFieldValue,
+        onValueChange = { newValue ->
+            textFieldValue = newValue
+            onNameChange(newValue.text)
+        },
         placeholder = {
             Text(
                 "Enter name...",
@@ -279,9 +285,12 @@ private fun CompactNameInput(
         ),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { onDone() }),
-        trailingIcon = if (playerName.isNotEmpty()) {
+        trailingIcon = if (textFieldValue.text.isNotEmpty()) {
             {
-                IconButton(onClick = { onNameChange("") }) {
+                IconButton(onClick = {
+                    textFieldValue = TextFieldValue("")
+                    onNameChange("")
+                }) {
                     Icon(Icons.Default.Cancel, null, tint = AppColors.Text.Muted)
                 }
             }
