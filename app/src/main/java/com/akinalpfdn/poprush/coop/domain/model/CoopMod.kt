@@ -11,5 +11,18 @@ enum class CoopMod(
     BUBBLE_POP(
         displayName = "Bubble Pop",
         description = "Race to claim as many bubbles as you can before time runs out!"
-    )
+    ),
+    TERRITORY_WAR(
+        displayName = "Territory War",
+        description = "Claim all the bubbles! Once taken, a bubble can't be stolen back."
+    );
+
+    /**
+     * Whether this mod uses a time limit.
+     */
+    val isTimed: Boolean
+        get() = when (this) {
+            BUBBLE_POP -> true
+            TERRITORY_WAR -> false
+        }
 }

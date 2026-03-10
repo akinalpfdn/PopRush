@@ -132,6 +132,11 @@ private fun getModVisuals(mod: CoopMod): ModVisuals = when (mod) {
         baseColor = AppColors.Bubble.SkyBlue,
         pressedColor = AppColors.Bubble.SkyBluePressed
     )
+    CoopMod.TERRITORY_WAR -> ModVisuals(
+        icon = Icons.Default.Flag,
+        baseColor = AppColors.Bubble.Grape,
+        pressedColor = AppColors.Bubble.GrapePressed
+    )
 }
 
 @Composable

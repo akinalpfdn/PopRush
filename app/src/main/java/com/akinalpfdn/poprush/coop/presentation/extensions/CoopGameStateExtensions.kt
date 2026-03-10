@@ -44,6 +44,7 @@ val CoopGameState.remotePlayerScore: Int
 
 val CoopGameState.timeRemaining: Long
     get() {
+        if (!selectedCoopMod.isTimed) return 0L // No time limit for untimed modes
         if (gameStartTime <= 0) return gameDuration // Return full duration if not started
         val elapsed = System.currentTimeMillis() - gameStartTime
         val remaining = (gameDuration - elapsed).coerceAtLeast(0L)

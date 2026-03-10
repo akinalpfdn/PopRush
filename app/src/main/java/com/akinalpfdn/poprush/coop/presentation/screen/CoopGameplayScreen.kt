@@ -66,9 +66,11 @@ fun CoopGameplayScreen(
 
     LaunchedEffect(coopGameState.currentPhase) {
         if (coopGameState.currentPhase == CoopGamePhase.FINISHED && !showResults) {
-            showTimesUp = true
-            delay(2500)
-            showTimesUp = false
+            if (coopGameState.selectedCoopMod.isTimed) {
+                showTimesUp = true
+                delay(2500)
+                showTimesUp = false
+            }
             showResults = true
         } else if (coopGameState.currentPhase != CoopGamePhase.FINISHED) {
             showTimesUp = false
@@ -262,6 +264,8 @@ private fun PlayingPhaseContent(
             remoteScore = coopGameState.remotePlayerScore,
             remoteColor = coopGameState.remotePlayerColor,
             timeRemaining = coopGameState.timeRemaining,
+            isTimed = coopGameState.selectedCoopMod.isTimed,
+            unclaimedBubbles = coopGameState.unclaimedBubbles,
             onPause = onPause
         )
 
@@ -556,6 +560,8 @@ private fun CompactGameHUD(
     remoteScore: Int,
     remoteColor: BubbleColor,
     timeRemaining: Long,
+    isTimed: Boolean,
+    unclaimedBubbles: Int,
     onPause: () -> Unit
 ) {
     Row(
@@ -574,21 +580,40 @@ private fun CompactGameHUD(
     ) {
         CompactScorePill(localName, localScore, localColor)
 
-        // Timer bubble
+        // Center info bubble
         Box(
             modifier = Modifier
                 .shadow(2.dp, RoundedCornerShape(16.dp))
                 .background(AppColors.Background.Primary, RoundedCornerShape(16.dp))
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            val seconds = (timeRemaining / 1000).coerceAtLeast(0)
-            Text(
-                text = "${seconds}s",
-                fontWeight = FontWeight.Black,
-                fontSize = 20.sp,
-                color = if (timeRemaining <= 10_000) AppColors.Bubble.Coral else AppColors.Text.Primary,
-                fontFamily = NunitoFontFamily
-            )
+            if (isTimed) {
+                val seconds = (timeRemaining / 1000).coerceAtLeast(0)
+                Text(
+                    text = "${seconds}s",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 20.sp,
+                    color = if (timeRemaining <= 10_000) AppColors.Bubble.Coral else AppColors.Text.Primary,
+                    fontFamily = NunitoFontFamily
+                )
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Circle,
+                        contentDescription = null,
+                        tint = AppColors.Bubble.Grape,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "$unclaimedBubbles",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 20.sp,
+                        color = if (unclaimedBubbles <= 5) AppColors.Bubble.Coral else AppColors.Text.Primary,
+                        fontFamily = NunitoFontFamily
+                    )
+                }
+            }
         }
 
         CompactScorePill(remoteName, remoteScore, remoteColor)

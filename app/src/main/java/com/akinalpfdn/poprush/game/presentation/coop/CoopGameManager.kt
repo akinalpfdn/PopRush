@@ -1,6 +1,7 @@
 package com.akinalpfdn.poprush.game.presentation.coop
 
 import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
+import com.akinalpfdn.poprush.coop.domain.model.CoopMod
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import com.akinalpfdn.poprush.core.domain.model.GameState
 import com.akinalpfdn.poprush.core.domain.util.Clock
@@ -31,6 +32,14 @@ class CoopGameManager(
 
             if (coopState.gamePhase != CoopGamePhase.PLAYING) return@launch
 
+            // In TERRITORY_WAR, bubbles already owned by opponent cannot be reclaimed
+            if (coopState.selectedCoopMod == CoopMod.TERRITORY_WAR) {
+                val targetBubble = coopState.bubbles.find { it.id == bubbleId }
+                if (targetBubble?.owner != null && targetBubble.owner != coopState.localPlayerId) {
+                    return@launch
+                }
+            }
+
             val updatedBubbles = coopState.bubbles.map { bubble ->
                 if (bubble.id == bubbleId) {
                     bubble.copy(owner = coopState.localPlayerId)
@@ -46,6 +55,11 @@ class CoopGameManager(
             )
 
             gameStateFlow.update { it.copy(coopState = updatedCoopState) }
+
+            // In TERRITORY_WAR, check if all bubbles are claimed → game over
+            if (coopState.selectedCoopMod == CoopMod.TERRITORY_WAR && updatedCoopState.allBubblesClaimed) {
+                handleCoopGameFinished(null)
+            }
 
             try {
                 coopUseCase.sendBubbleClaim(bubbleId, coopState.localPlayerColor)
@@ -136,10 +150,15 @@ class CoopGameManager(
             try {
                 gameStateFlow.update { currentState ->
                     currentState.coopState?.let { coopState ->
+                        val duration = if (coopState.selectedCoopMod.isTimed) {
+                            currentState.selectedDuration.inWholeMilliseconds
+                        } else {
+                            0L // No time limit
+                        }
                         val updatedCoopState = coopState.copy(
                             gamePhase = CoopGamePhase.PLAYING,
                             gameStartTime = clock.currentTimeMillis(),
-                            gameDuration = currentState.selectedDuration.inWholeMilliseconds
+                            gameDuration = duration
                         )
                         currentState.copy(coopState = updatedCoopState)
                     } ?: currentState
@@ -148,7 +167,9 @@ class CoopGameManager(
                 val currentCoopState = gameStateFlow.value.coopState
                 Timber.tag("COOP_CONNECTION").d("COOP_GAME_STARTED: Game is now in progress (Host)")
 
-                startCoopTimer()
+                if (currentCoopState?.selectedCoopMod?.isTimed == true) {
+                    startCoopTimer()
+                }
 
                 coopUseCase.sendGameStart(
                     playerName = currentCoopState?.localPlayerName,

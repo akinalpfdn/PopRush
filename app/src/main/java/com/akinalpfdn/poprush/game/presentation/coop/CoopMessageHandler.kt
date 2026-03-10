@@ -77,13 +77,24 @@ class CoopMessageHandler(
                             currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
                         } ?: currentState
                     }
-                    gameManager.startCoopTimer()
+                    val selectedMod = gameStateFlow.value.coopState?.selectedCoopMod
+                    if (selectedMod?.isTimed == true) {
+                        gameManager.startCoopTimer()
+                    }
                 }
                 CoopMessageType.BUBBLE_CLAIM -> {
                     val bubbleId = message.bubbleId
                     if (bubbleId != null) {
                         gameStateFlow.update { currentState ->
                             currentState.coopState?.let { coopState ->
+                                // In TERRITORY_WAR, skip if bubble already owned by local player
+                                if (coopState.selectedCoopMod == CoopMod.TERRITORY_WAR) {
+                                    val targetBubble = coopState.bubbles.find { it.id == bubbleId }
+                                    if (targetBubble?.owner == coopState.localPlayerId) {
+                                        return@let currentState
+                                    }
+                                }
+
                                 val updatedBubbles = coopState.bubbles.map { bubble ->
                                     if (bubble.id == bubbleId) {
                                         bubble.copy(owner = coopState.opponentPlayerId)
@@ -96,6 +107,13 @@ class CoopMessageHandler(
                                     localScore = updatedBubbles.count { it.owner == coopState.localPlayerId },
                                     opponentScore = updatedBubbles.count { it.owner == coopState.opponentPlayerId }
                                 )
+
+                                // In TERRITORY_WAR, check if all bubbles claimed → game over
+                                if (coopState.selectedCoopMod == CoopMod.TERRITORY_WAR && updatedCoopState.allBubblesClaimed) {
+                                    val finalState = updatedCoopState.copy(gamePhase = CoopGamePhase.FINISHED)
+                                    return@let currentState.copy(coopState = finalState)
+                                }
+
                                 currentState.copy(coopState = updatedCoopState)
                             } ?: currentState
                         }

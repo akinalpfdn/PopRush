@@ -71,14 +71,16 @@ fun CoopSetupScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Duration picker
-            DurationPicker(
-                selectedDuration = selectedDuration,
-                onDurationChange = onDurationChange,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+            // Duration picker — only for timed modes
+            if (coopGameState.selectedCoopMod.isTimed) {
+                DurationPicker(
+                    selectedDuration = selectedDuration,
+                    onDurationChange = onDurationChange,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp))
+            }
 
             // Start match button
             CoopBubbleButton(
