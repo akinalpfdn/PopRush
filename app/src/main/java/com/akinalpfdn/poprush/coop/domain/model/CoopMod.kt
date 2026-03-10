@@ -15,6 +15,10 @@ enum class CoopMod(
     TERRITORY_WAR(
         displayName = "Territory War",
         description = "Claim all the bubbles! Once taken, a bubble can't be stolen back."
+    ),
+    BLIND_MODE(
+        displayName = "Blind Mode",
+        description = "Opponent's bubbles are hidden! Scores revealed when time runs out."
     );
 
     /**
@@ -24,5 +28,12 @@ enum class CoopMod(
         get() = when (this) {
             BUBBLE_POP -> true
             TERRITORY_WAR -> false
+            BLIND_MODE -> true
         }
+
+    /**
+     * Whether opponent's bubbles are hidden during gameplay.
+     */
+    val isBlind: Boolean
+        get() = this == BLIND_MODE
 }

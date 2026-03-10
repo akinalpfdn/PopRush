@@ -138,6 +138,11 @@ object AppColors {
         val Peach = Color(0xFFFF9F7F)
         val PeachPressed = Color(0xFFFF8A65)
         val PeachGlow = Color(0xFFFFCBB8)
+
+        // Indigo - Mystery, stealth, hidden elements
+        val Indigo = Color(0xFF6366F1)
+        val IndigoPressed = Color(0xFF4F46E5)
+        val IndigoGlow = Color(0xFFA5B4FC)
     }
 
     // ========================================================================

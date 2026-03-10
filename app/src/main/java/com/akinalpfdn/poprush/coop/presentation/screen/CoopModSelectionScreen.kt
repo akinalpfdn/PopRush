@@ -137,6 +137,11 @@ private fun getModVisuals(mod: CoopMod): ModVisuals = when (mod) {
         baseColor = AppColors.Bubble.Grape,
         pressedColor = AppColors.Bubble.GrapePressed
     )
+    CoopMod.BLIND_MODE -> ModVisuals(
+        icon = Icons.Default.VisibilityOff,
+        baseColor = AppColors.Bubble.Indigo,
+        pressedColor = AppColors.Bubble.IndigoPressed
+    )
 }
 
 @Composable

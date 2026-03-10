@@ -65,23 +65,30 @@ fun CoopGameState.toGameState(): GameState {
 
     // Debug logging
     Timber.tag("COOP_TIMER").d("toGameState: phase=$currentPhase, timeRemaining=$timeRemaining, duration=${timeRemainingDuration}, gameStartTime=$gameStartTime, gameDuration=$gameDuration")
+    // In Blind Mode during gameplay, ALL bubbles stay gray (no colors visible)
+    // Once FINISHED, reveal all bubbles with true colors
+    val isBlindPlaying = selectedCoopMod.isBlind && currentPhase == CoopGamePhase.PLAYING
+
     val convertedBubbles = bubbles.map { coopBubble ->
         com.akinalpfdn.poprush.core.domain.model.Bubble(
             id = coopBubble.id,
             position = coopBubble.position,
             row = coopBubble.row,
             col = coopBubble.col,
-            color = coopBubble.owner?.let { ownerId ->
-                // Convert owner ID back to color - for now, use player colors
-                when (ownerId) {
-                    localPlayerId -> localPlayerColor
-                    opponentPlayerId -> opponentPlayerColor
-                    else -> com.akinalpfdn.poprush.core.domain.model.BubbleColor.GRAY
-                }
-            } ?: com.akinalpfdn.poprush.core.domain.model.BubbleColor.GRAY,
+            color = if (isBlindPlaying) {
+                com.akinalpfdn.poprush.core.domain.model.BubbleColor.GRAY
+            } else {
+                coopBubble.owner?.let { ownerId ->
+                    when (ownerId) {
+                        localPlayerId -> localPlayerColor
+                        opponentPlayerId -> opponentPlayerColor
+                        else -> com.akinalpfdn.poprush.core.domain.model.BubbleColor.GRAY
+                    }
+                } ?: com.akinalpfdn.poprush.core.domain.model.BubbleColor.GRAY
+            },
             isActive = currentPhase == CoopGamePhase.PLAYING,
-            isPressed = false, // In coop mode, bubbles are never "pressed" like in single player
-            transparency = 1.0f, // Always opaque, unowned are gray
+            isPressed = false,
+            transparency = 1.0f,
             isSpeedModeActive = currentPhase == CoopGamePhase.PLAYING
         )
     }

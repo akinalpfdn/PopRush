@@ -265,6 +265,7 @@ private fun PlayingPhaseContent(
             remoteColor = coopGameState.remotePlayerColor,
             timeRemaining = coopGameState.timeRemaining,
             isTimed = coopGameState.selectedCoopMod.isTimed,
+            isBlind = coopGameState.selectedCoopMod.isBlind,
             unclaimedBubbles = coopGameState.unclaimedBubbles,
             onPause = onPause
         )
@@ -561,6 +562,7 @@ private fun CompactGameHUD(
     remoteColor: BubbleColor,
     timeRemaining: Long,
     isTimed: Boolean,
+    isBlind: Boolean,
     unclaimedBubbles: Int,
     onPause: () -> Unit
 ) {
@@ -578,7 +580,7 @@ private fun CompactGameHUD(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        CompactScorePill(localName, localScore, localColor)
+        CompactScorePill(localName, localScore, localColor, hideScore = isBlind)
 
         // Center info bubble
         Box(
@@ -616,7 +618,7 @@ private fun CompactGameHUD(
             }
         }
 
-        CompactScorePill(remoteName, remoteScore, remoteColor)
+        CompactScorePill(remoteName, remoteScore, remoteColor, hideScore = isBlind)
     }
 }
 
@@ -624,7 +626,8 @@ private fun CompactGameHUD(
 private fun CompactScorePill(
     name: String,
     score: Int,
-    color: BubbleColor
+    color: BubbleColor,
+    hideScore: Boolean = false
 ) {
     val playerColor = PastelColors.getColor(color)
 
@@ -657,7 +660,7 @@ private fun CompactScorePill(
                 fontFamily = NunitoFontFamily
             )
             Text(
-                text = "$score",
+                text = if (hideScore) "?" else "$score",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = AppColors.Text.Primary,
