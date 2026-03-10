@@ -159,4 +159,11 @@ class CoopStateManager(
         }
         return bubbles
     }
+
+    fun placeBombs(bubbles: List<CoopBubble>, bombCount: Int = 7): List<CoopBubble> {
+        val bombIds = bubbles.map { it.id }.shuffled().take(bombCount).toSet()
+        return bubbles.map { bubble ->
+            if (bubble.id in bombIds) bubble.copy(isBomb = true) else bubble
+        }
+    }
 }

@@ -142,6 +142,11 @@ private fun getModVisuals(mod: CoopMod): ModVisuals = when (mod) {
         baseColor = AppColors.Bubble.Indigo,
         pressedColor = AppColors.Bubble.IndigoPressed
     )
+    CoopMod.HOT_POTATO -> ModVisuals(
+        icon = Icons.Default.Whatshot,
+        baseColor = AppColors.Bubble.Coral,
+        pressedColor = AppColors.Bubble.CoralPressed
+    )
 }
 
 @Composable

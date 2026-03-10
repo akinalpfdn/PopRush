@@ -19,6 +19,10 @@ enum class CoopMod(
     BLIND_MODE(
         displayName = "Blind Mode",
         description = "Opponent's bubbles are hidden! Scores revealed when time runs out."
+    ),
+    HOT_POTATO(
+        displayName = "Hot Potato",
+        description = "Some bubbles are bombs! Claim a bomb and lose 3 points. Can you avoid them?"
     );
 
     /**
@@ -29,6 +33,7 @@ enum class CoopMod(
             BUBBLE_POP -> true
             TERRITORY_WAR -> false
             BLIND_MODE -> true
+            HOT_POTATO -> true
         }
 
     /**

@@ -49,7 +49,8 @@ data class CoopBubble(
     val col: Int,
     val owner: String? = null, // Player ID or null for unclaimed
     val isTransitioning: Boolean = false,
-    val transitionStartTime: Long = 0L
+    val transitionStartTime: Long = 0L,
+    val isBomb: Boolean = false
 )
 
 /**
@@ -92,6 +93,8 @@ data class CoopGameState(
     val gameStartTime: Long = 0L,
     val gameDuration: Long = 60_000L, // Default 60 seconds
     val lastTimerTick: Long = 0L,
+    val localBombsTriggered: Int = 0,
+    val opponentBombsTriggered: Int = 0,
     val errorMessage: String? = null
 ) {
     /**

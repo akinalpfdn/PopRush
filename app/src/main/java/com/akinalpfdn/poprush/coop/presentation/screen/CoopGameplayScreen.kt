@@ -17,17 +17,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import kotlinx.coroutines.delay
 import com.akinalpfdn.poprush.coop.domain.model.CoopGameState
 import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
@@ -63,6 +71,40 @@ fun CoopGameplayScreen(
     // Time's Up transition state
     var showTimesUp by remember { mutableStateOf(false) }
     var showResults by remember { mutableStateOf(false) }
+
+    // Bomb feedback state
+    var showBombPenalty by remember { mutableStateOf(false) }
+    var bombPenaltyKey by remember { mutableIntStateOf(0) }
+    val context = LocalContext.current
+
+    // Trigger bomb feedback when localBombsTriggered increases
+    val currentBombCount = coopGameState.localBombsTriggered
+    LaunchedEffect(currentBombCount) {
+        if (currentBombCount > 0) {
+            // Haptic feedback — medium vibration
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = context.getSystemService(android.content.Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vibratorManager?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+            vibrator?.let {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    it.vibrate(VibrationEffect.createOneShot(150, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    it.vibrate(150)
+                }
+            }
+
+            // Score animation
+            bombPenaltyKey++
+            showBombPenalty = true
+            delay(1200)
+            showBombPenalty = false
+        }
+    }
 
     LaunchedEffect(coopGameState.currentPhase) {
         if (coopGameState.currentPhase == CoopGamePhase.FINISHED && !showResults) {
@@ -151,6 +193,15 @@ fun CoopGameplayScreen(
                                 onPause = { if (!showTimesUp) onPause() },
                                 modifier = Modifier.fillMaxSize()
                             )
+
+                            // Bomb penalty floating text
+                            if (showBombPenalty) {
+                                key(bombPenaltyKey) {
+                                    BombPenaltyText(
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
+                                }
+                            }
 
                             // Time's Up overlay
                             if (showTimesUp) {
@@ -815,5 +866,88 @@ private fun ScoreResultItem(name: String, score: Int, color: BubbleColor, isWinn
                 letterSpacing = 1.sp
             )
         }
+    }
+}
+
+@Composable
+private fun BombPenaltyText(
+    modifier: Modifier = Modifier
+) {
+    var animationProgress by remember { mutableFloatStateOf(0f) }
+    var hasPopped by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(16)
+        hasPopped = true
+        animate(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = tween(1000, easing = EaseOutCubic)
+        ) { value, _ ->
+            animationProgress = value
+        }
+    }
+
+    val popScale by animateFloatAsState(
+        targetValue = if (hasPopped) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = 0.5f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "bombPopScale"
+    )
+
+    val yOffset = (-100.dp.value * animationProgress).dp
+    val alpha = when {
+        animationProgress < 0.6f -> 1f
+        else -> 1f - ((animationProgress - 0.6f) / 0.4f)
+    }.coerceIn(0f, 1f)
+    val floatScale = 1f + (animationProgress * 0.2f)
+
+    Box(
+        modifier = modifier
+            .offset(y = yOffset)
+            .graphicsLayer {
+                this.alpha = alpha
+                scaleX = popScale * floatScale
+                scaleY = popScale * floatScale
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        // Glow layer
+        Text(
+            text = "-3",
+            color = AppColors.Bubble.Coral.copy(alpha = 0.5f * alpha),
+            fontSize = 40.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoFontFamily,
+            modifier = Modifier
+                .graphicsLayer {
+                    scaleX = 1.2f
+                    scaleY = 1.2f
+                }
+                .blur(8.dp)
+        )
+
+        // Main text
+        Text(
+            text = "-3",
+            fontSize = 40.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoFontFamily,
+            style = TextStyle(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White,
+                        AppColors.Bubble.Coral
+                    )
+                ),
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = 0.4f),
+                    offset = Offset(2f, 3f),
+                    blurRadius = 4f
+                )
+            )
+        )
     }
 }

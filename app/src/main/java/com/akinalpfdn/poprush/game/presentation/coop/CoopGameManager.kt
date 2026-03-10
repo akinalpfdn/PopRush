@@ -40,19 +40,38 @@ class CoopGameManager(
                 }
             }
 
+            // HOT_POTATO: check bomb before updating bubbles
+            val claimedBubble = coopState.bubbles.find { it.id == bubbleId }
+            val wasBomb = coopState.selectedCoopMod == CoopMod.HOT_POTATO && claimedBubble?.isBomb == true
+
             val updatedBubbles = coopState.bubbles.map { bubble ->
                 if (bubble.id == bubbleId) {
-                    bubble.copy(owner = coopState.localPlayerId)
+                    bubble.copy(
+                        owner = coopState.localPlayerId,
+                        isBomb = if (wasBomb) false else bubble.isBomb // Bomb deactivates after first claim
+                    )
                 } else {
                     bubble
                 }
             }
 
-            val updatedCoopState = coopState.copy(
-                bubbles = updatedBubbles,
-                localScore = updatedBubbles.count { it.owner == coopState.localPlayerId },
-                opponentScore = updatedBubbles.count { it.owner == coopState.opponentPlayerId }
-            )
+            // HOT_POTATO: count-based scoring + bomb penalty tracking; others: count-based scoring
+            val updatedCoopState = if (coopState.selectedCoopMod == CoopMod.HOT_POTATO) {
+                val newBombCount = if (wasBomb) coopState.localBombsTriggered + 1 else coopState.localBombsTriggered
+                val ownedCount = updatedBubbles.count { it.owner == coopState.localPlayerId }
+                coopState.copy(
+                    bubbles = updatedBubbles,
+                    localBombsTriggered = newBombCount,
+                    localScore = ownedCount - (newBombCount * 3),
+                    opponentScore = updatedBubbles.count { it.owner == coopState.opponentPlayerId } - (coopState.opponentBombsTriggered * 3)
+                )
+            } else {
+                coopState.copy(
+                    bubbles = updatedBubbles,
+                    localScore = updatedBubbles.count { it.owner == coopState.localPlayerId },
+                    opponentScore = updatedBubbles.count { it.owner == coopState.opponentPlayerId }
+                )
+            }
 
             gameStateFlow.update { it.copy(coopState = updatedCoopState) }
 
@@ -74,8 +93,17 @@ class CoopGameManager(
             val currentState = gameStateFlow.value
             val coopState = currentState.coopState ?: return@launch
 
-            val localScore = coopState.bubbles.count { it.owner == coopState.localPlayerId }
-            val opponentScore = coopState.bubbles.count { it.owner == coopState.opponentPlayerId }
+            // HOT_POTATO: bubbles held - (bombs triggered × 3); others: bubble count
+            val localScore = if (coopState.selectedCoopMod == CoopMod.HOT_POTATO) {
+                coopState.bubbles.count { it.owner == coopState.localPlayerId } - (coopState.localBombsTriggered * 3)
+            } else {
+                coopState.bubbles.count { it.owner == coopState.localPlayerId }
+            }
+            val opponentScore = if (coopState.selectedCoopMod == CoopMod.HOT_POTATO) {
+                coopState.bubbles.count { it.owner == coopState.opponentPlayerId } - (coopState.opponentBombsTriggered * 3)
+            } else {
+                coopState.bubbles.count { it.owner == coopState.opponentPlayerId }
+            }
 
             val finalWinnerId = winnerId ?: if (localScore > opponentScore) {
                 coopState.localPlayerId
@@ -148,6 +176,7 @@ class CoopGameManager(
         Timber.tag("COOP_CONNECTION").d("HANDLE_START_COOP_MATCH: Starting coop match!")
         scope.launch {
             try {
+                var bombIds: List<Int>? = null
                 gameStateFlow.update { currentState ->
                     currentState.coopState?.let { coopState ->
                         val duration = if (coopState.selectedCoopMod.isTimed) {
@@ -155,10 +184,19 @@ class CoopGameManager(
                         } else {
                             0L // No time limit
                         }
+                        // HOT_POTATO: place bombs on bubbles
+                        val bubblesWithBombs = if (coopState.selectedCoopMod == CoopMod.HOT_POTATO) {
+                            val placed = stateManager.placeBombs(coopState.bubbles)
+                            bombIds = placed.filter { it.isBomb }.map { it.id }
+                            placed
+                        } else {
+                            coopState.bubbles
+                        }
                         val updatedCoopState = coopState.copy(
                             gamePhase = CoopGamePhase.PLAYING,
                             gameStartTime = clock.currentTimeMillis(),
-                            gameDuration = duration
+                            gameDuration = duration,
+                            bubbles = bubblesWithBombs
                         )
                         currentState.copy(coopState = updatedCoopState)
                     } ?: currentState
@@ -175,7 +213,8 @@ class CoopGameManager(
                     playerName = currentCoopState?.localPlayerName,
                     playerColor = currentCoopState?.localPlayerColor?.name,
                     gameDuration = currentCoopState?.gameDuration,
-                    coopMod = currentCoopState?.selectedCoopMod?.name
+                    coopMod = currentCoopState?.selectedCoopMod?.name,
+                    bombBubbleIds = bombIds
                 )
                 Timber.tag("COOP_CONNECTION").d("GAME_START message sent successfully")
             } catch (e: Exception) {
@@ -200,6 +239,8 @@ class CoopGameManager(
                             bubbles = freshBubbles,
                             localScore = 0,
                             opponentScore = 0,
+                            localBombsTriggered = 0,
+                            opponentBombsTriggered = 0,
                             gameStartTime = 0L,
                             lastTimerTick = 0L
                         )

@@ -3,6 +3,7 @@ package com.akinalpfdn.poprush.coop.presentation.extensions
 import com.akinalpfdn.poprush.coop.domain.model.CoopGameState
 import com.akinalpfdn.poprush.coop.domain.model.CoopBubble
 import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
+import com.akinalpfdn.poprush.coop.domain.model.CoopMod
 import com.akinalpfdn.poprush.core.domain.model.Bubble
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.BubbleShape
@@ -69,6 +70,9 @@ fun CoopGameState.toGameState(): GameState {
     // Once FINISHED, reveal all bubbles with true colors
     val isBlindPlaying = selectedCoopMod.isBlind && currentPhase == CoopGamePhase.PLAYING
 
+    // HOT_POTATO: after game ends, reveal bomb bubbles with ROSE color
+    val isHotPotatoFinished = selectedCoopMod == CoopMod.HOT_POTATO && currentPhase == CoopGamePhase.FINISHED
+
     val convertedBubbles = bubbles.map { coopBubble ->
         com.akinalpfdn.poprush.core.domain.model.Bubble(
             id = coopBubble.id,
@@ -77,6 +81,8 @@ fun CoopGameState.toGameState(): GameState {
             col = coopBubble.col,
             color = if (isBlindPlaying) {
                 com.akinalpfdn.poprush.core.domain.model.BubbleColor.GRAY
+            } else if (isHotPotatoFinished && coopBubble.isBomb) {
+                com.akinalpfdn.poprush.core.domain.model.BubbleColor.ROSE
             } else {
                 coopBubble.owner?.let { ownerId ->
                     when (ownerId) {
