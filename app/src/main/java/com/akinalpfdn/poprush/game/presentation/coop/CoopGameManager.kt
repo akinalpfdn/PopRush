@@ -32,6 +32,40 @@ class CoopGameManager(
 
             if (coopState.gamePhase != CoopGamePhase.PLAYING) return@launch
 
+            // CHAIN_REACTION: turn-based, only allow when it's local player's turn
+            if (coopState.selectedCoopMod == CoopMod.CHAIN_REACTION) {
+                if (!coopState.isLocalPlayerTurn) return@launch
+                val targetBubble = coopState.bubbles.find { it.id == bubbleId }
+                if (targetBubble?.owner != null) return@launch // Can only claim unclaimed bubbles
+
+                val claimedIds = stateManager.floodFill(coopState.bubbles, bubbleId, coopState.localPlayerId)
+                if (claimedIds.isEmpty()) return@launch
+
+                val claimedIdSet = claimedIds.toSet()
+                val updatedBubbles = coopState.bubbles.map { bubble ->
+                    if (bubble.id in claimedIdSet) bubble.copy(owner = coopState.localPlayerId) else bubble
+                }
+
+                val updatedCoopState = coopState.copy(
+                    bubbles = updatedBubbles,
+                    localScore = updatedBubbles.count { it.owner == coopState.localPlayerId },
+                    opponentScore = updatedBubbles.count { it.owner == coopState.opponentPlayerId },
+                    currentTurnPlayerId = coopState.opponentPlayerId
+                )
+                gameStateFlow.update { it.copy(coopState = updatedCoopState) }
+
+                if (updatedCoopState.allBubblesClaimed || !updatedCoopState.hasMovesAvailable) {
+                    handleCoopGameFinished(null)
+                }
+
+                try {
+                    coopUseCase.sendTurnEnd(claimedIds)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to send turn end")
+                }
+                return@launch
+            }
+
             // In TERRITORY_WAR, bubbles already owned by opponent cannot be reclaimed
             if (coopState.selectedCoopMod == CoopMod.TERRITORY_WAR) {
                 val targetBubble = coopState.bubbles.find { it.id == bubbleId }
@@ -48,7 +82,7 @@ class CoopGameManager(
                 if (bubble.id == bubbleId) {
                     bubble.copy(
                         owner = coopState.localPlayerId,
-                        isBomb = if (wasBomb) false else bubble.isBomb // Bomb deactivates after first claim
+                        isBomb = if (wasBomb) false else bubble.isBomb
                     )
                 } else {
                     bubble
@@ -196,7 +230,9 @@ class CoopGameManager(
                             gamePhase = CoopGamePhase.PLAYING,
                             gameStartTime = clock.currentTimeMillis(),
                             gameDuration = duration,
-                            bubbles = bubblesWithBombs
+                            bubbles = bubblesWithBombs,
+                            // CHAIN_REACTION: host goes first
+                            currentTurnPlayerId = if (coopState.selectedCoopMod.isTurnBased) coopState.localPlayerId else null
                         )
                         currentState.copy(coopState = updatedCoopState)
                     } ?: currentState
@@ -241,6 +277,7 @@ class CoopGameManager(
                             opponentScore = 0,
                             localBombsTriggered = 0,
                             opponentBombsTriggered = 0,
+                            currentTurnPlayerId = null,
                             gameStartTime = 0L,
                             lastTimerTick = 0L
                         )

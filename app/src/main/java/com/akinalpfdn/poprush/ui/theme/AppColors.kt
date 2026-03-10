@@ -143,6 +143,11 @@ object AppColors {
         val Indigo = Color(0xFF6366F1)
         val IndigoPressed = Color(0xFF4F46E5)
         val IndigoGlow = Color(0xFFA5B4FC)
+
+        // Amber - Chain reactions, spreading effects
+        val Amber = Color(0xFFF59E0B)
+        val AmberPressed = Color(0xFFD97706)
+        val AmberGlow = Color(0xFFFCD34D)
     }
 
     // ========================================================================

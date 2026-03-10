@@ -213,6 +213,14 @@ class CoopUseCase @Inject constructor(
     }
 
     /**
+     * Send turn end message with claimed bubble IDs (Chain Reaction)
+     */
+    suspend fun sendTurnEnd(claimedBubbleIds: List<Int>) {
+        val coopMessage = CoopMessage.turnEnd(claimedBubbleIds)
+        sendMessage(coopMessage)
+    }
+
+    /**
      * Send a generic coop message
      */
     private suspend fun sendMessage(coopMessage: CoopMessage) {

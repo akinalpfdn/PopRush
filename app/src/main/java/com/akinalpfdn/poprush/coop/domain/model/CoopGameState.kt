@@ -95,6 +95,7 @@ data class CoopGameState(
     val lastTimerTick: Long = 0L,
     val localBombsTriggered: Int = 0,
     val opponentBombsTriggered: Int = 0,
+    val currentTurnPlayerId: String? = null,
     val errorMessage: String? = null
 ) {
     /**
@@ -130,6 +131,18 @@ data class CoopGameState(
      */
     val allBubblesClaimed: Boolean
         get() = bubbles.all { it.owner != null }
+
+    /**
+     * Whether it's the local player's turn (for turn-based modes).
+     */
+    val isLocalPlayerTurn: Boolean
+        get() = currentTurnPlayerId == localPlayerId
+
+    /**
+     * Whether any unclaimed bubbles remain that can be clicked.
+     */
+    val hasMovesAvailable: Boolean
+        get() = bubbles.any { it.owner == null }
 
     /**
      * Get the current winner based on score.

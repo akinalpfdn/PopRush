@@ -166,4 +166,83 @@ class CoopStateManager(
             if (bubble.id in bombIds) bubble.copy(isBomb = true) else bubble
         }
     }
+
+    /**
+     * Flood fill from a clicked bubble: claims the bubble and all connected unclaimed neighbors.
+     * Returns the list of all claimed bubble IDs.
+     */
+    fun floodFill(bubbles: List<CoopBubble>, startBubbleId: Int, playerId: String): List<Int> {
+        val startBubble = bubbles.find { it.id == startBubbleId } ?: return emptyList()
+        if (startBubble.owner != null) return emptyList()
+
+        // Claim the clicked bubble + all adjacent unclaimed neighbors (1 level)
+        val claimed = mutableListOf(startBubbleId)
+        for (neighbor in getHexNeighbors(startBubble.row, startBubble.col, bubbles)) {
+            if (neighbor.owner == null) {
+                claimed.add(neighbor.id)
+            }
+        }
+
+        return claimed
+    }
+
+    /**
+     * Get hex grid neighbors for a bubble at (row, col).
+     * Grid layout: rowSizes = [5, 6, 7, 8, 7, 6, 5]
+     * Even rows (0, 2, 4, 6) are shorter; odd rows (1, 3, 5) are offset.
+     */
+    private fun getHexNeighbors(row: Int, col: Int, bubbles: List<CoopBubble>): List<CoopBubble> {
+        val rowSizes = listOf(5, 6, 7, 8, 7, 6, 5)
+        val currentRowSize = rowSizes.getOrNull(row) ?: return emptyList()
+
+        val neighbors = mutableListOf<Pair<Int, Int>>() // (row, col) pairs
+
+        // Same row: left and right
+        if (col > 0) neighbors.add(row to col - 1)
+        if (col < currentRowSize - 1) neighbors.add(row to col + 1)
+
+        // Adjacent rows
+        val prevRow = row - 1
+        val nextRow = row + 1
+        val prevRowSize = rowSizes.getOrNull(prevRow)
+        val nextRowSize = rowSizes.getOrNull(nextRow)
+
+        // Hex offset logic: wider row → narrower row shifts, narrower → wider shifts
+        if (prevRowSize != null) {
+            if (prevRowSize > currentRowSize) {
+                // Going to a wider row: col and col+1
+                neighbors.add(prevRow to col)
+                neighbors.add(prevRow to col + 1)
+            } else if (prevRowSize < currentRowSize) {
+                // Going to a narrower row: col-1 and col
+                if (col > 0) neighbors.add(prevRow to col - 1)
+                if (col < prevRowSize) neighbors.add(prevRow to col)
+            } else {
+                // Same size rows
+                neighbors.add(prevRow to col)
+                if (col < prevRowSize - 1) neighbors.add(prevRow to col + 1)
+            }
+        }
+
+        if (nextRowSize != null) {
+            if (nextRowSize > currentRowSize) {
+                // Going to a wider row: col and col+1
+                neighbors.add(nextRow to col)
+                neighbors.add(nextRow to col + 1)
+            } else if (nextRowSize < currentRowSize) {
+                // Going to a narrower row: col-1 and col
+                if (col > 0) neighbors.add(nextRow to col - 1)
+                if (col < nextRowSize) neighbors.add(nextRow to col)
+            } else {
+                // Same size rows
+                neighbors.add(nextRow to col)
+                if (col < nextRowSize - 1) neighbors.add(nextRow to col + 1)
+            }
+        }
+
+        // Filter valid neighbors and find matching bubbles
+        return neighbors.mapNotNull { (r, c) ->
+            bubbles.find { it.row == r && it.col == c }
+        }
+    }
 }

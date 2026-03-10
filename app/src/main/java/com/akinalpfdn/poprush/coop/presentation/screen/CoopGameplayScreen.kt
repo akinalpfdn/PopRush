@@ -317,11 +317,15 @@ private fun PlayingPhaseContent(
             timeRemaining = coopGameState.timeRemaining,
             isTimed = coopGameState.selectedCoopMod.isTimed,
             isBlind = coopGameState.selectedCoopMod.isBlind,
+            isTurnBased = coopGameState.selectedCoopMod.isTurnBased,
+            isLocalPlayerTurn = coopGameState.isLocalPlayerTurn,
             unclaimedBubbles = coopGameState.unclaimedBubbles,
             onPause = onPause
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        val isTurnBlocked = coopGameState.selectedCoopMod.isTurnBased && !coopGameState.isLocalPlayerTurn
 
         Box(
             modifier = Modifier
@@ -333,8 +337,10 @@ private fun PlayingPhaseContent(
                 selectedShape = BubbleShape.CIRCLE,
                 zoomLevel = 1.0f,
                 onBubblePress = onBubbleClick,
-                enabled = coopGameState.currentPhase == CoopGamePhase.PLAYING,
-                modifier = Modifier.fillMaxSize()
+                enabled = coopGameState.currentPhase == CoopGamePhase.PLAYING && !isTurnBlocked,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (isTurnBlocked) Modifier.alpha(0.7f) else Modifier)
             )
         }
     }
@@ -614,62 +620,88 @@ private fun CompactGameHUD(
     timeRemaining: Long,
     isTimed: Boolean,
     isBlind: Boolean,
+    isTurnBased: Boolean = false,
+    isLocalPlayerTurn: Boolean = false,
     unclaimedBubbles: Int,
     onPause: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(24.dp),
-                ambientColor = AppColors.Bubble.Grape.withAlpha(0.1f),
-                spotColor = AppColors.Bubble.Grape.withAlpha(0.1f)
-            )
-            .background(AppColors.Background.Secondary, RoundedCornerShape(24.dp))
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        CompactScorePill(localName, localScore, localColor, hideScore = isBlind)
-
-        // Center info bubble
-        Box(
+    Column {
+        Row(
             modifier = Modifier
-                .shadow(2.dp, RoundedCornerShape(16.dp))
-                .background(AppColors.Background.Primary, RoundedCornerShape(16.dp))
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            if (isTimed) {
-                val seconds = (timeRemaining / 1000).coerceAtLeast(0)
-                Text(
-                    text = "${seconds}s",
-                    fontWeight = FontWeight.Black,
-                    fontSize = 20.sp,
-                    color = if (timeRemaining <= 10_000) AppColors.Bubble.Coral else AppColors.Text.Primary,
-                    fontFamily = NunitoFontFamily
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 4.dp,
+                    shape = RoundedCornerShape(24.dp),
+                    ambientColor = AppColors.Bubble.Grape.withAlpha(0.1f),
+                    spotColor = AppColors.Bubble.Grape.withAlpha(0.1f)
                 )
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Circle,
-                        contentDescription = null,
-                        tint = AppColors.Bubble.Grape,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                .background(AppColors.Background.Secondary, RoundedCornerShape(24.dp))
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            CompactScorePill(localName, localScore, localColor, hideScore = isBlind)
+
+            // Center info bubble
+            Box(
+                modifier = Modifier
+                    .shadow(2.dp, RoundedCornerShape(16.dp))
+                    .background(AppColors.Background.Primary, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                if (isTimed) {
+                    val seconds = (timeRemaining / 1000).coerceAtLeast(0)
                     Text(
-                        text = "$unclaimedBubbles",
+                        text = "${seconds}s",
                         fontWeight = FontWeight.Black,
                         fontSize = 20.sp,
-                        color = if (unclaimedBubbles <= 5) AppColors.Bubble.Coral else AppColors.Text.Primary,
+                        color = if (timeRemaining <= 10_000) AppColors.Bubble.Coral else AppColors.Text.Primary,
                         fontFamily = NunitoFontFamily
                     )
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Circle,
+                            contentDescription = null,
+                            tint = AppColors.Bubble.Grape,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "$unclaimedBubbles",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 20.sp,
+                            color = if (unclaimedBubbles <= 5) AppColors.Bubble.Coral else AppColors.Text.Primary,
+                            fontFamily = NunitoFontFamily
+                        )
+                    }
                 }
             }
+
+            CompactScorePill(remoteName, remoteScore, remoteColor, hideScore = isBlind)
         }
 
-        CompactScorePill(remoteName, remoteScore, remoteColor, hideScore = isBlind)
+        // Turn indicator for turn-based modes
+        if (isTurnBased) {
+            val turnText = if (isLocalPlayerTurn) "YOUR TURN" else "OPPONENT'S TURN"
+            val turnColor = if (isLocalPlayerTurn) AppColors.Bubble.Mint else AppColors.Bubble.Amber
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = turnText,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Black,
+                    color = turnColor,
+                    fontFamily = NunitoFontFamily,
+                    letterSpacing = 1.5.sp
+                )
+            }
+        }
     }
 }
 

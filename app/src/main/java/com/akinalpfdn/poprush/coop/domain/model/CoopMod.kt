@@ -23,6 +23,10 @@ enum class CoopMod(
     HOT_POTATO(
         displayName = "Hot Potato",
         description = "Some bubbles are bombs! Claim a bomb and lose 3 points. Can you avoid them?"
+    ),
+    CHAIN_REACTION(
+        displayName = "Chain Reaction",
+        description = "Take turns claiming bubbles. Each claim floods into adjacent empty bubbles!"
     );
 
     /**
@@ -34,6 +38,7 @@ enum class CoopMod(
             TERRITORY_WAR -> false
             BLIND_MODE -> true
             HOT_POTATO -> true
+            CHAIN_REACTION -> false
         }
 
     /**
@@ -41,4 +46,10 @@ enum class CoopMod(
      */
     val isBlind: Boolean
         get() = this == BLIND_MODE
+
+    /**
+     * Whether this mod is turn-based.
+     */
+    val isTurnBased: Boolean
+        get() = this == CHAIN_REACTION
 }

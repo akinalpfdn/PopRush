@@ -147,6 +147,11 @@ private fun getModVisuals(mod: CoopMod): ModVisuals = when (mod) {
         baseColor = AppColors.Bubble.Coral,
         pressedColor = AppColors.Bubble.CoralPressed
     )
+    CoopMod.CHAIN_REACTION -> ModVisuals(
+        icon = Icons.Default.Bolt,
+        baseColor = AppColors.Bubble.Amber,
+        pressedColor = AppColors.Bubble.AmberPressed
+    )
 }
 
 @Composable

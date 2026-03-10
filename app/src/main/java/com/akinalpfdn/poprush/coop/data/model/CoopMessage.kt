@@ -34,7 +34,10 @@ enum class CoopMessageType {
     HEARTBEAT,
 
     @SerializedName("player_profile")
-    PLAYER_PROFILE
+    PLAYER_PROFILE,
+
+    @SerializedName("turn_end")
+    TURN_END
 }
 
 /**
@@ -71,6 +74,9 @@ data class CoopMessage(
 
     @SerializedName("bombBubbleIds")
     val bombBubbleIds: List<Int>? = null,
+
+    @SerializedName("claimedBubbleIds")
+    val claimedBubbleIds: List<Int>? = null,
 
     @SerializedName("timestamp")
     val timestamp: Long = System.currentTimeMillis()
@@ -175,6 +181,13 @@ data class CoopMessage(
                 type = CoopMessageType.PLAYER_PROFILE,
                 playerName = playerName,
                 playerColor = playerColor
+            )
+        }
+
+        fun turnEnd(claimedBubbleIds: List<Int>): CoopMessage {
+            return CoopMessage(
+                type = CoopMessageType.TURN_END,
+                claimedBubbleIds = claimedBubbleIds
             )
         }
     }

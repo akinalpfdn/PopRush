@@ -67,13 +67,14 @@ class CoopMessageHandler(
                             } else {
                                 coopState.bubbles
                             }
+                            val resolvedMod = message.coopMod?.let { modName ->
+                                try { CoopMod.valueOf(modName) } catch (_: IllegalArgumentException) { null }
+                            } ?: coopState.selectedCoopMod
                             val updatedCoopState = coopState.copy(
                                 gamePhase = CoopGamePhase.PLAYING,
                                 gameStartTime = clock.currentTimeMillis(),
                                 gameDuration = message.gameDuration ?: coopState.gameDuration,
-                                selectedCoopMod = message.coopMod?.let { modName ->
-                                    try { CoopMod.valueOf(modName) } catch (_: IllegalArgumentException) { null }
-                                } ?: coopState.selectedCoopMod,
+                                selectedCoopMod = resolvedMod,
                                 opponentPlayerName = message.playerName ?: coopState.opponentPlayerName,
                                 opponentPlayerColor = message.playerColor?.let { colorName ->
                                     try {
@@ -82,7 +83,9 @@ class CoopMessageHandler(
                                         BubbleColor.ROSE
                                     }
                                 } ?: BubbleColor.ROSE,
-                                bubbles = bubblesWithBombs
+                                bubbles = bubblesWithBombs,
+                                // CHAIN_REACTION: host goes first → opponent's turn from client's perspective
+                                currentTurnPlayerId = if (resolvedMod.isTurnBased) coopState.opponentPlayerId else null
                             )
                             currentState.copy(coopState = updatedCoopState, showCoopConnectionDialog = false)
                         } ?: currentState
@@ -139,6 +142,33 @@ class CoopMessageHandler(
 
                                 // In TERRITORY_WAR, check if all bubbles claimed → game over
                                 if (coopState.selectedCoopMod == CoopMod.TERRITORY_WAR && updatedCoopState.allBubblesClaimed) {
+                                    val finalState = updatedCoopState.copy(gamePhase = CoopGamePhase.FINISHED)
+                                    return@let currentState.copy(coopState = finalState)
+                                }
+
+                                currentState.copy(coopState = updatedCoopState)
+                            } ?: currentState
+                        }
+                    }
+                }
+                CoopMessageType.TURN_END -> {
+                    Timber.tag("COOP_MESSAGES").d("Received TURN_END message: claimedIds=${message.claimedBubbleIds}")
+                    val claimedIds = message.claimedBubbleIds
+                    if (!claimedIds.isNullOrEmpty()) {
+                        val claimedIdSet = claimedIds.toSet()
+                        gameStateFlow.update { currentState ->
+                            currentState.coopState?.let { coopState ->
+                                val updatedBubbles = coopState.bubbles.map { bubble ->
+                                    if (bubble.id in claimedIdSet) bubble.copy(owner = coopState.opponentPlayerId) else bubble
+                                }
+                                val updatedCoopState = coopState.copy(
+                                    bubbles = updatedBubbles,
+                                    localScore = updatedBubbles.count { it.owner == coopState.localPlayerId },
+                                    opponentScore = updatedBubbles.count { it.owner == coopState.opponentPlayerId },
+                                    currentTurnPlayerId = coopState.localPlayerId
+                                )
+
+                                if (updatedCoopState.allBubblesClaimed || !updatedCoopState.hasMovesAvailable) {
                                     val finalState = updatedCoopState.copy(gamePhase = CoopGamePhase.FINISHED)
                                     return@let currentState.copy(coopState = finalState)
                                 }
