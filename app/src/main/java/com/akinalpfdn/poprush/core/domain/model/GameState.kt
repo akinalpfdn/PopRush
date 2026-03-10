@@ -57,7 +57,8 @@ data class GameState(
     val showCoopConnectionDialog: Boolean = false,
     val coopErrorMessage: String? = null,
     val showSpeedBonus: Boolean = false,
-    val speedBonusPoints: Int = 0
+    val speedBonusPoints: Int = 0,
+    val showCoopStatsDialog: Boolean = false
 ) {
     // --- Composite sub-state views (read-only, for gradual migration) ---
 

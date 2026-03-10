@@ -66,6 +66,7 @@ fun CoopGameplayScreen(
     onPlayAgain: () -> Unit,
     onCoopModSelected: (com.akinalpfdn.poprush.coop.domain.model.CoopMod) -> Unit,
     onConfirmCoopMod: () -> Unit,
+    onShowStats: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Time's Up transition state
@@ -147,6 +148,7 @@ fun CoopGameplayScreen(
                                 onCoopModSelected = onCoopModSelected,
                                 onConfirm = onConfirmCoopMod,
                                 onDisconnect = onDisconnect,
+                                onShowStats = onShowStats,
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {

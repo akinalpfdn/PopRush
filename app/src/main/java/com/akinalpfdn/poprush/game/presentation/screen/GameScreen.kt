@@ -208,6 +208,9 @@ fun GameScreen(
             onPlayAgain = { viewModel.processIntent(CoopIntent.PlayAgain) },
             onCoopModSelected = { mod -> viewModel.processIntent(CoopIntent.SelectCoopMod(mod)) },
             onConfirmCoopMod = { viewModel.processIntent(CoopIntent.ConfirmCoopMod) },
+            onShowCoopStats = { viewModel.processIntent(CoopIntent.ShowCoopStats) },
+            onHideCoopStats = { viewModel.processIntent(CoopIntent.HideCoopStats) },
+            matchHistoryRepository = viewModel.coopHandler.matchHistory,
             permissionManager = permissionManager,
             showPermissionsDialog = showPermissionsDialog,
             onShowPermissionsDialog = { showPermissionsDialog = true },
@@ -403,6 +406,9 @@ private fun GameContent(
     onPlayAgain: () -> Unit,
     onCoopModSelected: (com.akinalpfdn.poprush.coop.domain.model.CoopMod) -> Unit,
     onConfirmCoopMod: () -> Unit,
+    onShowCoopStats: () -> Unit,
+    onHideCoopStats: () -> Unit,
+    matchHistoryRepository: com.akinalpfdn.poprush.core.domain.repository.MatchHistoryRepository,
     permissionManager: com.akinalpfdn.poprush.coop.presentation.permission.CoopPermissionManager,
     showPermissionsDialog: Boolean,
     onShowPermissionsDialog: () -> Unit,
@@ -497,8 +503,21 @@ private fun GameContent(
                             onPlayAgain = onPlayAgain,
                             onCoopModSelected = onCoopModSelected,
                             onConfirmCoopMod = onConfirmCoopMod,
+                            onShowStats = onShowCoopStats,
                             modifier = Modifier.fillMaxSize()
                         )
+
+                        // Coop Stats Dialog
+                        if (gameState.showCoopStatsDialog) {
+                            com.akinalpfdn.poprush.coop.presentation.screen.CoopStatsDialog(
+                                localPlayerId = gameState.coopState.localPlayerId,
+                                localPlayerName = gameState.coopState.localPlayerName,
+                                opponentPlayerId = gameState.coopState.opponentPlayerId,
+                                opponentPlayerName = gameState.coopState.opponentPlayerName,
+                                matchHistoryRepository = matchHistoryRepository,
+                                onDismiss = onHideCoopStats
+                            )
+                        }
                     } else {
                         // Enhanced bubble grid with sound
                         BubbleGrid(

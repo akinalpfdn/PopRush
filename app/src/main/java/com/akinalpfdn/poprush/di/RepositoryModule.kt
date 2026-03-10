@@ -6,11 +6,14 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.akinalpfdn.poprush.audio.data.repository.AudioRepositoryImpl
 import com.akinalpfdn.poprush.core.data.local.GamePreferences
+import com.akinalpfdn.poprush.core.data.local.dao.MatchResultDao
 import com.akinalpfdn.poprush.core.data.repository.GameRepositoryImpl
+import com.akinalpfdn.poprush.core.data.repository.MatchHistoryRepositoryImpl
 import com.akinalpfdn.poprush.core.data.repository.SettingsRepositoryImpl
 import com.akinalpfdn.poprush.core.domain.repository.AudioRepository
 import com.akinalpfdn.poprush.core.domain.repository.AudioSettingsRepository
 import com.akinalpfdn.poprush.core.domain.repository.GameRepository
+import com.akinalpfdn.poprush.core.domain.repository.MatchHistoryRepository
 import com.akinalpfdn.poprush.core.domain.repository.GameSettingsRepository
 import com.akinalpfdn.poprush.core.domain.repository.PlayerProfileRepository
 import com.akinalpfdn.poprush.core.domain.repository.SettingsRepository
@@ -136,5 +139,16 @@ object RepositoryModule {
         visualSettingsRepository: VisualSettingsRepository
     ): AudioRepository {
         return AudioRepositoryImpl(context, audioSettingsRepository, visualSettingsRepository)
+    }
+
+    /**
+     * Provides MatchHistoryRepository implementation.
+     */
+    @Provides
+    @Singleton
+    fun provideMatchHistoryRepository(
+        matchResultDao: MatchResultDao
+    ): MatchHistoryRepository {
+        return MatchHistoryRepositoryImpl(matchResultDao)
     }
 }

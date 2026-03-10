@@ -167,6 +167,8 @@ class GameViewModel @Inject constructor(
             is CoopIntent.PlayAgain -> coopHandler.handlePlayAgain()
             is CoopIntent.SelectCoopMod -> coopHandler.handleSelectCoopMod(intent.coopMod)
             is CoopIntent.ConfirmCoopMod -> coopHandler.handleConfirmCoopMod()
+            is CoopIntent.ShowCoopStats -> _gameState.update { it.copy(showCoopStatsDialog = true) }
+            is CoopIntent.HideCoopStats -> _gameState.update { it.copy(showCoopStatsDialog = false) }
         }
     }
 

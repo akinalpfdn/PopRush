@@ -3,8 +3,10 @@ package com.akinalpfdn.poprush.core.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.akinalpfdn.poprush.core.data.local.entity.HighScoreEntity
+import com.akinalpfdn.poprush.core.data.local.entity.MatchResultEntity
 import com.akinalpfdn.poprush.core.data.local.entity.SettingsEntity
 import com.akinalpfdn.poprush.core.data.local.dao.HighScoreDao
+import com.akinalpfdn.poprush.core.data.local.dao.MatchResultDao
 import com.akinalpfdn.poprush.core.data.local.dao.SettingsDao
 
 /**
@@ -14,9 +16,10 @@ import com.akinalpfdn.poprush.core.data.local.dao.SettingsDao
 @Database(
     entities = [
         HighScoreEntity::class,
+        MatchResultEntity::class,
         SettingsEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class GameDatabase : RoomDatabase() {
@@ -30,4 +33,9 @@ abstract class GameDatabase : RoomDatabase() {
      * Provides access to settings operations.
      */
     abstract fun settingsDao(): SettingsDao
+
+    /**
+     * Provides access to match result operations.
+     */
+    abstract fun matchResultDao(): MatchResultDao
 }

@@ -5,6 +5,7 @@ import com.akinalpfdn.poprush.coop.domain.model.CoopMod
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
 import com.akinalpfdn.poprush.core.domain.model.BubbleColor
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.core.domain.repository.MatchHistoryRepository
 import com.akinalpfdn.poprush.core.domain.repository.PlayerProfileRepository
 import com.akinalpfdn.poprush.core.domain.util.Clock
 import com.akinalpfdn.poprush.game.presentation.coop.CoopConnectionManager
@@ -24,6 +25,7 @@ import javax.inject.Inject
 class CoopHandler @Inject constructor(
     private val coopUseCase: CoopUseCase,
     private val playerProfileRepository: PlayerProfileRepository,
+    private val matchHistoryRepository: MatchHistoryRepository,
     private val clock: Clock
 ) {
     private lateinit var stateManager: CoopStateManager
@@ -32,10 +34,11 @@ class CoopHandler @Inject constructor(
     private lateinit var messageHandler: CoopMessageHandler
 
     val discoveredEndpoints = coopUseCase.discoveredEndpoints
+    val matchHistory: MatchHistoryRepository = matchHistoryRepository
 
     fun init(scope: CoroutineScope, gameStateFlow: MutableStateFlow<GameState>) {
         stateManager = CoopStateManager(playerProfileRepository, clock, scope, gameStateFlow)
-        gameManager = CoopGameManager(coopUseCase, stateManager, clock, scope, gameStateFlow)
+        gameManager = CoopGameManager(coopUseCase, stateManager, matchHistoryRepository, clock, scope, gameStateFlow)
         messageHandler = CoopMessageHandler(coopUseCase, gameManager, clock, gameStateFlow)
         connectionManager = CoopConnectionManager(coopUseCase, stateManager, gameManager, messageHandler, scope, gameStateFlow)
         stateManager.initializeCache()

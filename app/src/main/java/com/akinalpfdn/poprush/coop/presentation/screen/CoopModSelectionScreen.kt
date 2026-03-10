@@ -48,18 +48,18 @@ fun CoopModSelectionScreen(
     onCoopModSelected: (CoopMod) -> Unit,
     onConfirm: () -> Unit,
     onDisconnect: () -> Unit,
+    onShowStats: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(AppColors.Background.Overlay),
-        contentAlignment = Alignment.Center
+            .background(AppColors.Background.Overlay)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
             modifier = Modifier
+                .fillMaxSize()
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -93,6 +93,17 @@ fun CoopModSelectionScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            CoopBubbleButton(
+                text = "STATS",
+                icon = Icons.Default.BarChart,
+                baseColor = AppColors.Bubble.SkyBlue,
+                pressedColor = AppColors.Bubble.SkyBluePressed,
+                onClick = onShowStats,
+                isSmall = true
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 

@@ -30,4 +30,6 @@ sealed interface CoopIntent : GameIntent {
     data object PlayAgain : CoopIntent
     data class SelectCoopMod(val coopMod: com.akinalpfdn.poprush.coop.domain.model.CoopMod) : CoopIntent
     data object ConfirmCoopMod : CoopIntent
+    data object ShowCoopStats : CoopIntent
+    data object HideCoopStats : CoopIntent
 }

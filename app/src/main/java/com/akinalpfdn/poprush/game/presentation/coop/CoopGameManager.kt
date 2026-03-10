@@ -3,7 +3,9 @@ package com.akinalpfdn.poprush.game.presentation.coop
 import com.akinalpfdn.poprush.coop.domain.model.CoopGamePhase
 import com.akinalpfdn.poprush.coop.domain.model.CoopMod
 import com.akinalpfdn.poprush.coop.domain.usecase.CoopUseCase
+import com.akinalpfdn.poprush.core.data.local.entity.MatchResultEntity
 import com.akinalpfdn.poprush.core.domain.model.GameState
+import com.akinalpfdn.poprush.core.domain.repository.MatchHistoryRepository
 import com.akinalpfdn.poprush.core.domain.util.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -19,6 +21,7 @@ import timber.log.Timber
 class CoopGameManager(
     private val coopUseCase: CoopUseCase,
     private val stateManager: CoopStateManager,
+    private val matchHistoryRepository: MatchHistoryRepository,
     private val clock: Clock,
     private val scope: CoroutineScope,
     private val gameStateFlow: MutableStateFlow<GameState>
@@ -158,6 +161,24 @@ class CoopGameManager(
                     )
                     state.copy(coopState = updatedCoopState)
                 } ?: state
+            }
+
+            // Save match result to history
+            try {
+                matchHistoryRepository.saveMatchResult(
+                    MatchResultEntity(
+                        localPlayerId = coopState.localPlayerId,
+                        localPlayerName = coopState.localPlayerName,
+                        opponentPlayerId = coopState.opponentPlayerId,
+                        opponentPlayerName = coopState.opponentPlayerName,
+                        localScore = localScore,
+                        opponentScore = opponentScore,
+                        coopMod = coopState.selectedCoopMod.name,
+                        winnerId = finalWinnerId
+                    )
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to save match result")
             }
 
             if (coopState.isHost) {

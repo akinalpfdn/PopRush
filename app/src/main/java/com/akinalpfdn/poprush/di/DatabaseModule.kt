@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.akinalpfdn.poprush.core.data.local.GameDatabase
 import com.akinalpfdn.poprush.core.data.local.dao.HighScoreDao
+import com.akinalpfdn.poprush.core.data.local.dao.MatchResultDao
 import com.akinalpfdn.poprush.core.data.local.dao.SettingsDao
 import dagger.Module
 import dagger.Provides
@@ -53,5 +54,14 @@ object DatabaseModule {
     @Singleton
     fun provideSettingsDao(database: GameDatabase): SettingsDao {
         return database.settingsDao()
+    }
+
+    /**
+     * Provides the Match Result DAO for coop match history.
+     */
+    @Provides
+    @Singleton
+    fun provideMatchResultDao(database: GameDatabase): MatchResultDao {
+        return database.matchResultDao()
     }
 }
